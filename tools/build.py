@@ -25,6 +25,7 @@ JS_PARTS = {
     "//__CREATOR_CORE__": "creator-core.js",
     "//__MODEL_KIT__": "model-kit.js",
     "//__UNITS__": "units.js",
+    "//__CREATOR_UI__": "creator-ui.js",
     "//__ENGINE__": "engine.js",
 }
 GLBS = {"sec": "soldier_ct.glb", "res": "soldier_t.glb"}

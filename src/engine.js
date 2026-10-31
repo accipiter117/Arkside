@@ -211,7 +211,7 @@ document.addEventListener('click',e=>{if(suppressClick){suppressClick=false;e.pr
 document.addEventListener('contextmenu',e=>{if(e.target.closest('[data-tip],#stage'))e.preventDefault()});
 
 /* ---------- views ---------- */
-const VIEWS=['title','camp','brief','roster','game','debrief'];
+const VIEWS=['title','camp','brief','roster','game','debrief','creator'];
 let CUR={faction:'resistance',mi:0};
 function show(v){for(const n of VIEWS)$('#v-'+n).hidden=n!==v;document.body.dataset.view=v;window.scrollTo(0,0);if(v==='game')requestAnimationFrame(fit);playMusic(v==='title'?null:CUR.faction)}
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2600)}
@@ -227,7 +227,7 @@ function viewTitle(){
   const st=()=>{$('#setDiff').textContent='Difficulty: '+DF().label;$('#setGfx').textContent='Graphics: '+(HI()?'High':'Low');$('#setSnd').textContent='Sound: '+(SAVE.settings.sound?'On':'Off');$('#setMus').textContent='Music: '+(SAVE.settings.music?'On':'Off');$('#setSpd').textContent='Speed: '+(SAVE.settings.fast?'Fast':'Normal');$('#setUnits').textContent='Units: '+(SAVE.settings.units==='animated'?'Animated (preview)':'Classic')};st();
   $('#setUnits').onclick=()=>{SAVE.settings.units=SAVE.settings.units==='animated'?'classic':'animated';persist();st()};$('#setDiff').onclick=()=>{const o=['easy','normal','hard'];SAVE.settings.diff=o[(o.indexOf(SAVE.settings.diff||'normal')+1)%3];persist();st()};$('#setGfx').onclick=()=>{SAVE.settings.gfx=HI()?'low':'high';persist();st()};$('#setSnd').onclick=()=>{SAVE.settings.sound=!SAVE.settings.sound;persist();st();sfx('ui')};$('#setMus').onclick=()=>{SAVE.settings.music=!SAVE.settings.music;persist();st();playMusic(null)};$('#setSpd').onclick=()=>{SAVE.settings.fast=!SAVE.settings.fast;SPD=SAVE.settings.fast?.55:1;persist();st()};
   $('#v-title').querySelectorAll('.fac').forEach(b=>b.onclick=()=>{setFaction(b.dataset.f);viewCamp()});
-  $('#doImp').onclick=()=>{try{let arr=JSON.parse($('#impCreator').value);if(!Array.isArray(arr))arr=[arr];let n=0;for(const o of arr){if(!o||typeof o!=='object')continue;const look=clean(o);SAVE.roster[look.faction].push(mkOp(look));n++}persist();toast(n?`${n} operative${n>1?'s':''} imported`:'No operatives found in that code');$('#impCreator').value=''}catch(e){toast('That doesn’t look like a creator export code')}};
+  $('#doImp').onclick=()=>{try{let arr=JSON.parse($('#impCreator').value);if(!Array.isArray(arr))arr=[arr];let n=0;let full=0;for(const o of arr){if(!o||typeof o!=='object')continue;const look=clean(o);if(SAVE.roster[look.faction].length>=ROSTER_CAP){full++;continue}SAVE.roster[look.faction].push(mkOp(look));n++}persist();toast((n?`${n} operative${n>1?'s':''} imported`:'No operatives imported')+(full?`. ${full} skipped: rosters hold ${ROSTER_CAP}.`:''));$('#impCreator').value=''}catch(e){toast('That doesn’t look like a creator export code')}};
   $('#expSave').onclick=()=>{$('#saveCode').value=JSON.stringify(SAVE);$('#saveCode').select()};
   $('#impSave').onclick=()=>{try{const v=JSON.parse($('#saveCode').value);if(!validSave(v))throw 0;for(const f of ['resistance','security'])v.roster[f]=v.roster[f].map(o=>({...o,look:clean(o.look)}));SAVE=fillSave(v);persist();viewTitle();toast('Save loaded')}catch(e){toast('That save code isn’t valid')}};
   let armed=false;$('#resetSave').onclick=e=>{if(!armed){armed=true;e.target.textContent='Tap again to confirm';return}SAVE=newSave();persist();viewTitle();toast('Fresh start')};
@@ -249,12 +249,16 @@ function opCard(op,extra=''){const s=opStats(op),nx=LEVELS[s.l]||null,pr=nx?Math
   return `<div class="pf">${portrait(op.look,'p'+op.id)}</div><div class="oc"><b>${esc(op.name)} <i>Lv ${s.l}</i></b><span>${BODY[op.body].label} ${op.cls}, ${WPN[op.weapon].name.toLowerCase()}</span><div class="xp"><s style="width:${pr}%"></s></div>${extra}</div>`}
 function viewRoster(){
   const f=CUR.faction;
-  $('#v-roster').innerHTML=`<div class="bar"><button type="button" class="btn ghost bk">‹ Campaign</button></div><h2 class="vh">Roster</h2><p class="small">Change an operative’s starting class here. In the field, they can also swap at a command post you hold.</p>
+  $('#v-roster').innerHTML=`<div class="bar"><button type="button" class="btn ghost bk">‹ Campaign</button></div><h2 class="vh">Roster <small>${SAVE.roster[f].length} of ${ROSTER_CAP} operatives</small></h2><p class="small">Change an operative’s starting class and weapon here. In the field, they can also swap class at a command post you hold.</p>
+  <button type="button" class="go crt-recruit" ${SAVE.roster[f].length>=ROSTER_CAP?'disabled':''}>${SAVE.roster[f].length>=ROSTER_CAP?'Roster full: dismiss someone to recruit':'Recruit operative'}</button>
   <div class="rlist">${SAVE.roster[f].map(op=>{const s=opStats(op);return `<div class="rcard">${opCard(op,`<p class="st" data-tip="perks">${s.hp} health, move ${s.move}, accuracy ${s.acc}${op.injured?' <em>Recovering</em>':''}</p>
    <div class="chips">${Object.keys(CLASS_AB).map(c=>`<button type="button" class="chip${op.cls===c?' on':''}" data-op="${op.id}" data-c="${c}" data-tip="cls:${c}">${c}</button>`).join('')}</div>
    <div class="chips wpn">${(BODY_WPN[op.body]||[]).map(w=>`<button type="button" class="chip${op.weapon===w?' on':''}" data-op="${op.id}" data-w="${w}" data-tip="wpn:${w}">${WPN[w].name}</button>`).join('')}</div>
-   <p class="ab">${abilList(op.cls,s.l).map(a=>`<span data-tip="ab:${a.id}" class="${a.ok?'':'lk'}">${AB[a.id].name}${a.ok?'':` (Lv ${a.at})`}</span>`).join('')}</p>`)}</div>`}).join('')}</div>`;
-  $('#v-roster .bk').onclick=viewCamp;
+   <p class="ab">${abilList(op.cls,s.l).map(a=>`<span data-tip="ab:${a.id}" class="${a.ok?'':'lk'}">${AB[a.id].name}${a.ok?'':` (Lv ${a.at})`}</span>`).join('')}</p>
+   <div class="btns crt-rbtns"><button type="button" class="btn" data-edit="${op.id}">Edit look</button><button type="button" class="btn ghost" data-dismiss="${op.id}">Dismiss</button></div>`)}</div>`}).join('')}</div>`;
+  $('#v-roster .bk').onclick=viewCamp;$('#v-roster .crt-recruit').onclick=()=>viewCreator(null);
+  $('#v-roster').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>viewCreator(SAVE.roster[f].find(o=>o.id===b.dataset.edit)));
+  $('#v-roster').querySelectorAll('[data-dismiss]').forEach(b=>b.onclick=()=>crtDismiss(b,SAVE.roster[f].find(o=>o.id===b.dataset.dismiss)));
   $('#v-roster').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const op=SAVE.roster[f].find(o=>o.id===b.dataset.op);if(b.dataset.w){op.weapon=b.dataset.w}else{op.cls=b.dataset.c;op.look={...op.look,cls:op.cls}}persist();viewRoster()});
   show('roster');
 }
