@@ -121,8 +121,8 @@ const EPILOGUE={resistance:'The gates are open and the water flows. The Ark isn�
 const SAVE_KEY='arkside.campaign.v1';
 const uid=()=>'op'+Math.random().toString(36).slice(2,9);
 function mkOp(look){return{id:uid(),look,name:look.name,callsign:look.callsign,faction:look.faction,body:look.body,cls:look.cls,weapon:look.weapon,xp:0,injured:0}}
-function newSave(){return{v:1,roster:{resistance:BASE_ROSTER.resistance.map(mkOp),security:BASE_ROSTER.security.map(mkOp)},prog:{resistance:0,security:0},stars:{},settings:{fast:false,sound:true,gfx:'high',units:'classic'}}}
-function fillSave(v){v.stars=v.stars||{};v.settings=Object.assign({fast:false,sound:true,gfx:'high',units:'classic'},v.settings||{});return v}
+function newSave(){return{v:1,roster:{resistance:BASE_ROSTER.resistance.map(mkOp),security:BASE_ROSTER.security.map(mkOp)},prog:{resistance:0,security:0},stars:{},settings:{fast:false,sound:true,gfx:'high',units:'classic',music:true}}}
+function fillSave(v){v.stars=v.stars||{};v.settings=Object.assign({fast:false,sound:true,gfx:'high',units:'classic',music:true},v.settings||{});return v}
 function validSave(s){return s&&s.v===1&&s.roster&&Array.isArray(s.roster.resistance)&&Array.isArray(s.roster.security)&&s.prog}
 function readSave(){try{const v=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');if(validSave(v)){for(const f of ['resistance','security'])v.roster[f]=v.roster[f].map(o=>({...o,look:clean(o.look)}));return fillSave(v)}}catch(e){}return null}
 let SAVE=readSave()||newSave();SPD=SAVE.settings.fast?.55:1;
@@ -147,12 +147,23 @@ function sfx(kind){if(!SAVE.settings.sound)return;const a=ac();if(!a)return;cons
   if(kind==='win')[523,659,784,1046].forEach((f,i)=>tone(f,f,.25,.07,'triangle',i*.12));
   if(kind==='lose')[392,330,262].forEach((f,i)=>tone(f,f*.98,.35,.07,'triangle',i*.18))}
 const PAR={r1:6,r2:7,r3:8,r4:11,s1:6,s2:8,s3:6,s4:10};
+/* ---------- music ---------- */
+const MUSIC_SRC={resistance:typeof MUSIC_RES==='string'?MUSIC_RES:null,security:typeof MUSIC_SEC==='string'?MUSIC_SEC:null};
+const MUS={el:{},cur:null,timers:{}};
+function musicEl(f){if(!MUSIC_SRC[f])return null;if(!MUS.el[f]){const a=new Audio(MUSIC_SRC[f]);a.loop=true;a.preload='auto';a.volume=0;MUS.el[f]=a}return MUS.el[f]}
+function musicVol(){return document.body.dataset.view==='game'?.28:.5}
+function fadeAudio(a,to,ms,done){clearInterval(MUS.timers[a.src.length]);const from=a.volume,t0=performance.now();MUS.timers[a.src.length]=setInterval(()=>{const k=Math.min(1,(performance.now()-t0)/ms);a.volume=Math.max(0,Math.min(1,from+(to-from)*k));if(k>=1){clearInterval(MUS.timers[a.src.length]);if(done)done()}},40)}
+function playMusic(f){const want=SAVE.settings.music&&SAVE.settings.sound&&!document.hidden?f:null;
+  for(const k in MUS.el){const a=MUS.el[k];if(k!==want&&!a.paused)fadeAudio(a,0,700,()=>a.pause())}
+  MUS.cur=want;if(!want)return;const a=musicEl(want);if(!a)return;if(a.paused){a.volume=0;const p=a.play();if(p&&p.catch)p.catch(()=>{})}fadeAudio(a,musicVol(),900)}
+document.addEventListener('visibilitychange',()=>playMusic(document.body.dataset.view==='title'?null:CUR.faction));
+
 const starStr=n=>'★'.repeat(n)+'☆'.repeat(3-n);
 
 /* ---------- views ---------- */
 const VIEWS=['title','camp','brief','roster','game','debrief'];
 let CUR={faction:'resistance',mi:0};
-function show(v){for(const n of VIEWS)$('#v-'+n).hidden=n!==v;document.body.dataset.view=v;window.scrollTo(0,0);if(v==='game')requestAnimationFrame(fit)}
+function show(v){for(const n of VIEWS)$('#v-'+n).hidden=n!==v;document.body.dataset.view=v;window.scrollTo(0,0);if(v==='game')requestAnimationFrame(fit);playMusic(v==='title'?null:CUR.faction)}
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2600)}
 function setFaction(f){CUR.faction=f;document.body.dataset.faction=f}
 
@@ -161,10 +172,10 @@ function viewTitle(){
   $('#v-title').innerHTML=`<div class="hero-art">${skylineSVG('resistance',170)}</div><div class="title-hero"><h1>Arkside</h1><p>Two sides of a drowning city. Pick one.</p></div>
   <div class="facs">${['resistance','security'].map(f=>`<button type="button" class="fac ${f}" data-f="${f}"><b>${FACTIONS[f].label}</b><span>${f==='resistance'?'Fight for water, freedom and a way off the Ark.':'Keep the Ark running, whatever it costs.'}</span><em>${p[f]>=4?'Campaign complete':`Mission ${Math.min(4,p[f]+1)} of 4`}</em></button>`).join('')}</div>
   <details class="tools"><summary>Import squad from the creator</summary><p class="small">In the Operative Creator, open Squad, tap “Export or import squad”, then “Show export code”. Paste the code here and each operative joins their faction’s roster.</p><textarea id="impCreator" spellcheck="false" placeholder="Paste creator export code"></textarea><button type="button" class="btn" id="doImp">Import operatives</button></details>
-  <details class="tools"><summary>Settings</summary><div class="row"><button type="button" class="btn" id="setGfx"></button><button type="button" class="btn" id="setSnd"></button><button type="button" class="btn" id="setSpd"></button><button type="button" class="btn" id="setUnits"></button></div><p class="small">Low graphics turns off shadows, waves and some scenery. Try it if the game feels sluggish. Animated units are a preview of the new soldier models.</p></details>
+  <details class="tools"><summary>Settings</summary><div class="row"><button type="button" class="btn" id="setGfx"></button><button type="button" class="btn" id="setSnd"></button><button type="button" class="btn" id="setMus"></button><button type="button" class="btn" id="setSpd"></button><button type="button" class="btn" id="setUnits"></button></div><p class="small">Low graphics turns off shadows, waves and some scenery. Try it if the game feels sluggish. Animated units are a preview of the new soldier models. Each faction’s theme plays once you pick a side.</p></details>
   <details class="tools"><summary>Save data</summary><p class="small">Progress saves automatically in this browser. Copy your save code to move it to another device.</p><textarea id="saveCode" spellcheck="false"></textarea><div class="row"><button type="button" class="btn" id="expSave">Show save code</button><button type="button" class="btn" id="impSave">Load save code</button><button type="button" class="btn warn" id="resetSave">Reset everything</button></div></details>`;
-  const st=()=>{$('#setGfx').textContent='Graphics: '+(HI()?'High':'Low');$('#setSnd').textContent='Sound: '+(SAVE.settings.sound?'On':'Off');$('#setSpd').textContent='Speed: '+(SAVE.settings.fast?'Fast':'Normal');$('#setUnits').textContent='Units: '+(SAVE.settings.units==='animated'?'Animated (preview)':'Classic')};st();
-  $('#setGfx').onclick=()=>{SAVE.settings.gfx=HI()?'low':'high';persist();st()};$('#setSnd').onclick=()=>{SAVE.settings.sound=!SAVE.settings.sound;persist();st();sfx('ui')};$('#setSpd').onclick=()=>{SAVE.settings.fast=!SAVE.settings.fast;SPD=SAVE.settings.fast?.55:1;persist();st()};$('#setUnits').onclick=()=>{SAVE.settings.units=SAVE.settings.units==='animated'?'classic':'animated';persist();st()};
+  const st=()=>{$('#setGfx').textContent='Graphics: '+(HI()?'High':'Low');$('#setSnd').textContent='Sound: '+(SAVE.settings.sound?'On':'Off');$('#setMus').textContent='Music: '+(SAVE.settings.music?'On':'Off');$('#setSpd').textContent='Speed: '+(SAVE.settings.fast?'Fast':'Normal');$('#setUnits').textContent='Units: '+(SAVE.settings.units==='animated'?'Animated (preview)':'Classic')};st();
+  $('#setGfx').onclick=()=>{SAVE.settings.gfx=HI()?'low':'high';persist();st()};$('#setSnd').onclick=()=>{SAVE.settings.sound=!SAVE.settings.sound;persist();st();sfx('ui')};$('#setMus').onclick=()=>{SAVE.settings.music=!SAVE.settings.music;persist();st();playMusic(null)};$('#setSpd').onclick=()=>{SAVE.settings.fast=!SAVE.settings.fast;SPD=SAVE.settings.fast?.55:1;persist();st()};$('#setUnits').onclick=()=>{SAVE.settings.units=SAVE.settings.units==='animated'?'classic':'animated';persist();st()};
   $('#v-title').querySelectorAll('.fac').forEach(b=>b.onclick=()=>{setFaction(b.dataset.f);viewCamp()});
   $('#doImp').onclick=()=>{try{let arr=JSON.parse($('#impCreator').value);if(!Array.isArray(arr))arr=[arr];let n=0;for(const o of arr){if(!o||typeof o!=='object')continue;const look=clean(o);SAVE.roster[look.faction].push(mkOp(look));n++}persist();toast(n?`${n} operative${n>1?'s':''} imported`:'No operatives found in that code');$('#impCreator').value=''}catch(e){toast('That doesn’t look like a creator export code')}};
   $('#expSave').onclick=()=>{$('#saveCode').value=JSON.stringify(SAVE);$('#saveCode').select()};
@@ -755,7 +766,7 @@ function zoomCam(f){camState.zoom=Math.max(.55,Math.min(2.4,camState.zoom*f))}
 function rotateCam(d){const from=camState.angle,to=from+d*Math.PI/2;tween(320,k=>camState.angle=from+(to-from)*ease(k))}
 const setCtl=()=>{$('#spd').textContent=SAVE.settings.fast?'2×':'1×';$('#snd').textContent=SAVE.settings.sound?'🔊':'🔇'};
 $('#spd').onclick=()=>{SAVE.settings.fast=!SAVE.settings.fast;SPD=SAVE.settings.fast?.55:1;persist();setCtl()};
-$('#snd').onclick=()=>{SAVE.settings.sound=!SAVE.settings.sound;persist();setCtl();sfx('ui')};setCtl();
+$('#snd').onclick=()=>{SAVE.settings.sound=!SAVE.settings.sound;persist();setCtl();sfx('ui');playMusic(CUR.faction)};setCtl();
 $('#rotL').onclick=()=>rotateCam(-1);$('#rotR').onclick=()=>rotateCam(1);$('#zin').onclick=()=>zoomCam(1.2);$('#zout').onclick=()=>zoomCam(1/1.2);
 function bindInput(){const cv=renderer.domElement,ptrs=new Map();let drag=null,pinch=null;
   cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size===1)drag={x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,moved:false};
@@ -784,4 +795,4 @@ function frame(now){requestAnimationFrame(frame);const fdt=Math.min(.1,(now-last
   renderer.render(scene,cam)}
 
 setFaction('resistance');viewTitle();
-window.ARKSIDE={camState,pickAt,get scene(){return scene},select,refresh,place,computeVis,get S(){return S},get units(){return units},get G(){return G},get cam(){return cam},tap,enemyTurn,endPlayerTurn,hitChance,startMission,MISSIONS,SAVE:()=>SAVE,viewBrief,CUR};
+window.ARKSIDE={MUS,camState,pickAt,get scene(){return scene},select,refresh,place,computeVis,get S(){return S},get units(){return units},get G(){return G},get cam(){return cam},tap,enemyTurn,endPlayerTurn,hitChance,startMission,MISSIONS,SAVE:()=>SAVE,viewBrief,CUR};
