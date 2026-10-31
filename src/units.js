@@ -195,7 +195,7 @@ function rigMuzzle(w){const b=new THREE.Box3(),inv=new THREE.Matrix4().copy(w.ma
 // Shared materials: one per (role colour, skinned) so units with the same
 // colours share them.
 function rigMat(hex,skinned){const k=hex+(skinned?'|s':'');let m=RIG.mats.get(k);if(!m){m=new THREE.MeshToonMaterial({color:hex,gradientMap:unitTex(),skinning:skinned});RIG.mats.set(k,m)}return m}
-const RIG_OL={};function rigOutlineMat(skinned){const k=skinned?'s':'r';if(!RIG_OL[k]){const m=new THREE.MeshBasicMaterial({color:0x17140f,side:THREE.BackSide,skinning:skinned});m.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n transformed += normalize(normal) * 0.026;')};m.customProgramCacheKey=()=>'ol'+k;RIG_OL[k]=m}return RIG_OL[k]}
+const RIG_OL={};function rigOutlineMat(skinned,plain){const k=plain?'p':skinned?'s':'r';if(!RIG_OL[k]){const m=new THREE.MeshBasicMaterial({color:0x17140f,side:THREE.BackSide,skinning:skinned});if(plain)return RIG_OL[k]=m;m.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n transformed += normalize(normal) * 0.026;')};m.customProgramCacheKey=()=>'ol'+k;RIG_OL[k]=m}return RIG_OL[k]}
 
 function rigColours(look){const F=FACTIONS[look.faction],sec=look.faction==='security',c1=F.pal[look.primary],c2=F.pal[look.secondary];
   return{main:c1,pants:c2,pads:sec?shade(c2,-35):shade(c2,-20),skin:SKIN[look.skin]}}
@@ -229,7 +229,7 @@ function buildRigged(look,wkey,cls,opts={}){
   // Head: the creator head on the Head bone.
   // The stock face is skinned into the Security body mesh, so we collapse
   // the Head bone to hide it and scale our head holder back up (fixHolder).
-  const K=opKit(),hd=opHead(look,K),hh=rigHolder(tpl,bones,'Head',0,.14,.02);hh.add(hd);bones.Head.scale.setScalar(.01);
+  const K=opKit(),hd=opHead(look,K),hh=rigHolder(tpl,bones,'Head',0,.14,.02);hh.userData.attach=true;hh.add(hd);bones.Head.scale.setScalar(.01);
   // Neck filler so heads sit on the collar.
   K.mesh(new THREE.CylinderGeometry(.06,.07,.14,8),shade(SKIN[look.skin],-18),hh,0,-.1,0);
   // Armour, pauldrons, kneepads and class gear.
@@ -242,8 +242,10 @@ function buildRigged(look,wkey,cls,opts={}){
   if(outline){for(const m of meshes){if(!m.visible||(m.parent&&!m.parent.visible&&RIG_WEAPONS.includes(m.parent.name)))continue;let ol;
       if(m.isSkinnedMesh){ol=new THREE.SkinnedMesh(m.geometry,rigOutlineMat(true));ol.bind(m.skeleton,m.bindMatrix)}else ol=new THREE.Mesh(m.geometry,rigOutlineMat(false));
       ol.position.copy(m.position);ol.quaternion.copy(m.quaternion);ol.scale.copy(m.scale);ol.userData.isOutline=true;ol.castShadow=false;ol.frustumCulled=m.frustumCulled;m.parent.add(ol)}
-    for(const k in bones)for(const c of bones[k].children)if(c.isGroup&&c.userData.attach)addOutlines(c,.014);
-    if(gun&&gun.userData.proc)addOutlines(gun,.014)}
+  }
+  // Merge each attachment holder (head, gear, procedural gun) into a few meshes.
+  for(const k in bones)for(const c of[...bones[k].children])if(c.isGroup&&c.userData.attach)bakeGroup(c,outline);
+  if(gun&&gun.userData.proc&&!barrels)bakeGroup(gun,outline);else if(gun&&gun.userData.proc&&outline)addOutlines(gun,.014);
   // Skinned meshes are culled by their bind-pose bounds; animation moves them,
   // so disable culling (units are few and small).
   root.traverse(o=>{if(o.isSkinnedMesh)o.frustumCulled=false});
@@ -262,10 +264,10 @@ function opKit(){const MC={},M=(c,o)=>{const k=c+(o?JSON.stringify(o):'');return
 // (mid chest); numbers are procedural units (1 = about half a metre... ish).
 function rigGear(look,cls,tpl,bones,K,col){const{mesh,box,sph}=K,sec=look.faction==='security',acc=FACTIONS[look.faction].accent,c2=col.pants;
   const T=rigHolder(tpl,bones,'Torso');T.userData.attach=true;
-  const sw=.3,zf=.19,vest=shade(c2,-42),Y=.15; // half shoulder width, chest front, chest centre
+  const sw=.3,zf={light:.18,medium:.2,heavy:.25}[look.body]||.2,vest=shade(c2,-42),Y=.15; // zf: chest front, further out on heavies (bone scaling pushes the jacket forward) // half shoulder width, chest front, chest centre
   if(look.armour==='carrier'){box(sw*1.5,.3,.06,vest,T,0,Y,zf+.02);box(sw*1.5,.3,.06,vest,T,0,Y,-zf-.03);for(const sd of[-1,0,1])box(.11,.1,.06,shade(vest,14),T,sd*.14,Y-.08,zf+.07);box(.16,.04,.005,'#e6e1d4',T,0,Y+.1,zf+.055)}
   if(look.armour==='rig'){const rc=shade(c2,-30);box(sw*1.6,.12,.07,rc,T,0,Y-.12,zf+.03);for(let i=0;i<4;i++)box(.07,.09,.05,'#2f3134',T,-sw*.6+i*sw*.4,Y-.06,zf+.06);for(const sd of[-1,1]){const st=box(.05,.36,.02,rc,T,sd*sw*.45,Y+.06,zf+.02);st.rotation.z=sd*.08}}
-  if(look.armour==='riot'){const rp='#d4dadf';box(sw*1.45,.32,.06,rp,T,0,Y,zf+.02);box(sw*1.45,.32,.06,rp,T,0,Y,-zf+.01);box(.05,.26,.005,acc,T,0,Y,zf+.055);mesh(new THREE.TorusGeometry(.1,.035,6,14),'#a7b1b8',T,0,Y+.22,0).rotation.x=Math.PI/2}
+  if(look.armour==='riot'){const rp='#d4dadf';box(sw*1.45,.32,.06,rp,T,0,Y,zf+.02);box(sw*1.45,.32,.06,rp,T,0,Y,-zf+.02);box(.05,.26,.005,acc,T,0,Y,zf+.055);mesh(new THREE.TorusGeometry(.1,.035,6,14),'#a7b1b8',T,0,Y+.22,0).rotation.x=Math.PI/2}
   if(look.armour==='scrap'){const p1=box(sw*.9,.24,.05,'#8b4a2a',T,-sw*.32,Y+.04,zf+.03);p1.rotation.z=.12;const p2=box(sw*.75,.2,.05,'#7f858b',T,sw*.36,Y,zf+.035);p2.rotation.z=-.1;const sp=box(.06,.42,.02,'#4a3423',T,0,Y,zf+.06);sp.rotation.z=.6}
   // Pauldrons (riot and scrap) on the upper arms.
   if(look.armour==='riot'||look.armour==='scrap')for(const s of['L','R']){const A=rigHolder(tpl,bones,'UpperArm'+s);if(!A)continue;A.userData.attach=true;const sd=s==='L'?1:-1;
@@ -308,3 +310,29 @@ function rigFlash(model,col,ms=130){const k=col+'';const fm=sk=>RIG_FLASH[k+sk]|
   setTimeout(()=>model.traverse(o=>{if(o.userData.m0){o.material=o.userData.m0;delete o.userData.m0}}),ms)}
 // World position of a rigged unit's muzzle.
 function rigMuzzleWorld(rig,out){return rig.gun.localToWorld(out.copy(rig.muzzle))}
+
+/* ---------- draw-call reduction ----------
+   Heads, gear and procedural guns are built from dozens of small meshes.
+   bakeGroup merges everything under a holder into one mesh per material,
+   plus (optionally) one outline mesh, so a unit costs a few draw calls
+   instead of a hundred. */
+function mergeGeos(parts){let nv=0,ni=0;for(const{g}of parts){nv+=g.attributes.position.count;ni+=g.index?g.index.count:g.attributes.position.count}
+  const pos=new Float32Array(nv*3),nor=new Float32Array(nv*3),idx=nv>65535?new Uint32Array(ni):new Uint16Array(ni);let vo=0,io=0;const v=new THREE.Vector3(),nm=new THREE.Matrix3();
+  for(const{g,m}of parts){const p=g.attributes.position,n=g.attributes.normal;nm.getNormalMatrix(m);
+    for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i).applyMatrix4(m);pos.set([v.x,v.y,v.z],(vo+i)*3);if(n){v.fromBufferAttribute(n,i).applyMatrix3(nm).normalize();nor.set([v.x,v.y,v.z],(vo+i)*3)}}
+    if(g.index)for(let i=0;i<g.index.count;i++)idx[io+i]=g.index.getX(i)+vo;else for(let i=0;i<p.count;i++)idx[io+i]=i+vo;
+    // mirrored parts (negative scale) need their winding flipped
+    if(m.determinant()<0)for(let i=io;i<io+(g.index?g.index.count:p.count);i+=3){const t=idx[i+1];idx[i+1]=idx[i+2];idx[i+2]=t}
+    vo+=p.count;io+=g.index?g.index.count:p.count}
+  const out=new THREE.BufferGeometry();out.setAttribute('position',new THREE.BufferAttribute(pos,3));out.setAttribute('normal',new THREE.BufferAttribute(nor,3));out.setIndex(new THREE.BufferAttribute(idx,1));out.computeBoundingSphere();return out}
+function bakeGroup(h,outline,t=.014){
+  const rel=o=>{const m=new THREE.Matrix4();let a=o;while(a&&a!==h){a.updateMatrix();m.premultiply(a.matrix);a=a.parent}return m};
+  const byMat=new Map(),ol=[],v=new THREE.Vector3(),list=[];
+  h.traverse(o=>{if(o.isMesh&&!o.isSkinnedMesh&&!o.userData.isOutline)list.push(o)});
+  if(list.length<2)return;
+  for(const o of list){const m=rel(o),mt=o.material;if(!byMat.has(mt))byMat.set(mt,[]);byMat.get(mt).push({g:o.geometry,m});
+    if(outline&&!o.userData.noOutline&&!(mt.transparent)){o.geometry.computeBoundingBox();o.geometry.boundingBox.getSize(v);const s=o.scale,k=new THREE.Vector3(1+2*t/Math.max(.02,v.x*Math.abs(s.x)),1+2*t/Math.max(.02,v.y*Math.abs(s.y)),1+2*t/Math.max(.02,v.z*Math.abs(s.z)));
+      const c=o.geometry.boundingBox.getCenter(new THREE.Vector3());ol.push({g:o.geometry,m:m.clone().multiply(new THREE.Matrix4().makeTranslation(c.x,c.y,c.z)).multiply(new THREE.Matrix4().makeScale(k.x,k.y,k.z)).multiply(new THREE.Matrix4().makeTranslation(-c.x,-c.y,-c.z))})}}
+  for(const c of[...h.children])h.remove(c);
+  for(const[mt,parts]of byMat){const m=new THREE.Mesh(mergeGeos(parts),mt);m.castShadow=true;m.receiveShadow=true;h.add(m)}
+  if(ol.length){const m=new THREE.Mesh(mergeGeos(ol),rigOutlineMat(false,true));m.userData.isOutline=true;h.add(m)}}
