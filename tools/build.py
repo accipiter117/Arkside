@@ -6,6 +6,8 @@ Usage:  python3 tools/build.py
   src/index.template.html            -> index.html
   src/lab/unit-review.template.html  -> lab/unit-review.html
 
+The faction themes in assets/audio/*.m4a are embedded in index.html too.
+
 Each output is self-contained apart from the pinned three.js scripts and
 Google Fonts, so it runs straight from GitHub Pages. The unit models in
 assets/models/*.glb are embedded as base64 (ARK_GLB) so no extra requests
@@ -24,6 +26,7 @@ JS_PARTS = {
     "//__ENGINE__": "engine.js",
 }
 GLBS = {"sec": "soldier_ct.glb", "res": "soldier_t.glb"}
+MUSIC = (("MUSIC_RES", "theme-resistance.m4a"), ("MUSIC_SEC", "theme-security.m4a"))
 
 PAGES = [
     (SRC / "index.template.html", ROOT / "index.html"),
@@ -39,16 +42,30 @@ def glb_script():
     return "const ARK_GLB={" + ",".join(parts) + "};"
 
 
+def music_script():
+    """Faction themes from assets/audio as data URIs (null if missing)."""
+    out = []
+    for const, name in MUSIC:
+        f = ROOT / "assets" / "audio" / name
+        if f.exists():
+            out.append(f'const {const}="data:audio/mp4;base64,{base64.b64encode(f.read_bytes()).decode()}";')
+        else:
+            out.append(f"const {const}=null;")
+    return "\n".join(out)
+
+
 def build(template, out, glb):
     html = template.read_text(encoding="utf-8")
     if "/*__CSS__*/" in html:
         html = html.replace("/*__CSS__*/", (SRC / "style.css").read_text(encoding="utf-8"))
     if "/*__GLB__*/" in html:
         html = html.replace("/*__GLB__*/", glb)
+    if "/*__MUSIC__*/" in html:
+        html = html.replace("/*__MUSIC__*/", music_script())
     for marker, name in JS_PARTS.items():
         if marker in html:
             html = html.replace(marker, (SRC / name).read_text(encoding="utf-8"))
-    for marker in [*JS_PARTS, "/*__CSS__*/", "/*__GLB__*/"]:
+    for marker in [*JS_PARTS, "/*__CSS__*/", "/*__GLB__*/", "/*__MUSIC__*/"]:
         if marker in html:
             raise SystemExit(f"marker {marker} not replaced in {template}")
     out.write_text(html, encoding="utf-8")
