@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arkside: unit review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+<style>
+:root{--bg:#dde1e0;--panel:#f1f3f2;--ink:#1a2226;--muted:#56626a;--line:#c4cccb;--acc:#c9581c;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#11181c;--panel:#182126;--ink:#e4eaec;--muted:#93a1a8;--line:#2b383f;color-scheme:dark}}
+body[data-f="security"]{--acc:#2a7fbd}
+*,*::before,*::after{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 Barlow,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
+main{max-width:1000px;margin:0 auto;padding:14px 14px 40px}
+h1{font-family:Teko,'Arial Narrow',sans-serif;font-weight:600;font-size:38px;line-height:.9;margin:0}
+.intro{color:var(--muted);margin:6px 0 10px;max-width:64ch}
+button,select,textarea{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 11px;font-weight:600;min-height:40px;cursor:pointer}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.lay{display:grid;gap:12px}@media(min-width:760px){.lay{grid-template-columns:1.1fr 1fr;align-items:start}.view{position:sticky;top:10px}}
+.view{position:relative;aspect-ratio:3/4;max-height:66vh;width:100%;border-radius:6px 18px 6px 6px;overflow:hidden;background:linear-gradient(#3a7fc4,#9fcfe8 55%,#e8dccb);touch-action:pan-y}
+body[data-f="security"] .view{background:linear-gradient(#2f86cf,#9fcde6 55%,#e6f2f6)}
+.view canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.who{position:absolute;left:10px;bottom:10px;right:10px;color:#fff;text-shadow:0 1px 3px #000a;font-size:13px}
+.who b{font-family:Teko,sans-serif;font-size:26px;font-weight:500;display:block;line-height:1}
+.tag{position:absolute;left:10px;top:10px;color:#fff;background:var(--acc);font-weight:700;font-size:12px;padding:3px 9px;border-radius:6px}
+.fps{position:absolute;right:10px;top:10px;color:#fff;font-size:12px;background:#0006;padding:2px 7px;border-radius:6px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
+label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);font-weight:600}
+select{margin-top:2px;min-height:38px;border:1px solid var(--line);border-radius:7px;background:var(--bg);padding:4px 6px}
+.anim button{font-size:13px;min-height:36px;padding:5px 9px}
+textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:7px;background:var(--bg);padding:6px;font-size:12px}
+.note{font-size:13px;color:var(--muted);margin-top:12px;max-width:70ch}
+h2{font:600 22px Teko,sans-serif;margin:10px 0 2px}
+</style></head><body data-f="resistance"><main>
+<h1>Unit review</h1>
+<p class="intro">The animated units exactly as the game builds them: Quaternius Toon Shooter soldiers (CC0) recoloured from a creator look, with the creator head, armour, gear and weapon attached to the skeleton. Pick a look, try the animations, and compare with the classic models.</p>
+<div class="lay">
+  <div class="view" id="view"><span class="tag" id="tag">Resistance</span><span class="fps" id="fps"></span><div class="who" id="who"></div></div>
+  <div>
+    <div class="row"><button type="button" class="btn" id="rand">Random look</button><button type="button" class="btn" id="model" aria-pressed="false">Showing: animated</button><button type="button" class="btn" id="size" aria-pressed="false">View: close-up</button><button type="button" class="btn" id="crowd" aria-pressed="false">Squad of 12</button></div>
+    <div class="row anim" id="anim"></div>
+    <div class="panel"><h2>Look</h2><div class="grid" id="picks"></div>
+      <h2>Creator code</h2><p class="note" style="margin:0 0 6px">Paste an operative or squad export from the Operative Creator to load it (the first operative is shown).</p><textarea id="code" spellcheck="false" placeholder="Paste creator export code"></textarea><div class="row"><button type="button" class="btn" id="load">Load code</button><button type="button" class="btn" id="copy">Show this look’s code</button></div></div>
+  </div>
+</div>
+<p class="note">Clothing follows the model’s own shapes, so tank tops, hoodies and jackets all show as the base jacket or hoodie for now (bending cloth would need the Blender step in Phase 2). Gloves recolour the hands. The squad view shows 12 random units at game size, with the frame rate, as a performance check.</p>
+</main>
+<script>/*__GLB__*/</script>
+<script>
+//__CREATOR_CORE__
+//__MODEL_KIT__
+//__UNITS__
+</script>
+<script>
+(function(){
+if(typeof THREE==='undefined'){document.querySelector('main').insertAdjacentHTML('beforeend','<p>The 3D engine couldn’t load. Check your connection and reload.</p>');return}
+const box=document.getElementById('view');
+const r=new THREE.WebGLRenderer({antialias:true,alpha:true});r.setPixelRatio(Math.min(2,devicePixelRatio||1));r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;box.prepend(r.domElement);
+const s=new THREE.Scene();s.add(new THREE.HemisphereLight(0xdcefff,0x8a7a66,.75));const sun=new THREE.DirectionalLight(0xfff3e0,.85);sun.position.set(4,7,5);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-3,right:3,top:3,bottom:-3});s.add(sun);
+const floor=new THREE.Mesh(new THREE.BoxGeometry(5,.2,5),new THREE.MeshLambertMaterial({color:0x8f7462}));floor.position.y=-.1;floor.receiveShadow=true;s.add(floor);
+const pc=new THREE.PerspectiveCamera(28,.75,.05,50),oc=new THREE.OrthographicCamera(-2,2,2,-2,.1,60);
+let look=clean({...DEFAULT}),wkey=look.weapon,classic=false,game=false,crowd=false,unit=null,rig=null,crowdUnits=[],yaw=.4,drag=null,curAnim='Idle';
+const ANIMS=[['Idle','Idle'],['Walk','Walk'],['Run','Run'],['Shoot','Idle_Shoot'],['Walk + shoot','Walk_Shoot'],['Hit','HitReact'],['Take cover','Duck'],['Down','Death'],['Jump','Jump'],['Wave','Wave'],['Yes','Yes'],['No','No']];
+document.getElementById('anim').innerHTML=ANIMS.map(([l,a])=>`<button type="button" class="btn" data-a="${a}">${l}</button>`).join('');
+const LBL={faction:'Faction',body:'Build',cls:'Class',weapon:'Weapon',skin:'Skin',face:'Face',expr:'Expression',facial:'Facial hair',mark:'Markings',hair:'Hair',hairCol:'Hair colour',headgear:'Headgear',facegear:'Face gear',top:'Top',armour:'Armour',legs:'Legs',gloves:'Gloves',primary:'Main colour',secondary:'Second colour'};
+function choices(k){const f=look.faction;
+  if(k==='faction')return Object.entries(FACTIONS).map(([v,o])=>[v,o.label]);
+  if(k==='body')return Object.entries(BODY).map(([v,o])=>[v,o.label]);
+  if(k==='cls')return Object.entries(CLASSES).map(([v,o])=>[v,o.label]);
+  if(k==='weapon')return Object.entries(WEAPONS).filter(([v,o])=>o.bodies.includes(look.body)).map(([v,o])=>[v,o.label]);
+  if(k==='skin')return SKIN.map((c,i)=>[i,'Tone '+(i+1)]);
+  if(k==='hairCol')return HAIRC.map((c,i)=>[i,['Black','Dark brown','Brown','Copper','Blond','Grey','White','Red','Blue'][i]||'Colour '+(i+1)]);
+  if(k==='primary'||k==='secondary')return FACTIONS[f].pal.map((c,i)=>[i,FACTIONS[f].names[i]]);
+  return OPTS[k].filter(o=>!o[3]||o[3]===f||(k!=='armour'&&k!=='headgear')).filter(o=>!(k==='headgear'&&o[2]&&o[2]!==f)).map(o=>[o[0],o[1]])}
+function picks(){document.getElementById('picks').innerHTML=Object.keys(LBL).map(k=>`<label>${LBL[k]}<select data-k="${k}">${choices(k).map(([v,l])=>`<option value="${v}"${String(look[k])===String(v)?' selected':''}>${l}</option>`).join('')}</select></label>`).join('')}
+document.getElementById('picks').addEventListener('change',e=>{const k=e.target.dataset.k;let v=e.target.value;if(['skin','hairCol','primary','secondary'].includes(k))v=+v;look=clean({...look,[k]:v});
+  if(k==='body'&&!WEAPONS[look.weapon].bodies.includes(look.body))look.weapon=Object.keys(WEAPONS).find(w=>WEAPONS[w].bodies.includes(look.body));rebuild()});
+function randomLook(){const f=pick(['resistance','security']),body=pick(Object.keys(BODY)),o={faction:f,body,cls:pick(Object.keys(CLASSES)),weapon:pick(Object.keys(WEAPONS).filter(w=>WEAPONS[w].bodies.includes(body))),skin:Math.floor(Math.random()*SKIN.length),hairCol:Math.floor(Math.random()*HAIRC.length),primary:Math.floor(Math.random()*6),secondary:Math.floor(Math.random()*6),name:pick(NAMES),callsign:pick(CALLSIGNS)};
+  for(const k of['face','expr','facial','mark','hair','headgear','facegear','top','armour','legs','gloves'])o[k]=pick(OPTS[k].filter(x=>!(x[3]&&x[3]!==f)&&!(k==='headgear'&&x[2]&&x[2]!==f)))[0];return clean(o)}
+function make(l,outline=true){if(!classic){const m=buildRigged(l,l.weapon,l.cls,{outline});if(m)return m}const m=buildOperative(l,l.weapon,l.cls);if(outline)addOutlines(m,.016);m.scale.setScalar(.5);return m}
+function clear(){if(unit)s.remove(unit);for(const u of crowdUnits)s.remove(u);crowdUnits=[];unit=null;rig=null}
+function rebuild(){clear();document.body.dataset.f=look.faction;document.getElementById('tag').textContent=FACTIONS[look.faction].label;picks();
+  if(crowd){for(let i=0;i<12;i++){const l=randomLook(),m=make(l);m.position.set((i%4-1.5)*.9,0,(Math.floor(i/4)-1)*.9);m.rotation.y=Math.random()*.8-.4;m.traverse(o=>{if(o.isMesh&&!o.userData.isOutline)o.castShadow=true});s.add(m);crowdUnits.push(m);const rg=m.userData.rig;if(rg){rg.play(pick(['Idle','Idle','Walk','Idle_Shoot','Duck']));rg.update(Math.random()*2)}}}
+  else{unit=make(look);unit.traverse(o=>{if(o.isMesh&&!o.userData.isOutline)o.castShadow=true});s.add(unit);rig=unit.userData.rig||null;if(rig)rig.play(curAnim,curAnim==='Death'?{clamp:true}:{})}
+  document.getElementById('who').innerHTML=crowd?'<b>Squad of 12</b>Random looks at game size':`<b>${esc(look.name)}</b>“${esc(look.callsign)}”, ${BODY[look.body].label.toLowerCase()} ${look.cls}, ${WEAPONS[look.weapon].label.toLowerCase()}${!classic&&!rig?' (models unavailable, showing classic)':''}`;
+  document.querySelectorAll('#anim .btn').forEach(b=>b.setAttribute('aria-pressed',b.dataset.a===curAnim))}
+document.getElementById('anim').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;curAnim=b.dataset.a;if(rig)rig.play(curAnim,curAnim==='Death'?{clamp:true}:{});document.querySelectorAll('#anim .btn').forEach(x=>x.setAttribute('aria-pressed',x===b))});
+document.getElementById('rand').onclick=()=>{look=randomLook();rebuild()};
+const tgl=(id,fn)=>{const b=document.getElementById(id);b.onclick=()=>{fn();b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true');rebuild();lbl()}};
+function lbl(){document.getElementById('model').textContent='Showing: '+(classic?'classic':'animated');document.getElementById('size').textContent='View: '+(game?'game size':'close-up');document.getElementById('crowd').textContent=crowd?'Single unit':'Squad of 12'}
+tgl('model',()=>classic=!classic);tgl('size',()=>game=!game);tgl('crowd',()=>{crowd=!crowd;if(crowd)game=true});
+document.getElementById('load').onclick=()=>{try{let a=JSON.parse(document.getElementById('code').value);if(Array.isArray(a))a=a[0];look=clean(a);rebuild()}catch(e){alert('That doesn’t look like a creator export code')}};
+document.getElementById('copy').onclick=()=>{const t=document.getElementById('code');t.value=JSON.stringify(look);t.select()};
+const cv=r.domElement;cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:yaw};cv.setPointerCapture(e.pointerId)});cv.addEventListener('pointermove',e=>{if(drag)yaw=drag.y+(e.clientX-drag.x)*.012});cv.addEventListener('pointerup',()=>drag=null);
+function fit(){const w=box.clientWidth,h=box.clientHeight;if(!w||!h)return;r.setSize(w,h,false);pc.aspect=w/h;pc.updateProjectionMatrix()}new ResizeObserver(fit).observe(box);fit();
+const clock=new THREE.Clock();let fr=0,ft=0;
+function tick(){requestAnimationFrame(tick);const dt=Math.min(.05,clock.getDelta());
+  if(rig)rig.update(dt);for(const u of crowdUnits)u.userData.rig&&u.userData.rig.update(dt);
+  if(unit)unit.rotation.y=yaw;
+  let cam=pc;if(game||crowd){cam=oc;const w=box.clientWidth,h=box.clientHeight,hh=crowd?1.9:1.4,ww=hh*w/h;Object.assign(oc,{left:-ww,right:ww,top:hh,bottom:-hh});oc.updateProjectionMatrix();oc.position.set(Math.sin(Math.PI/4)*24,19,Math.cos(Math.PI/4)*24);oc.lookAt(0,.35,0)}
+  else{pc.position.set(0,.6,2.9);pc.lookAt(0,.47,0)}
+  r.render(s,cam);fr++;ft+=dt;if(ft>1){document.getElementById('fps').textContent=Math.round(fr/ft)+' fps';fr=0;ft=0}}
+window.REVIEW={get look(){return look},set look(v){look=clean(v);rebuild()},rebuild,randomLook,play:a=>{curAnim=a;if(rig)rig.play(a,a==='Death'?{clamp:true}:{})},setYaw:v=>yaw=v,toggle:id=>document.getElementById(id).click()};
+RIG.ready.then(()=>{rebuild();tick()});
+})();
+</script></body></html>
