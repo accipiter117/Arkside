@@ -15,7 +15,7 @@ Unofficial and non-commercial. Brink and its setting belong to their owners.
 Vanilla JS and three.js r128, no framework and no bundler. The game ships as **one self-contained `index.html`**, assembled from `src/` by a tiny script:
 
 ```
-python3 tools/build.py      # src/* -> index.html
+python3 tools/build.py      # src/* -> index.html and lab/unit-review.html
 ```
 
 | File | What's in it |
@@ -24,9 +24,24 @@ python3 tools/build.py      # src/* -> index.html
 | `src/style.css` | All styling (light and dark tokens, mobile-first) |
 | `src/creator-core.js` | Shared character data and the 2D SVG operative renderer (same as the creator) |
 | `src/model-kit.js` | Palette, seeded RNG, toon material and outline helpers |
+| `src/units.js` | Unit models: procedural operatives, the shared creator head, weapons, and the rigged Toon Shooter pipeline (loading, recolouring, attachments, body types, animation) |
+| `src/lab/unit-review.template.html` | The unit review lab page (built into `lab/unit-review.html`) |
+| `assets/models/*.glb` | Quaternius Toon Shooter soldiers (CC0), embedded as base64 at build time |
 | `src/engine.js` | Everything else: data, missions, save system, menus, tactics engine, AI, visuals, audio |
 
-Never edit `index.html` directly. Edit `src/` and rebuild.
+Never edit `index.html` or `lab/unit-review.html` directly. Edit `src/` and rebuild.
+
+## Testing
+
+Node and Playwright (preinstalled in the Claude Code cloud environment):
+
+```
+node tools/smoke.mjs [--animated] [--low]   # every mission, 3 turns, fails on console errors
+node tools/screens.mjs [--animated]         # phone-size screenshots into shots/
+node tools/perf.mjs                         # frame rate and draw calls, classic vs animated
+```
+
+Where the three.js CDNs and Google Fonts are blocked (as in the cloud sandbox), the tools serve the same files from npm packages cached in `tools/.cache`. See `tools/browser.mjs`.
 
 See `docs/DESIGN.md` for the game design and `docs/CLAUDE_CODE_PLAN.md` for the roadmap.
 

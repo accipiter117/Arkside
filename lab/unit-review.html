@@ -780,7 +780,7 @@ function randomLook(){const f=pick(['resistance','security']),body=pick(Object.k
 function make(l,outline=true){if(!classic){const m=buildRigged(l,l.weapon,l.cls,{outline});if(m)return m}const m=buildOperative(l,l.weapon,l.cls);if(outline)addOutlines(m,.016);m.scale.setScalar(.5);return m}
 function clear(){if(unit)s.remove(unit);for(const u of crowdUnits)s.remove(u);crowdUnits=[];unit=null;rig=null}
 function rebuild(){clear();document.body.dataset.f=look.faction;document.getElementById('tag').textContent=FACTIONS[look.faction].label;picks();
-  if(crowd){for(let i=0;i<12;i++){const l=randomLook(),m=make(l);m.position.set((i%4-1.5)*.9,0,(Math.floor(i/4)-1)*.9);m.rotation.y=Math.random()*.8-.4;m.traverse(o=>{if(o.isMesh&&!o.userData.isOutline)o.castShadow=true});s.add(m);crowdUnits.push(m);const rg=m.userData.rig;if(rg){rg.play(pick(['Idle','Idle','Walk','Idle_Shoot','Duck']));rg.update(Math.random()*2)}}}
+  if(crowd){for(let i=0;i<12;i++){const l=randomLook(),m=make(l);m.position.set((i%4-1.5)*1.1,0,(Math.floor(i/4)-1)*1.1);m.rotation.y=Math.random()*.8-.4;m.traverse(o=>{if(o.isMesh&&!o.userData.isOutline)o.castShadow=true});s.add(m);crowdUnits.push(m);const rg=m.userData.rig;if(rg){rg.play(pick(['Idle','Idle','Walk','Idle_Shoot','Duck']));rg.update(Math.random()*2)}}}
   else{unit=make(look);unit.traverse(o=>{if(o.isMesh&&!o.userData.isOutline)o.castShadow=true});s.add(unit);rig=unit.userData.rig||null;if(rig)rig.play(curAnim,curAnim==='Death'?{clamp:true}:{})}
   document.getElementById('who').innerHTML=crowd?'<b>Squad of 12</b>Random looks at game size':`<b>${esc(look.name)}</b>“${esc(look.callsign)}”, ${BODY[look.body].label.toLowerCase()} ${look.cls}, ${WEAPONS[look.weapon].label.toLowerCase()}${!classic&&!rig?' (models unavailable, showing classic)':''}`;
   document.querySelectorAll('#anim .btn').forEach(b=>b.setAttribute('aria-pressed',b.dataset.a===curAnim))}
@@ -797,7 +797,7 @@ const clock=new THREE.Clock();let fr=0,ft=0;
 function tick(){requestAnimationFrame(tick);const dt=Math.min(.05,clock.getDelta());
   if(rig)rig.update(dt);for(const u of crowdUnits)u.userData.rig&&u.userData.rig.update(dt);
   if(unit)unit.rotation.y=yaw;
-  let cam=pc;if(game||crowd){cam=oc;const w=box.clientWidth,h=box.clientHeight,hh=crowd?1.9:1.4,ww=hh*w/h;Object.assign(oc,{left:-ww,right:ww,top:hh,bottom:-hh});oc.updateProjectionMatrix();oc.position.set(Math.sin(Math.PI/4)*24,19,Math.cos(Math.PI/4)*24);oc.lookAt(0,.35,0)}
+  let cam=pc;if(game||crowd){cam=oc;const w=box.clientWidth,h=box.clientHeight,hh=crowd?3:1.4,ww=hh*w/h;Object.assign(oc,{left:-ww,right:ww,top:hh,bottom:-hh});oc.updateProjectionMatrix();oc.position.set(Math.sin(Math.PI/4)*24,19,Math.cos(Math.PI/4)*24);oc.lookAt(0,.35,0)}
   else{pc.position.set(0,.6,2.9);pc.lookAt(0,.47,0)}
   r.render(s,cam);fr++;ft+=dt;if(ft>1){document.getElementById('fps').textContent=Math.round(fr/ft)+' fps';fr=0;ft=0}}
 window.REVIEW={get look(){return look},set look(v){look=clean(v);rebuild()},rebuild,randomLook,play:a=>{curAnim=a;if(rig)rig.play(a,a==='Death'?{clamp:true}:{})},setYaw:v=>yaw=v,toggle:id=>document.getElementById(id).click()};
