@@ -123,6 +123,12 @@ body[data-faction="security"] .ub.p b{background:#4aa3e0}body[data-faction="secu
 .moves{margin:10px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:13.5px}
 .moves b{display:block;font-family:Teko,sans-serif;font-weight:500;font-size:20px;line-height:1;margin-bottom:4px}
 .moves span{display:block;margin:2px 0}.moves i{font-style:normal;font-weight:600;color:var(--acc)}.moves small{display:block;margin-top:5px;color:var(--muted)}
+#tip{position:fixed;z-index:40;background:#14181b;color:#f1ece2;border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.4;box-shadow:0 8px 28px rgba(0,0,0,.4);pointer-events:none;border-top:3px solid var(--acc)}
+#tip b{display:block;font-family:Teko,sans-serif;font-weight:500;font-size:20px;line-height:1;margin-bottom:3px}
+#tip small{display:block;margin-top:5px;opacity:.75;font-size:12px}
+button,[data-tip],#stage{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.chips.wpn{margin-top:5px}.chips.wpn .chip{text-transform:none}
+.dstat span[data-tip]{cursor:help}
 </style>
 </head>
 <body data-view="title" data-faction="resistance">
@@ -135,10 +141,11 @@ body[data-faction="security"] .ub.p b{background:#4aa3e0}body[data-faction="secu
   <header id="top"><button type="button" id="retreat">Retreat</button><div class="mission"><b id="mtitle"></b><span id="obj"></span></div><span id="turn"></span><button type="button" id="endTurn">End turn</button></header>
   <div id="stage"><div id="hud"></div>
     <div class="camctl"><button type="button" id="rotL" aria-label="Rotate left">⟲</button><button type="button" id="rotR" aria-label="Rotate right">⟳</button><button type="button" id="zin" aria-label="Zoom in">+</button><button type="button" id="zout" aria-label="Zoom out">−</button><button type="button" id="spd" aria-label="Game speed">1×</button><button type="button" id="snd" aria-label="Sound on or off">🔊</button></div>
-    <button type="button" id="undoBtn" hidden>↶ Undo move</button><div id="banner"></div><div id="log" role="status" aria-live="polite"></div></div>
+    <button type="button" id="undoBtn" data-tip="undo" hidden>↶ Undo move</button><div id="banner"></div><div id="log" role="status" aria-live="polite"></div></div>
   <footer id="panel"><div id="roster"></div><div id="detail"></div></footer>
 </section>
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="tip" role="tooltip" hidden></div>
 <script>
 if(typeof THREE==='undefined'){document.body.insertAdjacentHTML('afterbegin','<p style="padding:20px;text-align:center">The 3D engine couldn’t load. Check your connection and reload.</p>')}
 </script>
@@ -877,19 +884,21 @@ const AB={
   spot:{name:'Spot',cd:2,tgt:'tile',range:9,desc:'Reveal a 3-tile radius for two turns. Spotted enemies are easier to hit.'},
   disguise:{name:'Disguise',cd:4,tgt:'self',desc:'The enemy ignores you for 2 turns, unless you attack or end next to them.'},
   emp:{name:'EMP',cd:4,tgt:'tile',range:5,desc:'Stun every enemy within 1 tile of the target for a turn, turrets included.'}};
+const BODY_WPN={light:['mpistol','smg'],medium:['smg','rifle','shotgun','sniper'],heavy:['rifle','shotgun','lmg','minigun']};
+const CLASS_DESC={soldier:'Frontline fighter. Grenades clear cover, Resupply refreshes an ally, Suppress pins an enemy. Plants charges twice as fast.',medic:'Keeps the squad alive. Heals, revives the downed, and can give an ally a second move. The only way to revive mid-fight.',engineer:'Builds and fortifies. Barricades, auto-turrets and shields. Repairs objectives twice as fast.',operative:'Information and infiltration. Spots areas, disguises as the enemy and EMPs groups. Hacks twice as fast.'};
 const CLASS_AB={soldier:['grenade','resupply','suppress'],medic:['patch','adrenaline','surgery'],engineer:['barricade','turret','armourup'],operative:['spot','disguise','emp']};
 const AB_LVL=[1,2,4];
 const OBJ_FAST={hack:'operative',plant:'soldier',repair:'engineer'};
 const OBJ_VERB={hack:'Hack',plant:'Plant charge',repair:'Repair'};
 const ETYPES={
-  trooper:{label:'Trooper',body:'medium',cls:'soldier',hp:90,w:'rifle',acc:-10,dmg:.72},
-  heavy:{label:'Heavy',body:'heavy',cls:'soldier',hp:140,w:'minigun',acc:-12,dmg:.68},
-  marksman:{label:'Marksman',body:'medium',cls:'soldier',hp:80,w:'sniper',acc:-6,dmg:.72,move:4},
-  medic:{label:'Medic',body:'medium',cls:'medic',hp:85,w:'smg',acc:-12,dmg:.72},
-  engineer:{label:'Engineer',body:'heavy',cls:'engineer',hp:120,w:'shotgun',acc:-10,dmg:.72},
-  infiltrator:{label:'Infiltrator',body:'light',cls:'operative',hp:70,w:'smg',acc:-8,dmg:.72},
-  turret:{label:'Turret',body:'turret',cls:'turret',hp:70,w:'turret',acc:-4,dmg:.85},
-  leader:{label:'Cell leader',body:'medium',cls:'soldier',hp:160,w:'rifle',acc:-6,dmg:.8,move:4}};
+  trooper:{label:'Trooper',body:'medium',cls:'soldier',hp:90,w:'rifle',acc:-10,dmg:.72,desc:'Standard rifleman. Takes cover and trades fire at medium range.'},
+  heavy:{label:'Heavy',body:'heavy',cls:'soldier',hp:140,w:'minigun',acc:-12,dmg:.68,desc:'Slow and tough with a minigun. Deadly up close, but stairs only.'},
+  marksman:{label:'Marksman',body:'medium',cls:'soldier',hp:80,w:'sniper',acc:-6,dmg:.72,move:4,desc:'Long-range sniper. Prefers high ground and keeps its distance. Flank it.'},
+  medic:{label:'Medic',body:'medium',cls:'medic',hp:85,w:'smg',acc:-12,dmg:.72,desc:'Heals wounded allies, so take it out first.'},
+  engineer:{label:'Engineer',body:'heavy',cls:'engineer',hp:120,w:'shotgun',acc:-10,dmg:.72,desc:'Drops an auto-turret once it sees you.'},
+  infiltrator:{label:'Infiltrator',body:'light',cls:'operative',hp:70,w:'smg',acc:-8,dmg:.72,desc:'Fast light flanker. Hunts exposed targets and climbs anything.'},
+  turret:{label:'Turret',body:'turret',cls:'turret',hp:70,w:'turret',acc:-4,dmg:.85,desc:'Static auto-gun. Fires at the end of every enemy turn. Can’t move. EMP stuns it.'},
+  leader:{label:'Cell leader',body:'medium',cls:'soldier',hp:160,w:'rifle',acc:-6,dmg:.8,move:4,desc:'The target. Runs for the exit once the alarm goes up.'}};
 
 /* ---------- roster ---------- */
 const LOOK=o=>clean({...DEFAULT,...o});
@@ -1023,6 +1032,41 @@ function playMusic(f){const want=SAVE.settings.music&&SAVE.settings.sound&&!docu
   MUS.cur=want;if(!want)return;const a=musicEl(want);if(!a)return;if(a.paused){a.volume=0;const p=a.play();if(p&&p.catch)p.catch(()=>{})}fadeAudio(a,musicVol(),900)}
 document.addEventListener('visibilitychange',()=>playMusic(document.body.dataset.view==='title'?null:CUR.faction));
 
+/* ---------- press-and-hold info ---------- */
+const MOVE_TIP={light:'Light: wall-hops two levels (2 moves), climbs one level for 1 move, drops two levels, fits through crawl vents and narrow gaps.',medium:'Medium: climbs one level for 2 moves, drops two levels, fits through narrow gaps but not vents.',heavy:'Heavy: stairs only, drops one level, can’t fit through vents or gaps.'};
+function tipHTML(k){const[a,b]=k.split(':');
+  if(a==='ab'){const A=AB[b],i=Object.values(CLASS_AB).findIndex(l=>l.includes(b)),lv=i>=0?AB_LVL[CLASS_AB[Object.keys(CLASS_AB)[i]].indexOf(b)]:1;return `<b>${A.name}</b>${A.desc}<small>Cooldown ${A.cd} turn${A.cd>1?'s':''}. Unlocks at level ${lv}.</small>`}
+  if(a==='cls')return `<b>${b[0].toUpperCase()+b.slice(1)}</b>${CLASS_DESC[b]}<small>Abilities: ${CLASS_AB[b].map((x,i)=>AB[x].name+' (Lv '+AB_LVL[i]+')').join(', ')}</small>`;
+  if(a==='wpn'){const w=WPN[b];return `<b>${w.name}</b>${w.dmg} damage${w.burst?` over a ${w.burst}-round burst`:''}, range ${w.range}, accuracy ${w.acc}. Best within ${w.opt} tiles; accuracy drops beyond that.`}
+  if(a==='move')return `<b>Move</b>How many tiles this operative can cover in a turn. ${MOVE_TIP[b]||''}`;
+  if(k==='action')return '<b>Action</b>One per turn: shoot, use an ability, work on an objective, go on overwatch or swap class.';
+  if(k==='ow')return '<b>Overwatch</b>Ends this operative’s turn. They fire at the first enemy that moves within range and sight, at −10 accuracy.';
+  if(k==='swap')return '<b>Swap class</b>Only on a command post you hold. Change class (abilities change, weapon stays). Uses the action.';
+  if(k==='wait')return '<b>Done</b>Skip any remaining orders for this operative.';
+  if(k==='obj'){const o=curObj();return `<b>${OBJ_VERB[o.type]}</b>Work on the objective from an adjacent tile. ${OBJ_FAST[o.type][0].toUpperCase()+OBJ_FAST[o.type].slice(1)}s make double progress.`}
+  if(k==='perks')return '<b>Level perks</b>Each level adds +8 health and +3 accuracy. Level 3 adds +1 move. New abilities unlock at levels 2 and 4.';
+  if(k==='undo')return '<b>Undo move</b>Puts the operative back. Not possible if the move triggered overwatch, got you spotted, revealed an enemy or picked up the cartridge.';
+  if(k==='unit:me'&&S.sel)return unitTip(S.sel);
+  return ''}
+function unitTip(u){if(u.op){return `<b>${esc(u.name)}</b>Lv ${u.lvl} ${u.body} ${u.cls}. ${u.hp}/${u.maxHp} health${u.shield?`, +${u.shield} shield`:''}.<small>${u.weapon.name}: ${u.weapon.dmg} dmg, range ${u.weapon.range}. ${MOVE_TIP[u.body]}</small>${u.down?`<small>Down. Back on their feet in ${Math.max(1,3-(u.downTurns||0))} turn(s) at the drop point, or sooner if a medic revives them.</small>`:''}`}
+  if(u.cls==='turret'&&u.team==='p')return `<b>Your turret</b>${u.hp}/${u.maxHp} health. Fires at the end of your turn.`;
+  const T=ETYPES[u.type]||{};return `<b>${esc(u.name)}</b>${T.desc||''}<small>${u.hp}/${u.maxHp} health. ${u.weapon.name}: ${u.weapon.dmg} dmg, range ${u.weapon.range}.${u.ow?' On overwatch.':''}${u.stun>0?' Stunned.':''}</small>`}
+function tileTip(t){const lv=t.h>=2?'High level':t.h>=1?'Mid level':t.type==='ramp'?'Stairs':'Ground';const bits=[];
+  if(t.pass==='light')bits.push('Crawl vent: light bodies only. Half cover.');if(t.pass==='nonheavy')bits.push('Narrow gap: no heavies.');
+  if(t.type==='ramp')bits.push('Stairs: the only way up for heavies.');if(t.cp)bits.push(`${t.cp==='health'?'Health':'Supply'} command post (${t.owner==='p'?'yours':t.owner==='e'?'enemy':'unclaimed'}). ${t.cp==='health'?'Heals the holder’s team 10 a turn.':'Speeds up the holder’s cooldowns.'} Stand here to swap class.`);
+  if(t.obj==='crate'||t.obj==='pillar')bits.push('Full cover. Blocks sight.');if(t.obj==='wall')bits.push('Barricade: half cover. Grenades destroy it.');if(t.obj==='term')bits.push('Objective.');
+  if(t.zone)bits.push('Hold zone.');if(t.exit)bits.push('Exit.');if(t.type==='water')bits.push('Water: impassable.');
+  return `<b>${lv}</b>${bits.join(' ')||'Open ground.'}`}
+let tipT=null,tipShownAt=0,suppressClick=false;
+function showTip(html,x,y){if(!html)return;const e=$('#tip');e.innerHTML=html;e.hidden=false;const w=Math.min(300,innerWidth-24);e.style.width=w+'px';const r=e.getBoundingClientRect();let left=Math.max(12,Math.min(innerWidth-w-12,x-w/2)),top=y-r.height-16;if(top<12)top=y+20;e.style.left=left+'px';e.style.top=Math.min(innerHeight-r.height-12,top)+'px';tipShownAt=performance.now();if(navigator.vibrate)try{navigator.vibrate(8)}catch(_){}}
+function hideTip(){const e=$('#tip');if(e)e.hidden=true}
+document.addEventListener('pointerdown',e=>{suppressClick=false;const el=e.target.closest('[data-tip]');clearTimeout(tipT);if(performance.now()-tipShownAt>150)hideTip();if(!el)return;const sx=e.clientX,sy=e.clientY;
+  tipT=setTimeout(()=>{suppressClick=true;const r=el.getBoundingClientRect();showTip(tipHTML(el.dataset.tip),r.left+r.width/2,r.top)},e.pointerType==='mouse'?600:420);
+  const cancel=ev=>{if(ev.type!=='pointermove'||Math.hypot(ev.clientX-sx,ev.clientY-sy)>10){clearTimeout(tipT);document.removeEventListener('pointermove',cancel);document.removeEventListener('pointerup',cancel)}};
+  document.addEventListener('pointermove',cancel);document.addEventListener('pointerup',cancel)},true);
+document.addEventListener('click',e=>{if(suppressClick){suppressClick=false;e.preventDefault();e.stopPropagation()}},true);
+document.addEventListener('contextmenu',e=>{if(e.target.closest('[data-tip],#stage'))e.preventDefault()});
+
 /* ---------- views ---------- */
 const VIEWS=['title','camp','brief','roster','game','debrief'];
 let CUR={faction:'resistance',mi:0};
@@ -1048,11 +1092,11 @@ function viewTitle(){
 }
 function viewCamp(){
   const f=CUR.faction,prog=SAVE.prog[f];
-  $('#v-camp').innerHTML=`<div class="camp-art">${skylineSVG(f,120)}</div><div class="bar"><button type="button" class="btn ghost" id="back">‹ Factions</button><button type="button" class="btn" id="toRoster">Roster (${SAVE.roster[f].length})</button></div>
+  $('#v-camp').innerHTML=`<div class="camp-art">${skylineSVG(f,120)}</div><div class="bar"><button type="button" class="btn ghost bk">‹ Factions</button><button type="button" class="btn" id="toRoster">Roster (${SAVE.roster[f].length})</button></div>
   <h2 class="vh">${FACTIONS[f].label} campaign</h2>
   ${prog>=4?`<div class="epi"><b>Campaign complete</b><p>${EPILOGUE[f]}</p><p class="small">Replay any mission to keep levelling your operatives.</p></div>`:''}
   <div class="missions">${MISSIONS[f].map((m,i)=>`<button type="button" class="mis${i>prog?' locked':''}${i<prog?' done':''}" data-i="${i}" ${i>prog?'disabled':''}><em>${i+1}</em><b>${m.title}</b><span>${i>prog?'Locked':m.tag}</span>${i>prog?'':`<small>${THEME_LABEL[THEME_OF[m.id]]}, ${TIMES[TIME_OF[m.id]].label.toLowerCase()}</small>`}${SAVE.stars[m.id]?`<i>${starStr(SAVE.stars[m.id])}</i>`:i<prog?'<i>Complete</i>':''}</button>`).join('')}</div>`;
-  $('#back').onclick=viewTitle;$('#toRoster').onclick=viewRoster;
+  $('#v-camp .bk').onclick=viewTitle;$('#toRoster').onclick=viewRoster;
   $('#v-camp').querySelectorAll('.mis').forEach(b=>b.onclick=()=>{CUR.mi=+b.dataset.i;viewBrief()});
   show('camp');
 }
@@ -1062,12 +1106,13 @@ function opCard(op,extra=''){const s=opStats(op),nx=LEVELS[s.l]||null,pr=nx?Math
   return `<div class="pf">${portrait(op.look,'p'+op.id)}</div><div class="oc"><b>${esc(op.name)} <i>Lv ${s.l}</i></b><span>${BODY[op.body].label} ${op.cls}, ${WPN[op.weapon].name.toLowerCase()}</span><div class="xp"><s style="width:${pr}%"></s></div>${extra}</div>`}
 function viewRoster(){
   const f=CUR.faction;
-  $('#v-roster').innerHTML=`<div class="bar"><button type="button" class="btn ghost" id="back">‹ Campaign</button></div><h2 class="vh">Roster</h2><p class="small">Change an operative’s starting class here. In the field, they can also swap at a command post you hold.</p>
-  <div class="rlist">${SAVE.roster[f].map(op=>{const s=opStats(op);return `<div class="rcard">${opCard(op,`<p class="st">${s.hp} health, move ${s.move}, accuracy ${s.acc}${op.injured?' <em>Recovering</em>':''}</p>
-   <div class="chips">${Object.keys(CLASS_AB).map(c=>`<button type="button" class="chip${op.cls===c?' on':''}" data-op="${op.id}" data-c="${c}">${c}</button>`).join('')}</div>
-   <p class="ab">${abilList(op.cls,s.l).map(a=>`<span class="${a.ok?'':'lk'}">${AB[a.id].name}${a.ok?'':` (Lv ${a.at})`}</span>`).join('')}</p>`)}</div>`}).join('')}</div>`;
-  $('#back').onclick=viewCamp;
-  $('#v-roster').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const op=SAVE.roster[f].find(o=>o.id===b.dataset.op);op.cls=b.dataset.c;op.look={...op.look,cls:op.cls};persist();viewRoster()});
+  $('#v-roster').innerHTML=`<div class="bar"><button type="button" class="btn ghost bk">‹ Campaign</button></div><h2 class="vh">Roster</h2><p class="small">Change an operative’s starting class here. In the field, they can also swap at a command post you hold.</p>
+  <div class="rlist">${SAVE.roster[f].map(op=>{const s=opStats(op);return `<div class="rcard">${opCard(op,`<p class="st" data-tip="perks">${s.hp} health, move ${s.move}, accuracy ${s.acc}${op.injured?' <em>Recovering</em>':''}</p>
+   <div class="chips">${Object.keys(CLASS_AB).map(c=>`<button type="button" class="chip${op.cls===c?' on':''}" data-op="${op.id}" data-c="${c}" data-tip="cls:${c}">${c}</button>`).join('')}</div>
+   <div class="chips wpn">${(BODY_WPN[op.body]||[]).map(w=>`<button type="button" class="chip${op.weapon===w?' on':''}" data-op="${op.id}" data-w="${w}" data-tip="wpn:${w}">${WPN[w].name}</button>`).join('')}</div>
+   <p class="ab">${abilList(op.cls,s.l).map(a=>`<span data-tip="ab:${a.id}" class="${a.ok?'':'lk'}">${AB[a.id].name}${a.ok?'':` (Lv ${a.at})`}</span>`).join('')}</p>`)}</div>`}).join('')}</div>`;
+  $('#v-roster .bk').onclick=viewCamp;
+  $('#v-roster').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const op=SAVE.roster[f].find(o=>o.id===b.dataset.op);if(b.dataset.w){op.weapon=b.dataset.w}else{op.cls=b.dataset.c;op.look={...op.look,cls:op.cls}}persist();viewRoster()});
   show('roster');
 }
 let PICK=[];
@@ -1075,7 +1120,7 @@ function viewBrief(){
   const f=CUR.faction,m=MISSIONS[f][CUR.mi],avail=SAVE.roster[f].filter(o=>!o.injured);
   PICK=PICK.filter(id=>avail.some(o=>o.id===id));if(!PICK.length)PICK=avail.slice(0,4).map(o=>o.id);
   const objText=m.objectives.map(o=>objLabel(o,null)).join(', then ');
-  $('#v-brief').innerHTML=`<div class="bar"><button type="button" class="btn ghost" id="back">‹ Campaign</button></div>
+  $('#v-brief').innerHTML=`<div class="bar"><button type="button" class="btn ghost bk">‹ Campaign</button></div>
   <h2 class="vh"><small>Mission ${CUR.mi+1}, ${THEME_LABEL[THEME_OF[m.id]]}, ${TIMES[TIME_OF[m.id]].label.toLowerCase()}</small>${m.title}</h2><div class="story">${m.brief.map(p=>`<p>${p}</p>`).join('')}</div>
   <p class="objline"><b>Objective:</b> ${objText}.</p>
   <div class="moves"><b>Moving around the Ark</b><span><i>Light</i> wall-hops two levels, climbs cheaply and fits through crawl vents.</span><span><i>Medium</i> climbs one level (costs an extra move) and squeezes through narrow gaps.</span><span><i>Heavy</i> takes stairs only and can’t fit through vents or gaps.</span><small>Difficulty: ${DF().label}. Change it in Settings on the title screen.</small></div>
@@ -1083,7 +1128,7 @@ function viewBrief(){
   <div class="plist">${SAVE.roster[f].map(op=>`<button type="button" class="pk${PICK.includes(op.id)?' on':''}" data-id="${op.id}" ${op.injured?'disabled':''}>${opCard(op,op.injured?'<p class="st"><em>Recovering, back next mission</em></p>':'')}</button>`).join('')}</div>
   <div class="sticky"><button type="button" class="go" id="deploy">Deploy squad</button></div>`;
   const upd=()=>{$('#pc').textContent=`(${PICK.length}/4)`;$('#deploy').disabled=!PICK.length};upd();
-  $('#back').onclick=viewCamp;
+  $('#v-brief .bk').onclick=viewCamp;
   $('#v-brief').querySelectorAll('.pk').forEach(b=>b.onclick=()=>{const id=b.dataset.id,i=PICK.indexOf(id);if(i>=0)PICK.splice(i,1);else if(PICK.length<4)PICK.push(id);else{toast('Four operatives maximum');return}b.classList.toggle('on',PICK.includes(id));upd()});
   $('#deploy').onclick=async()=>{const ops=PICK.map(id=>SAVE.roster[f].find(o=>o.id===id));if(ANIMATED())await RIG.wait(4000);show('game');startMission(m,ops)};
   show('brief');
@@ -1382,7 +1427,7 @@ function makeUnitMesh(u){
   if(u.team==='e'){const gh=document.createElement('div');gh.className='lkp';gh.textContent='?';gh.style.display='none';$('#hud').appendChild(gh);u.gh=gh}
   const el=document.createElement('div');el.className='ub '+u.team;el.innerHTML=`<span></span><i><b></b></i>`;$('#hud').appendChild(el);u.el=el;updBar(u)}
 function place(u){const t=G[u.z][u.x],p=W(u.x,u.z);u.group.position.set(p.x,topY(t),p.z)}
-function updBar(u){const tags=[];if(u.ow)tags.push('OW');if(u.disg>0)tags.push('Disguised');if(u.stun>0)tags.push('Stunned');if(u.shield>0)tags.push('+'+u.shield);if(u.carry)tags.push('Cartridge');
+function updBar(u){const tags=[];if(u.ow)tags.push('OW');if(u.disg>0)tags.push('Disguised');if(u.stun>0)tags.push('Stunned');if(u.shield>0)tags.push('+'+u.shield);if(u.carry)tags.push('Cartridge');if(u.down&&u.op)tags.push('Back in '+Math.max(1,3-(u.downTurns||0)));
   u.el.querySelector('span').textContent=(u.short||u.name)+(tags.length?' · '+tags.join(' '):'');u.el.querySelector('b').style.width=Math.max(0,u.hp/u.maxHp*100)+'%';u.el.classList.toggle('down',u.down)}
 function newUnit(o){return Object.assign({moved:false,acted:false,down:false,ow:false,stun:0,disg:0,shield:0,carry:false,kills:0,cd:{},vis:6},o)}
 const DIFF={easy:{label:'Easy',acc:-14,dmg:.7,hp:.8,wave:1,php:15},normal:{label:'Normal',acc:-6,dmg:.85,hp:.92,wave:2,php:0},hard:{label:'Hard',acc:0,dmg:1,hp:1.05,wave:9,php:0}};
@@ -1406,7 +1451,7 @@ function startMission(m,ops){
   const R=rng(m.id.length*97+CUR.mi*13+7);for(const[t,x,z]of m.enemies)spawnEnemy(t,x,z,R);S.R=R;
   const sp=info.spawns[0],p=W(sp.x,sp.z);camState.target.set(p.x*.5,0,p.z*.5);camState.zoom=1;camState.angle=Math.PI/4;fit();
   $('#mtitle').textContent=m.title;S.sel=squad()[0];computeVis();refresh();banner('Your turn');
-  if(!S.alerted)setTimeout(()=>log('You haven’t been spotted. Shots on unaware enemies get +20 accuracy.'),1500)}
+  if(!S.alerted)setTimeout(()=>log('You haven’t been spotted. Shots on unaware enemies get +20 accuracy.'),1500);setTimeout(()=>log('Tip: press and hold any unit, tile or button for details.'),5200)}
 
 /* ---------- fog ---------- */
 function computeVis(){const vis=new Set();
@@ -1469,13 +1514,13 @@ function refresh(){
   else{let btns='';const t=G[u.z][u.x];
     if(!u.down){
       if(S.swap){btns=Object.keys(CLASS_AB).filter(c=>c!==u.cls).map(c=>`<button type="button" class="act" data-a="swapto" data-c="${c}">${c}</button>`).join('')+`<button type="button" class="act ghost" data-a="swapcancel">Cancel</button>`}
-      else{for(const a of abilsOf(u)){const cd=u.cd[a]||0,ok=!u.acted&&!cd&&(AB[a].tgt==='self'||abilityTargets(u,a).length>0);btns+=`<button type="button" class="act${S.mode===a?' on':''}" data-a="ab" data-id="${a}" ${ok?'':'disabled'}>${AB[a].name}${cd?` (${cd})`:''}</button>`}
-        const near=objTargetsNear(u);if(near.length&&!u.acted){const o=curObj();btns+=`<button type="button" class="act obj" data-a="obj">${OBJ_VERB[o.type]} +${OBJ_FAST[o.type]===u.cls?2:1}</button>`}
-        if(!u.acted)btns+=`<button type="button" class="act ghost" data-a="ow">Overwatch</button>`;
-        if(t.cp&&t.owner==='p'&&!u.acted)btns+=`<button type="button" class="act ghost" data-a="swap">Swap class</button>`;
-        btns+=`<button type="button" class="act ghost" data-a="wait" ${isDone(u)?'disabled':''}>Done</button>`}}
+      else{for(const a of abilsOf(u)){const cd=u.cd[a]||0,ok=!u.acted&&!cd&&(AB[a].tgt==='self'||abilityTargets(u,a).length>0);btns+=`<button type="button" class="act${S.mode===a?' on':''}" data-a="ab" data-id="${a}" data-tip="ab:${a}" ${ok?'':'disabled'}>${AB[a].name}${cd?` (${cd})`:''}</button>`}
+        const near=objTargetsNear(u);if(near.length&&!u.acted){const o=curObj();btns+=`<button type="button" class="act obj" data-a="obj" data-tip="obj">${OBJ_VERB[o.type]} +${OBJ_FAST[o.type]===u.cls?2:1}</button>`}
+        if(!u.acted)btns+=`<button type="button" class="act ghost" data-a="ow" data-tip="ow">Overwatch</button>`;
+        if(t.cp&&t.owner==='p'&&!u.acted)btns+=`<button type="button" class="act ghost" data-a="swap" data-tip="swap">Swap class</button>`;
+        btns+=`<button type="button" class="act ghost" data-a="wait" data-tip="wait" ${isDone(u)?'disabled':''}>Done</button>`}}
     det.innerHTML=`<div class="dtop"><b>${esc(u.name)}</b><span>Lv ${u.lvl} ${u.body} ${u.cls}, ${u.weapon.name.toLowerCase()} (${u.weapon.dmg} dmg, range ${u.weapon.range})</span></div>
-      <div class="dstat"><span>${u.down?'Down':`${u.hp}/${u.maxHp}`}${u.shield?` +${u.shield}`:''}</span><span class="${u.moved?'used':''}">Move ${u.move}</span><span class="${u.acted?'used':''}">Action</span>${u.disg>0?'<span>Disguised</span>':''}${u.ow?'<span>Overwatch</span>':''}</div>
+      <div class="dstat"><span>${u.down?'Down':`${u.hp}/${u.maxHp}`}${u.shield?` +${u.shield}`:''}</span><span class="${u.moved?'used':''}" data-tip="move:${u.body}">Move ${u.move}</span><span class="${u.acted?'used':''}" data-tip="action">Action</span><span data-tip="unit:me">ⓘ</span>${u.disg>0?'<span>Disguised</span>':''}${u.ow?'<span>Overwatch</span>':''}</div>
       <p class="hint">${u.down?'Down. A medic next to them can get them back up.':S.mode?AB[S.mode].info||AB[S.mode].desc:S.swap?'Pick a new class. Their weapon stays the same.':(!u.moved?'Blue: move. ':'')+(!u.acted?'Red: shoot. Or use an ability.':isDone(u)?'All orders used.':'')}</p><div class="btns">${btns}</div>`}
   $('#undoBtn').hidden=!(S.undo&&S.phase==='player'&&!S.busy);$('#obj').textContent=curObj()?objLabel(curObj(),S):'';$('#turn').textContent=`Turn ${S.turn}`;$('#endTurn').disabled=S.phase!=='player'||S.busy}
 function abilityTargets(u,id){const A=AB[id],out=[];
@@ -1564,7 +1609,7 @@ async function doAbility(u,id,t){S.undo=null;S.busy=true;S.mode=null;hl.clear();
     alarm();await sleep(420)}
   if(id==='suppress'){const e=unitAt(t.x,t.z);if(e){await tracer(u,e,true,0xffd27a);await tracer(u,e,true,0xffd27a);damage(e,10,u);e.stun=1;e.ow=false;updBar(e);popup(e,'Pinned','good')}alarm()}
   if(id==='resupply'){sfx('reload',u.group.position);const p=unitAt(t.x,t.z);if(p){p.cd={};popup(p,'Resupplied','good');refresh()}}
-  if(id==='patch'){const p=squad().find(q=>q.x===t.x&&q.z===t.z);if(p){if(p.down){p.down=false;p.hp=40;p.moved=p.acted=true;p.ringMesh.visible=true;if(p.rig){p.rig.setBase('Idle');await sleep(450)}else await tween(280,k=>{p.lie.rotation.x=-Math.PI/2*(1-k);p.lie.position.y=.08*(1-k)});log(`${p.name} is back up`)}else p.hp=Math.min(p.maxHp,p.hp+40);popup(p,'+40','good');updBar(p)}}
+  if(id==='patch'){const p=squad().find(q=>q.x===t.x&&q.z===t.z);if(p){if(p.down){p.down=false;p.hp=40;p.moved=false;p.acted=true;p.downTurns=0;p.ringMesh.visible=true;if(p.rig){p.rig.setBase('Idle');await sleep(450)}else await tween(280,k=>{p.lie.rotation.x=-Math.PI/2*(1-k);p.lie.position.y=.08*(1-k)});log(`${p.name} is back up. They can move but not act this turn.`)}else p.hp=Math.min(p.maxHp,p.hp+40);popup(p,'+40','good');updBar(p)}}
   if(id==='adrenaline'){const p=squad().find(q=>q.x===t.x&&q.z===t.z);if(p){p.moved=false;popup(p,'Adrenaline','good');log(`${p.name} can move again`)}}
   if(id==='surgery'){for(const p of squad())if(!p.down&&dist(p,u)<=2){p.hp=Math.min(p.maxHp,p.hp+25);popup(p,'+25','good');updBar(p)}}
   if(id==='barricade'){sfx('build',W(t.x,t.z));t.obj='wall';objMesh(t);const m=t.objMesh;m.scale.setScalar(.01);await tween(280,k=>m.scale.setScalar(Math.max(.01,k)));log('Barricade up')}
@@ -1588,8 +1633,11 @@ async function enemyTurn(){banner('Enemy turn','enemy');await sleep(800);startTu
   await turretsFire('e');if(checkEnd())return;
   const o=curObj();if(o&&o.type==='hold'&&squad().some(p=>!p.down&&G[p.z][p.x].zone)){S.hold++;log(`Square held (${S.hold}/${o.turns})`)}
   if(advanceObj())return;
-  S.turn++;S.reveals=S.reveals.filter(r=>--r.turns>0);startTurnEffects('p');S.phase='player';computeVis();banner('Your turn');
+  S.turn++;S.reveals=S.reveals.filter(r=>--r.turns>0);startTurnEffects('p');redeployDowned();S.phase='player';computeVis();banner('Your turn');
   S.sel=squad().find(p=>!isDone(p))||squad().find(p=>!p.down)||null;focus(S.sel);refresh()}
+function redeployDowned(){for(const u of squad()){if(!u.down)continue;u.downTurns=(u.downTurns||0)+1;if(u.downTurns<3){updBar(u);continue}
+    const free=S.info.spawns.filter(t=>!unitAt(t.x,t.z,u));let t=free[0];if(!t){let best=null;for(const row of G)for(const c of row){if(c.type==='water'||c.obj||c.pass||unitAt(c.x,c.z,u))continue;const d=Math.min(...S.info.spawns.map(s2=>dist(s2,c)));if(!best||d<best.d)best={c,d}}t=best&&best.c}if(!t)continue;
+    u.down=false;u.downTurns=0;u.hp=Math.round(u.maxHp*.5);u.shield=0;u.x=t.x;u.z=t.z;place(u);u.lie.rotation.x=0;u.lie.position.y=0;u.ringMesh.visible=true;u.moved=false;u.acted=true;updBar(u);popup(u,'Redeployed','good');log(`${u.name} redeploys at the drop point with half health. Move only this turn.`)}}
 function knownTargets(e){return living('p').filter(p=>p.cls==='turret'||!(p.disg>0)||cheb(p,e)<=1)}
 function bestShot(e){let best=null;for(const t of knownTargets(e)){const c=hitChance(e,t);if(!c)continue;const s=c+(t.hp<40?15:0)+(t.carry?20:0)+(t.cls==='turret'?-10:0);if(!best||s>best.s)best={t,c,s}}return best}
 async function aiAct(e){
@@ -1650,14 +1698,14 @@ $('#spd').onclick=()=>{SAVE.settings.fast=!SAVE.settings.fast;SPD=SAVE.settings.
 $('#snd').onclick=()=>{SAVE.settings.sound=!SAVE.settings.sound;persist();setCtl();sfx('ui');playMusic(CUR.faction)};setCtl();
 $('#rotL').onclick=()=>rotateCam(-1);$('#rotR').onclick=()=>rotateCam(1);$('#zin').onclick=()=>zoomCam(1.2);$('#zout').onclick=()=>zoomCam(1/1.2);
 function bindInput(){const cv=renderer.domElement,ptrs=new Map();let drag=null,pinch=null;
-  cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size===1)drag={x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,moved:false};
+  let hold=null;cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size===1){drag={x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,moved:false};clearTimeout(hold);const hx=e.clientX,hy=e.clientY;hold=setTimeout(()=>{if(!drag||drag.moved||ptrs.size!==1)return;const h=pickAt(hx,hy);const html=h.unit?unitTip(h.unit):h.tile?tileTip(h.tile):'';if(html){drag.held=true;showTip(html,hx,hy-10)}},450)}else clearTimeout(hold);
     if(ptrs.size===2){const[a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),z:camState.zoom};drag=null}});
   cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if(pinch&&ptrs.size===2){const[a,b]=[...ptrs.values()];camState.zoom=Math.max(.55,Math.min(2.4,pinch.z*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d));return}
-    if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)>8)drag.moved=true;
+    if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)>8){drag.moved=true;clearTimeout(hold)}
       if(drag.moved){camState.follow=null;const s=(cam.top-cam.bottom)/camState.zoom/stage.clientHeight,a=camState.angle,lim=N/2+2;camState.target.x-=(dx*Math.cos(a)+dy*Math.sin(a)*1.4)*s;camState.target.z-=(-dx*Math.sin(a)+dy*Math.cos(a)*1.4)*s;
         camState.target.x=Math.max(-lim,Math.min(lim,camState.target.x));camState.target.z=Math.max(-lim,Math.min(lim,camState.target.z))}drag.x=e.clientX;drag.y=e.clientY}});
-  cv.addEventListener('pointerup',e=>{if(drag&&!drag.moved&&ptrs.size===1)tap(e.clientX,e.clientY);ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(!ptrs.size)drag=null});
+  cv.addEventListener('pointerup',e=>{clearTimeout(hold);if(drag&&!drag.moved&&!drag.held&&ptrs.size===1)tap(e.clientX,e.clientY);ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(!ptrs.size)drag=null});
   cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);drag=null;pinch=null});
   cv.addEventListener('wheel',e=>{e.preventDefault();zoomCam(e.deltaY<0?1.1:1/1.1)},{passive:false})}
 const tmpV=new THREE.Vector3(),t00=performance.now();let lastF=performance.now();
