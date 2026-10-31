@@ -10,6 +10,35 @@ the open-source project [Tiny Strike](https://github.com/guyz/tinystrike), whose
 
 Attribution isn't required by CC0, but thanks to Quaternius and Tiny Strike all the same.
 
+## Sound effects (`assets/sfx/`)
+
+Taken from the [OpenSpades free asset pak](https://github.com/DeathByDenim/openspades-free-pak) by DeathByDenim and collaborators, whose [credits file](https://github.com/DeathByDenim/openspades-free-pak/blob/master/License/Credits-pak001-Free.md) lists every source. Converted to mono MP3.
+
+| Our file(s) | Original | Licence | Credit |
+|---|---|---|---|
+| rifle1-3 | The Free Firearm Sound Library (A_42P) | CC0 | Ben Jaszczak, Brian Nelson, Kevin Heras, Matthew Nanney |
+| auto1-3 | The Free Firearm Sound Library (AK-47/C_28P) | CC0 | as above |
+| shotgun1 | Shotgun Shoot + Reload, 10 Gauge Shotgun | CC-BY 3.0 | Mike Koenig (SoundBible) |
+| boom1-2 | 2 High Quality Explosions | CC-BY 3.0 | Michel Baradari |
+| debris1 | Tree Falling (Yo Frankie!) | CC0 | Blender Foundation |
+| throw1 | RPG Sound Pack (cloth-heavy) | CC0 | artisticdude |
+| flesh1-2 | freesound 522091 | CC0 | magnuswaker |
+| flesh3 | freesound 144015 | CC0 | satanicupsman |
+| rico1-3 | freesound 148827 | CC0 | cedarstudios |
+| step1-4 | Footsteps on different surfaces (grass) | CC-BY 3.0 | congusbongus |
+| jump1 | Cloth swing sounds | CC-BY 3.0 | Vinrax |
+| land1 | Jump Landing Sound | CC0 | MentalSanityOff |
+| reload1 | Handgun Reload Sound Effect | CC0 | zer0_sol |
+| ready1, switch1 | Equipment Clicks III | CC0 | LFA |
+| build1 | freesound 530812 | CC0 | SieuAmThanh |
+| shell1-2 | 100 CC0 metal and wood SFX | CC0 | rubberduck |
+
+The CC-BY sounds need this credit kept with the game.
+
+## Music (`assets/audio/`)
+
+The faction themes are from Brink's official soundtrack, supplied by Matthew for personal use. They are not openly licensed.
+
 ## Everything else
 
 All other art (environments, props, procedural units, UI, SVG portraits, textures) and all

@@ -6,6 +6,9 @@
 
 ---
 
+## Status
+Phase 0 and Phase 1 (1a to 1e) are done: the test tools are in `tools/`, and the animated units are live behind Settings, Units: Animated (preview), waiting for Matthew’s sign-off before they become the default. When they do, remove the procedural walk, recoil and breathing code (kept for Classic units). Next: Phase 2 (optional) or Phase 3.
+
 ## Phase 0: Orientation and safety net
 1. Run `python3 tools/build.py` and confirm `index.html` builds identically to what's committed.
 2. Set up a Playwright smoke test (`tools/smoke.py` or `.mjs`) that loads `index.html`, starts every mission in both campaigns, runs a few enemy turns and fails on any console error. Chromium with `--use-gl=swiftshader` works headless. Serve over a local HTTP server (some browsers block `file://` for module-style loading).

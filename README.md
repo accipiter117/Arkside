@@ -26,16 +26,16 @@ python3 tools/build.py      # src/* -> index.html and lab/unit-review.html
 | `src/model-kit.js` | Palette, seeded RNG, toon material and outline helpers |
 | `src/units.js` | Unit models: procedural operatives, the shared creator head, weapons, and the rigged Toon Shooter pipeline (loading, recolouring, attachments, body types, animation) |
 | `src/lab/unit-review.template.html` | The unit review lab page (built into `lab/unit-review.html`) |
-| `assets/models/*.glb` | Quaternius Toon Shooter soldiers (CC0), embedded as base64 at build time |
 | `src/engine.js` | Everything else: data, missions, save system, menus, tactics engine, AI, visuals, audio |
 
-Never edit `index.html` or `lab/unit-review.html` directly. Edit `src/` and rebuild.
+Never edit `index.html` or `lab/unit-review.html` directly. Edit `src/` and rebuild. The build embeds the unit models (`assets/models/`), faction themes (`assets/audio/`) and sound effects (`assets/sfx/`).
 
 ## Testing
 
 Node and Playwright (preinstalled in the Claude Code cloud environment):
 
 ```
+python3 tools/maps/validate.py              # map reachability, prints OK
 node tools/smoke.mjs [--animated] [--low]   # every mission, 3 turns, fails on console errors
 node tools/screens.mjs [--animated]         # phone-size screenshots into shots/
 node tools/perf.mjs                         # frame rate and draw calls, classic vs animated

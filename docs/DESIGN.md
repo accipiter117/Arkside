@@ -24,11 +24,18 @@ Title (pick faction, settings, creator import, save code) → Campaign (4 missio
 | s3 | Smuggler’s Run | Container City, night | Down the cell leader before he reaches the boats |
 | s4 | Lockdown | Founders’ district, dusk | Hack two floodgates, then clear the area |
 
-Maps are 12×12 ASCII grids. Legend: `.` floor, `^` raised, `/` ramp, `~` water, `C`/`c` crate (low/high), `w`/`v` barricade, `X` pillar, `T`/`t` objective object, `H`/`S` health or supply command post, `P` spawn, `Q` spawn inside hold zone, `Z` hold zone, `E` exit, `I` item. Reinforcements arrive on set turns. Each mission has a par turn count (`PAR`) for stars.
+Maps are 12×12 and come in two layers per mission:
+- `h`: heights in half-levels. `0` ground, `2` level 1, `4` level 2; odd digits are stairs (heavies need these).
+- `map`: contents. `.` floor, `~` water, `C` crate, `w` barricade, `X` pillar, `T` objective object, `H`/`S` health or supply command post, `P` spawn, `Q` spawn inside hold zone, `Z` hold zone, `E` exit, `I` item, `n` crawl vent (light only), `g` narrow gap (light and medium only).
+Map sources and a reachability validator live in `tools/maps/` (`python3 tools/maps/validate.py`). Reinforcements arrive on set turns. Each mission has a par turn count (`PAR`) for stars.
 
 ## Rules
 - Each operative gets one move and one action per turn. Undo is allowed for the last move unless it triggered overwatch, alerted the enemy, revealed new contacts or picked up the item.
-- **Body types** (`EB`): light 80 HP move 7 vision 7 and can climb; medium 110 HP move 5 vision 6 and can climb; heavy 150 HP move 4 vision 5, ramps only.
+- **Body types** (`EB`), inspired by Brink's SMART movement:
+  - Light: 80 HP, move 7, vision 7. Climbs one level for 1 move, wall-hops two levels for 2, drops two levels, fits through vents and gaps.
+  - Medium: 110 HP, move 5, vision 6. Climbs one level for 2 moves, drops two levels, fits through gaps.
+  - Heavy: 150 HP, move 4, vision 5. Stairs only, drops one level, no vents or gaps.
+- **Difficulty** (`DIFF`): Easy, Normal, Hard scale enemy accuracy, damage and health, the size of reinforcement waves, and (on Easy) squad health.
 - **Hit chance:** weapon accuracy, minus range falloff past optimal range, minus 20 (half cover) or 40 (full cover), plus 15 for height (minus 10 if lower), plus 20 against unaware enemies, plus 10 against spotted enemies. Flanked targets take 20% more damage.
 - **Fog of war:** you see what your squad sees. Missions mostly start undetected. Last known enemy positions show as markers.
 - **Overwatch:** costs the turn, reaction shot at minus 10 against the first enemy that moves in range and sight. AI uses it too.
@@ -56,6 +63,6 @@ XP from missions, kills and objective actions. Levels at 100, 250, 450 and 700 X
 ## Current units
 Two pipelines, both in `src/units.js`, chosen by Settings, Units:
 - **Classic** (default for now): procedural models (`buildOperative`) built from creator looks.
-- **Animated (preview)**: the Quaternius Toon Shooter soldiers (Security `soldier_ct`, Resistance `soldier_t`), recoloured from the creator look, with the creator head, armour, class gear and weapon attached to bones, and body types done by bone scaling. Clips: Idle, Duck on overwatch, Walk or Run (lights) while moving, Jump on ledge hops, Idle_Shoot per shot, HitReact, Death when downed. Falls back to Classic if the models can't load.
+- **Animated (preview)**: the Quaternius Toon Shooter soldiers (Security `soldier_ct`, Resistance `soldier_t`), recoloured from the creator look, with the creator head, armour, class gear and weapon attached to bones, and body types done by bone scaling. Clips: Idle, Duck on overwatch and in crawl vents, Walk or Run (lights) while moving, Jump on climbs and drops, Idle_Shoot per shot, HitReact, Death when downed. Falls back to Classic if the models can't load.
 
 Clothing shapes come from the base models, so tops (tee, tank, hoodie, jacket) don't change the silhouette yet; gloves recolour the hands.
