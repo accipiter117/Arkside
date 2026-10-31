@@ -16,3 +16,14 @@ Built in the Claude chat and already playable there. This brings the repo up to 
 - Revived operatives can move on the turn they're revived, but not act.
 - Downed operatives who aren't revived redeploy at the drop point after 3 turns, at half health, move only that turn.
 - Roster: pick each operative's weapon (sniper rifle added for medium bodies) as well as class.
+
+# Update 3: Operations (mission overhaul, first pass)
+
+- New **Operations** section on each campaign screen, starting with **Container City Push**: a 12×34 map in three stages (blow the gate, escort the maintenance bot, repair the crane and extract the cache), modelled on Brink's Container City.
+- **Moving front line:** completing a stage moves your drop point forward, adds turns, spawns the next enemy line, and sends surviving enemies back to defend it.
+- **Turn budget** instead of a timer, shown in the top bar. Running out fails the operation.
+- **Escort objective:** the bot moves up to 2 tiles at the end of your turn if a squad member is beside it and no enemy is. It can be disabled and repaired (Engineers twice as fast).
+- **Optional objectives** that open routes: hack the side door (Operatives fast), build the side stairs for heavies (Engineers fast), build an MG nest (Engineers fast).
+- New map tiles: gate `D`, hackable door `K`, buildable scaffold/stairs `Y`, MG nest spot `M`.
+- The engine now supports non-square maps (`NX` × `NZ`).
+- Long maps live in `tools/maps/long.py`, checked by `tools/maps/validate_long.py`. Mission data is in `OPERATIONS` in `src/engine.js`.
