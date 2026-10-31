@@ -129,6 +129,47 @@ body[data-faction="security"] .ub.p b{background:#4aa3e0}body[data-faction="secu
 button,[data-tip],#stage{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .chips.wpn{margin-top:5px}.chips.wpn .chip{text-transform:none}
 .dstat span[data-tip]{cursor:help}
+
+/* ===================== In-game Operative Creator (src/creator-ui.js) ===================== */
+.crt-stage{position:relative;height:clamp(240px,38vh,380px);border-radius:6px 20px 6px 6px;overflow:hidden;background:#0f2133;border:1px solid rgba(0,0,0,.25)}
+.crt-stage svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.crt-zoom{position:absolute;top:10px;right:10px;border:0;border-radius:8px;background:rgba(8,12,15,.6);color:#fff;padding:8px 12px;font-size:13px;font-weight:600;min-height:40px}
+.crt-tag{position:absolute;left:10px;bottom:10px;max-width:calc(100% - 20px);color:#fff;padding:7px 11px 6px;background:rgba(8,12,15,.62);border-left:4px solid var(--acc);border-radius:2px 8px 8px 2px}
+.crt-tag b{display:block;font-family:Teko,'Arial Narrow',sans-serif;font-size:27px;line-height:.85;font-weight:500}
+.crt-tag span{display:block;font-size:12.5px;opacity:.85}
+.crt-tag small{display:block;font-size:12px;opacity:.75;margin-top:1px}
+.crt-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:9px 2px 0}
+.crt-stat div{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:3px}
+.crt-stat b{color:var(--ink);font-weight:600}
+.crt-stat i{display:block;height:5px;background:var(--panel2);border-radius:3px;overflow:hidden}
+.crt-stat s{display:block;height:100%;background:var(--acc);transition:width .25s ease}
+.crt-tabs{display:flex;gap:2px;margin-top:10px;background:var(--panel2);border-radius:10px;padding:3px;position:sticky;top:env(safe-area-inset-top,0px);z-index:3}
+.crt-tabs button{flex:1;border:0;background:transparent;border-radius:8px;padding:8px 4px;min-height:40px;font-family:Teko,'Arial Narrow',sans-serif;font-size:21px;line-height:1;color:var(--muted)}
+.crt-tabs button[aria-selected="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.crt-panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 12px 4px;margin-top:8px}
+.crt-group{margin-bottom:20px}
+.crt-group h3{font-family:Teko,'Arial Narrow',sans-serif;font-weight:500;font-size:23px;line-height:1;margin:0 0 9px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.crt-group h3 small{font-family:Barlow,sans-serif;font-size:12.5px;font-weight:400;color:var(--muted);text-align:right}
+.crt-note{font-size:13.5px;color:var(--muted);margin:8px 0 0}
+.crt-chips{display:flex;flex-wrap:wrap;gap:6px}
+.crt-chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:7px 12px;font-weight:500;font-size:14px;min-height:40px}
+.crt-chip[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:#fff}
+.crt-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px}
+.crt-card{text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:9px 11px 10px;min-height:40px}
+.crt-card b{display:block;font-family:Teko,'Arial Narrow',sans-serif;font-weight:500;font-size:22px;line-height:1}
+.crt-card span{display:block;font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.35}
+.crt-card[aria-pressed="true"]{border-color:var(--acc);box-shadow:inset 0 0 0 1.5px var(--acc)}
+.crt-card:disabled{opacity:.45}
+.crt-sw{display:flex;flex-wrap:wrap;gap:9px}
+.crt-sw button{width:40px;height:40px;border-radius:50%;border:2px solid rgba(0,0,0,.18);padding:0}
+.crt-sw button[aria-pressed="true"]{outline:3px solid var(--acc);outline-offset:2px}
+.crt-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.crt-fields span{display:block;font-size:12.5px;color:var(--muted);margin-bottom:3px}
+.crt-fields input{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:8px 10px;min-height:40px;font:inherit;font-weight:500}
+.crt-recruit{margin:4px 0 12px}
+.crt-rbtns{margin-top:8px}
+.crt-rbtns .btn{min-height:40px}
+@media (prefers-reduced-motion:reduce){.crt-stat s{transition:none}}
 </style>
 </head>
 <body data-view="title" data-faction="resistance">
@@ -137,6 +178,7 @@ button,[data-tip],#stage{-webkit-touch-callout:none;-webkit-user-select:none;use
 <section id="v-roster" class="page" hidden></section>
 <section id="v-brief" class="page" hidden></section>
 <section id="v-debrief" class="page" hidden></section>
+<section id="v-creator" class="page" hidden></section>
 <section id="v-game" hidden>
   <header id="top"><button type="button" id="retreat">Retreat</button><div class="mission"><b id="mtitle"></b><span id="obj"></span></div><span id="turn"></span><button type="button" id="endTurn">End turn</button></header>
   <div id="stage"><div id="hud"></div>
@@ -855,6 +897,117 @@ function bakeGroup(h,outline,t=.014){
   for(const[mt,parts]of byMat){const m=new THREE.Mesh(mergeGeos(parts),mt);m.castShadow=true;m.receiveShadow=true;h.add(m)}
   if(ol.length){const m=new THREE.Mesh(mergeGeos(ol),rigOutlineMat(false,true));m.userData.isOutline=true;h.add(m)}}
 
+/* ===================== IN-GAME OPERATIVE CREATOR =====================
+   Recruit new operatives and edit the look of existing ones, from the
+   roster. Ported from the standalone creator.html; uses the shared data and
+   2D renderer in creator-core.js and the engine's tooltips (data-tip).
+   Hooks in engine.js: 'creator' in VIEWS, the roster buttons (viewRoster),
+   and ROSTER_CAP. Everything else lives here, prefixed CRT. */
+const ROSTER_CAP=12;
+const CRT={look:null,op:null,faction:'resistance',tab:'role',zoom:false,vb:null,vbAnim:0,dirty:false};
+const CRT_TABS=[['role','Role'],['face','Face'],['hair','Hair'],['gear','Gear']];
+const CRT_HAIRC=['Black','Dark brown','Brown','Copper','Blonde','Grey','White','Red dye','Blue dye'];
+
+// Weapons a body can carry follow the game's own list (sniper rifle for mediums).
+const crtWeapons=body=>(typeof BODY_WPN!=='undefined'&&BODY_WPN[body])||Object.keys(WEAPONS).filter(w=>WEAPONS[w].bodies.includes(body));
+const crtWName=w=>(typeof WPN!=='undefined'&&WPN[w]&&WPN[w].name)||(WEAPONS[w]&&WEAPONS[w].label)||w;
+// The 2D renderer only draws the creator's weapons; show a rifle for any it doesn't know.
+const crtDrawable=l=>WEAPONS[l.weapon]?l:{...l,weapon:'rifle'};
+function crtFix(l){if(!crtWeapons(l.body).includes(l.weapon))l.weapon=crtWeapons(l.body)[0];
+  for(const key of['headgear','armour']){const o=OPTS[key].find(x=>x[0]===l[key]);const fac=key==='armour'?o&&o[3]:o&&o[2];if(fac&&fac!==l.faction)l[key]=key==='armour'?'carrier':'helmet'}
+  return l}
+
+function crtRandom(f,body){const b=body||pick(Object.keys(BODY));
+  const ids=k=>OPTS[k].filter(o=>{const fac=k==='armour'?o[3]:o[2];return !fac||fac===f}).map(o=>o[0]);
+  return crtFix(clean({faction:f,body:b,cls:pick(Object.keys(CLASSES)),weapon:pick(crtWeapons(b)),
+    skin:Math.floor(Math.random()*SKIN.length),face:pick(ids('face')),expr:pick(ids('expr')),facial:pick(ids('facial')),mark:Math.random()<.55?'none':pick(ids('mark')),
+    hair:pick(ids('hair')),hairCol:Math.random()<.85?Math.floor(Math.random()*7):7+Math.floor(Math.random()*2),headgear:Math.random()<.35?'none':pick(ids('headgear')),
+    facegear:Math.random()<.6?'none':pick(ids('facegear')),top:pick(ids('top')),armour:pick(ids('armour')),legs:pick(ids('legs')),gloves:pick(ids('gloves')),
+    primary:Math.floor(Math.random()*6),secondary:Math.floor(Math.random()*6),name:pick(NAMES),callsign:pick(CALLSIGNS)}))}
+
+// Open the creator. op: an operative to edit, or null to recruit.
+function viewCreator(op){
+  const f=CUR.faction;CRT.faction=f;CRT.op=op||null;CRT.tab='role';CRT.zoom=false;CRT.vb=null;CRT.dirty=false;
+  if(op){CRT.look=crtFix(clean({...op.look,name:op.name,callsign:op.callsign||op.look.callsign,cls:op.cls,weapon:op.weapon,body:op.body,faction:f}))}
+  else{if(SAVE.roster[f].length>=ROSTER_CAP){toast(`The roster’s full (${ROSTER_CAP}). Dismiss someone first.`);return}CRT.look=crtRandom(f)}
+  $('#v-creator').innerHTML=`<div class="crt">
+    <div class="bar"><button type="button" class="btn ghost" data-crt="cancel">Cancel</button><button type="button" class="btn" data-crt="rand">Randomise</button></div>
+    <h2 class="vh"><small>${FACTIONS[f].label}</small>${op?'Edit operative':'Recruit operative'}</h2>
+    <div class="crt-stage"><svg id="crtPv" viewBox="0 0 200 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Operative preview"></svg>
+      <button type="button" class="crt-zoom" data-crt="zoom"></button><div class="crt-tag" id="crtTag"></div></div>
+    <div class="crt-stats" id="crtStats"></div>
+    <nav class="crt-tabs" id="crtTabs" role="tablist"></nav>
+    <div class="crt-panel" id="crtPanel"></div>
+    <div class="sticky"><button type="button" class="go" data-crt="save">${op?'Save changes':'Recruit to roster'}</button></div></div>`;
+  const root=$('#v-creator');
+  root.onclick=crtClick;
+  root.oninput=e=>{if(e.target.id==='crtName'){CRT.look.name=e.target.value.slice(0,18);CRT.dirty=true;crtUpdate()}if(e.target.id==='crtCall'){CRT.look.callsign=e.target.value.slice(0,22);CRT.dirty=true;crtUpdate()}};
+  crtTabs();crtPanel();crtUpdate();show('creator');
+}
+
+function crtClick(e){const L=CRT.look;
+  const t=e.target.closest('[data-tab]');if(t){CRT.tab=t.dataset.tab;CRT.zoom=CRT.tab==='face'||CRT.tab==='hair';crtTabs();crtPanel();crtUpdate();return}
+  const b=e.target.closest('[data-k]');if(b){if(b.disabled)return;const k=b.dataset.k;L[k]=b.dataset.n?parseInt(b.dataset.v,10):b.dataset.v;crtFix(L);CRT.dirty=true;sfx('ui');crtPanel();crtUpdate();return}
+  const a=e.target.closest('[data-crt]');if(!a)return;const act=a.dataset.crt;
+  if(act==='zoom'){CRT.zoom=!CRT.zoom;crtUpdate()}
+  if(act==='rand'){const keep=CRT.op?{name:L.name,callsign:L.callsign,cls:L.cls,weapon:L.weapon}:{};CRT.look=crtFix({...crtRandom(CRT.faction,CRT.op?L.body:null),...keep});CRT.dirty=true;sfx('ui');crtPanel();crtUpdate()}
+  if(act==='cancel'){if(CRT.dirty&&!a.dataset.armed){a.dataset.armed='1';a.textContent='Discard changes?';setTimeout(()=>{if(a.isConnected){delete a.dataset.armed;a.textContent='Cancel'}},2600);return}viewRoster()}
+  if(act==='save')crtSave()}
+
+function crtSave(){const f=CRT.faction,L=crtFix(clean({...CRT.look,faction:f}));
+  L.name=(L.name||'').trim()||pick(NAMES);L.callsign=(L.callsign||'').trim();
+  if(CRT.op){const op=SAVE.roster[f].find(o=>o.id===CRT.op.id);if(!op){viewRoster();return}
+    // Body is fixed once recruited: it carries the operative's stats and history.
+    L.body=op.body;op.look=L;op.name=L.name;op.callsign=L.callsign;op.cls=L.cls;op.weapon=L.weapon;persist();toast(`${L.name} updated`)}
+  else{if(SAVE.roster[f].length>=ROSTER_CAP){toast(`The roster’s full (${ROSTER_CAP}). Dismiss someone first.`);return}
+    SAVE.roster[f].push(mkOp(L));persist();toast(`${L.name} joins the roster`)}
+  sfx('good');viewRoster()}
+
+function crtTabs(){$('#crtTabs').innerHTML=CRT_TABS.map(([id,l])=>`<button type="button" role="tab" data-tab="${id}" aria-selected="${CRT.tab===id}">${l}</button>`).join('')}
+
+function crtPanel(){const L=CRT.look,F=FACTIONS[CRT.faction],editing=!!CRT.op;let h='';
+  const on=(k,v)=>String(L[k])===String(v);
+  const chips=(key,title,list,hint='',tip)=>`<div class="crt-group"><h3>${title}${hint?`<small>${hint}</small>`:''}</h3><div class="crt-chips">${list.map(([id,l])=>`<button type="button" class="crt-chip" data-k="${key}" data-v="${id}" aria-pressed="${on(key,id)}"${tip?` data-tip="${tip}:${id}"`:''}>${l}</button>`).join('')}</div></div>`;
+  const cards=(key,title,list,hint='',extra='',lock=false,tip)=>`<div class="crt-group"><h3>${title}${hint?`<small>${hint}</small>`:''}</h3><div class="crt-cards">${list.map(([id,l,sub])=>`<button type="button" class="crt-card" data-k="${key}" data-v="${id}" aria-pressed="${on(key,id)}"${lock&&!on(key,id)?' disabled':''}${tip?` data-tip="${tip}:${id}"`:''}><b>${l}</b><span>${sub}</span></button>`).join('')}</div>${extra}</div>`;
+  const swatches=(key,title,cols,names=[])=>`<div class="crt-group"><h3>${title}${names.length?`<small>${names[L[key]]}</small>`:''}</h3><div class="crt-sw">${cols.map((c,i)=>`<button type="button" style="background:${c}" data-k="${key}" data-v="${i}" data-n="1" aria-pressed="${L[key]===i}" aria-label="${names[i]||'Colour '+(i+1)}"></button>`).join('')}</div></div>`;
+  const facOk=o=>!o||o===CRT.faction;
+  if(CRT.tab==='role'){
+    h+=`<div class="crt-group crt-fields"><label><span>Name</span><input id="crtName" maxlength="18" autocomplete="off" value="${esc(L.name)}"></label><label><span>Callsign</span><input id="crtCall" maxlength="22" autocomplete="off" value="${esc(L.callsign)}"></label></div>`;
+    h+=cards('body','Body type',Object.entries(BODY).map(([id,b])=>[id,b.label,`${EB[id]?EB[id].hp:b.hp} health, move ${EB[id]?EB[id].move:b.move}`]),editing?'Fixed once recruited':'Can’t be changed later',
+      `<p class="crt-note" data-tip="move:${L.body}">${MOVE_TIP[L.body]||''}</p>`,editing,'move');
+    h+=cards('cls','Class',Object.entries(CLASSES).map(([id,c])=>[id,c.label,CLASS_AB[id].map(a=>AB[a].name).join(', ')]),'Swappable at command posts',
+      `<p class="crt-note">${CLASS_DESC[L.cls]||CLASSES[L.cls].desc}</p><p class="ab">${CLASS_AB[L.cls].map((a,i)=>`<span data-tip="ab:${a}">${AB[a].name} (Lv ${AB_LVL[i]})</span>`).join('')}</p>`,false,'cls');
+    h+=chips('weapon','Primary weapon',crtWeapons(L.body).map(w=>[w,crtWName(w)]),`What a ${BODY[L.body].label.toLowerCase()} build can carry`,'wpn');
+  }
+  if(CRT.tab==='face'){h+=swatches('skin','Skin tone',SKIN);h+=chips('face','Face shape',OPTS.face);h+=chips('expr','Expression',OPTS.expr);h+=chips('facial','Facial hair',OPTS.facial);h+=chips('mark','Markings',OPTS.mark)}
+  if(CRT.tab==='hair'){h+=chips('hair','Hairstyle',OPTS.hair,COVER.has(L.headgear)?'Mostly hidden by headgear':'');h+=swatches('hairCol','Hair colour',HAIRC,CRT_HAIRC);
+    h+=chips('headgear','Headgear',OPTS.headgear.filter(o=>facOk(o[2])).map(o=>[o[0],o[1]]),CRT.faction==='security'?'Riot helmet is Security issue':'');h+=chips('facegear','Face gear',OPTS.facegear)}
+  if(CRT.tab==='gear'){h+=chips('top','Top',OPTS.top);h+=cards('armour','Armour',OPTS.armour.filter(o=>facOk(o[3])).map(o=>[o[0],o[1],'Looks only']),`${F.label} exclusive included`);
+    h+=chips('legs','Trousers',OPTS.legs);h+=chips('gloves','Gloves',OPTS.gloves);h+=swatches('primary','Main colour',F.pal,F.names);h+=swatches('secondary','Second colour',F.pal,F.names)}
+  $('#crtPanel').innerHTML=h}
+
+function crtUpdate(){const L=CRT.look,pv=$('#crtPv');if(!pv)return;
+  pv.innerHTML=render(crtDrawable(L),'crt',true);
+  const hy=BODY[L.body].headY,t=CRT.zoom?[56,hy-50,88,104]:[0,0,200,300];crtVB(t);
+  $('#v-creator .crt-zoom').textContent=CRT.zoom?'Full body':'Face';
+  const B=EB[L.body]||BODY[L.body];
+  $('#crtTag').innerHTML=`<b>${esc(L.name||'Unnamed')}</b>${L.callsign?`<span>“${esc(L.callsign)}”</span>`:''}<small>${BODY[L.body].label} ${CLASSES[L.cls].label.toLowerCase()}, ${crtWName(L.weapon).toLowerCase()}</small>`;
+  const w=(typeof WPN!=='undefined'&&WPN[L.weapon])||{dmg:0,range:0};
+  const st=[['Health',B.hp,B.hp/150,`move:${L.body}`],['Move',B.move,B.move/7,`move:${L.body}`],['Vision',B.vis||6,(B.vis||6)/7,`move:${L.body}`],['Damage',w.dmg,w.dmg/40,`wpn:${L.weapon}`]];
+  $('#crtStats').innerHTML=st.map(([l,v,f,tip])=>`<div class="crt-stat" data-tip="${tip}"><div><span>${l}</span><b>${v}</b></div><i><s style="width:${Math.round(Math.min(1,f)*100)}%"></s></i></div>`).join('')}
+
+function crtVB(t){const pv=$('#crtPv');cancelAnimationFrame(CRT.vbAnim);
+  if(!CRT.vb||reduce){CRT.vb=t.slice();pv.setAttribute('viewBox',t.join(' '));return}
+  const from=CRT.vb.slice(),t0=performance.now();
+  const step=now=>{const k=Math.min(1,(now-t0)/300),e=1-Math.pow(1-k,3);CRT.vb=from.map((v,i)=>v+(t[i]-v)*e);pv.setAttribute('viewBox',CRT.vb.map(v=>v.toFixed(2)).join(' '));if(k<1)CRT.vbAnim=requestAnimationFrame(step)};
+  CRT.vbAnim=requestAnimationFrame(step)}
+
+// Roster: dismiss with a confirm step (second tap within a few seconds).
+function crtDismiss(btn,op){const f=CUR.faction;
+  if(SAVE.roster[f].length<=4){toast('Keep at least four operatives so you can field a full squad.');return}
+  if(!btn.dataset.armed){btn.dataset.armed='1';btn.textContent='Tap again to dismiss';btn.classList.add('warn');setTimeout(()=>{if(btn.isConnected){delete btn.dataset.armed;btn.textContent='Dismiss';btn.classList.remove('warn')}},3000);return}
+  SAVE.roster[f]=SAVE.roster[f].filter(o=>o.id!==op.id);if(typeof PICK!=='undefined')PICK=PICK.filter(id=>id!==op.id);persist();toast(`${op.name} has left the ${FACTIONS[f].label}`);viewRoster()}
+
 /* ===================== ARK TACTICS: CAMPAIGN ===================== */
 let SPD=1;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms*SPD));
@@ -1068,7 +1221,7 @@ document.addEventListener('click',e=>{if(suppressClick){suppressClick=false;e.pr
 document.addEventListener('contextmenu',e=>{if(e.target.closest('[data-tip],#stage'))e.preventDefault()});
 
 /* ---------- views ---------- */
-const VIEWS=['title','camp','brief','roster','game','debrief'];
+const VIEWS=['title','camp','brief','roster','game','debrief','creator'];
 let CUR={faction:'resistance',mi:0};
 function show(v){for(const n of VIEWS)$('#v-'+n).hidden=n!==v;document.body.dataset.view=v;window.scrollTo(0,0);if(v==='game')requestAnimationFrame(fit);playMusic(v==='title'?null:CUR.faction)}
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2600)}
@@ -1084,7 +1237,7 @@ function viewTitle(){
   const st=()=>{$('#setDiff').textContent='Difficulty: '+DF().label;$('#setGfx').textContent='Graphics: '+(HI()?'High':'Low');$('#setSnd').textContent='Sound: '+(SAVE.settings.sound?'On':'Off');$('#setMus').textContent='Music: '+(SAVE.settings.music?'On':'Off');$('#setSpd').textContent='Speed: '+(SAVE.settings.fast?'Fast':'Normal');$('#setUnits').textContent='Units: '+(SAVE.settings.units==='animated'?'Animated (preview)':'Classic')};st();
   $('#setUnits').onclick=()=>{SAVE.settings.units=SAVE.settings.units==='animated'?'classic':'animated';persist();st()};$('#setDiff').onclick=()=>{const o=['easy','normal','hard'];SAVE.settings.diff=o[(o.indexOf(SAVE.settings.diff||'normal')+1)%3];persist();st()};$('#setGfx').onclick=()=>{SAVE.settings.gfx=HI()?'low':'high';persist();st()};$('#setSnd').onclick=()=>{SAVE.settings.sound=!SAVE.settings.sound;persist();st();sfx('ui')};$('#setMus').onclick=()=>{SAVE.settings.music=!SAVE.settings.music;persist();st();playMusic(null)};$('#setSpd').onclick=()=>{SAVE.settings.fast=!SAVE.settings.fast;SPD=SAVE.settings.fast?.55:1;persist();st()};
   $('#v-title').querySelectorAll('.fac').forEach(b=>b.onclick=()=>{setFaction(b.dataset.f);viewCamp()});
-  $('#doImp').onclick=()=>{try{let arr=JSON.parse($('#impCreator').value);if(!Array.isArray(arr))arr=[arr];let n=0;for(const o of arr){if(!o||typeof o!=='object')continue;const look=clean(o);SAVE.roster[look.faction].push(mkOp(look));n++}persist();toast(n?`${n} operative${n>1?'s':''} imported`:'No operatives found in that code');$('#impCreator').value=''}catch(e){toast('That doesn’t look like a creator export code')}};
+  $('#doImp').onclick=()=>{try{let arr=JSON.parse($('#impCreator').value);if(!Array.isArray(arr))arr=[arr];let n=0;let full=0;for(const o of arr){if(!o||typeof o!=='object')continue;const look=clean(o);if(SAVE.roster[look.faction].length>=ROSTER_CAP){full++;continue}SAVE.roster[look.faction].push(mkOp(look));n++}persist();toast((n?`${n} operative${n>1?'s':''} imported`:'No operatives imported')+(full?`. ${full} skipped: rosters hold ${ROSTER_CAP}.`:''));$('#impCreator').value=''}catch(e){toast('That doesn’t look like a creator export code')}};
   $('#expSave').onclick=()=>{$('#saveCode').value=JSON.stringify(SAVE);$('#saveCode').select()};
   $('#impSave').onclick=()=>{try{const v=JSON.parse($('#saveCode').value);if(!validSave(v))throw 0;for(const f of ['resistance','security'])v.roster[f]=v.roster[f].map(o=>({...o,look:clean(o.look)}));SAVE=fillSave(v);persist();viewTitle();toast('Save loaded')}catch(e){toast('That save code isn’t valid')}};
   let armed=false;$('#resetSave').onclick=e=>{if(!armed){armed=true;e.target.textContent='Tap again to confirm';return}SAVE=newSave();persist();viewTitle();toast('Fresh start')};
@@ -1106,12 +1259,16 @@ function opCard(op,extra=''){const s=opStats(op),nx=LEVELS[s.l]||null,pr=nx?Math
   return `<div class="pf">${portrait(op.look,'p'+op.id)}</div><div class="oc"><b>${esc(op.name)} <i>Lv ${s.l}</i></b><span>${BODY[op.body].label} ${op.cls}, ${WPN[op.weapon].name.toLowerCase()}</span><div class="xp"><s style="width:${pr}%"></s></div>${extra}</div>`}
 function viewRoster(){
   const f=CUR.faction;
-  $('#v-roster').innerHTML=`<div class="bar"><button type="button" class="btn ghost bk">‹ Campaign</button></div><h2 class="vh">Roster</h2><p class="small">Change an operative’s starting class here. In the field, they can also swap at a command post you hold.</p>
+  $('#v-roster').innerHTML=`<div class="bar"><button type="button" class="btn ghost bk">‹ Campaign</button></div><h2 class="vh">Roster <small>${SAVE.roster[f].length} of ${ROSTER_CAP} operatives</small></h2><p class="small">Change an operative’s starting class and weapon here. In the field, they can also swap class at a command post you hold.</p>
+  <button type="button" class="go crt-recruit" ${SAVE.roster[f].length>=ROSTER_CAP?'disabled':''}>${SAVE.roster[f].length>=ROSTER_CAP?'Roster full: dismiss someone to recruit':'Recruit operative'}</button>
   <div class="rlist">${SAVE.roster[f].map(op=>{const s=opStats(op);return `<div class="rcard">${opCard(op,`<p class="st" data-tip="perks">${s.hp} health, move ${s.move}, accuracy ${s.acc}${op.injured?' <em>Recovering</em>':''}</p>
    <div class="chips">${Object.keys(CLASS_AB).map(c=>`<button type="button" class="chip${op.cls===c?' on':''}" data-op="${op.id}" data-c="${c}" data-tip="cls:${c}">${c}</button>`).join('')}</div>
    <div class="chips wpn">${(BODY_WPN[op.body]||[]).map(w=>`<button type="button" class="chip${op.weapon===w?' on':''}" data-op="${op.id}" data-w="${w}" data-tip="wpn:${w}">${WPN[w].name}</button>`).join('')}</div>
-   <p class="ab">${abilList(op.cls,s.l).map(a=>`<span data-tip="ab:${a.id}" class="${a.ok?'':'lk'}">${AB[a.id].name}${a.ok?'':` (Lv ${a.at})`}</span>`).join('')}</p>`)}</div>`}).join('')}</div>`;
-  $('#v-roster .bk').onclick=viewCamp;
+   <p class="ab">${abilList(op.cls,s.l).map(a=>`<span data-tip="ab:${a.id}" class="${a.ok?'':'lk'}">${AB[a.id].name}${a.ok?'':` (Lv ${a.at})`}</span>`).join('')}</p>
+   <div class="btns crt-rbtns"><button type="button" class="btn" data-edit="${op.id}">Edit look</button><button type="button" class="btn ghost" data-dismiss="${op.id}">Dismiss</button></div>`)}</div>`}).join('')}</div>`;
+  $('#v-roster .bk').onclick=viewCamp;$('#v-roster .crt-recruit').onclick=()=>viewCreator(null);
+  $('#v-roster').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>viewCreator(SAVE.roster[f].find(o=>o.id===b.dataset.edit)));
+  $('#v-roster').querySelectorAll('[data-dismiss]').forEach(b=>b.onclick=()=>crtDismiss(b,SAVE.roster[f].find(o=>o.id===b.dataset.dismiss)));
   $('#v-roster').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const op=SAVE.roster[f].find(o=>o.id===b.dataset.op);if(b.dataset.w){op.weapon=b.dataset.w}else{op.cls=b.dataset.c;op.look={...op.look,cls:op.cls}}persist();viewRoster()});
   show('roster');
 }
