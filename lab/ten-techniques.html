@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kestrel, made ten ways</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root{--bg:#dde1e0;--surface:#f1f3f2;--ink:#1a2226;--muted:#56626a;--line:#c4cccb;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11181c;--surface:#182126;--ink:#e4eaec;--muted:#93a1a8;--line:#2b383f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#11181c;--surface:#182126;--ink:#e4eaec;--muted:#93a1a8;--line:#2b383f;color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:22px 14px 48px}
+h1{font-family:'Teko','Arial Narrow',sans-serif;font-weight:600;font-size:42px;line-height:.9;margin:0}
+.intro{color:var(--muted);margin:6px 0 20px;max-width:62ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:14px}
+@media (min-width:700px){.grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}}
+.card{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:6px 16px 6px 6px;overflow:hidden}
+.art{aspect-ratio:2/3;position:relative;overflow:hidden;background:#222;container-type:inline-size}
+.art>svg,.art>canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.pix{image-rendering:pixelated;image-rendering:crisp-edges}
+figcaption{padding:9px 11px 12px}
+figcaption b{display:block;font-family:'Teko','Arial Narrow',sans-serif;font-weight:500;font-size:23px;line-height:1}
+figcaption span{display:block;font-size:13px;color:var(--muted);margin-top:3px}
+.fail{position:absolute;inset:0;display:grid;place-items:center;color:#bbb;font-size:13px;padding:14px;text-align:center}
+
+/* ASCII */
+.ascii{position:absolute;inset:0;background:radial-gradient(circle at 50% 40%,#18211d,#0b0f0d);display:grid;place-items:center}
+.ascii pre{margin:0;font-family:ui-monospace,'Cascadia Mono','Courier New',monospace;font-size:5.6cqw;line-height:1.08;font-weight:600;text-shadow:0 0 6px rgba(120,255,170,.18)}
+.ascii .h{color:#8a5a3a}.ascii .s{color:#e0a77e}.ascii .k{color:#f4efe6}.ascii .r{color:#d0643a}.ascii .g{color:#9aa36a}
+.ascii .m{color:#9aa4ad}.ascii .w{color:#c48a52}.ascii .q{color:#d8c592}.ascii .b{color:#7c706a}.ascii .o{color:#ff8a3c}.ascii .d{color:#3c5a48}
+
+/* CSS art */
+.cssart{position:absolute;inset:0;background:
+  repeating-linear-gradient(90deg,#c9581c 0 6px,transparent 6px 12px) 0 94%/100% 1.6% no-repeat,
+  linear-gradient(#232528 0 0) 0 100%/100% 8% no-repeat,
+  linear-gradient(#1c1f24 0 0) 0 91%/100% 11% no-repeat,
+  linear-gradient(#1f120d,#8a4220 70%,#ffcf88)}
+.cssart i{position:absolute;display:block}
+.cssart .tw{background:#160d09;opacity:.8}
+.cssart .rifle i{position:absolute}
+
+/* line drawing */
+.line-draw path.l{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:draw 3.2s ease-in-out .3s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){.line-draw path.l{animation:none;stroke-dashoffset:0}}
+</style>
+</head>
+<body>
+<main>
+<h1>Kestrel, made ten ways</h1>
+<p class="intro">One Resistance soldier, built from scratch ten times with a different technique each time. Nothing here is a filter over another picture: each one is its own construction.</p>
+<div class="grid" id="grid"></div>
+</main>
+<script>
+const C={skin:'#c99067',skinD:'#9c6a47',skinL:'#e0a77e',hair:'#3a2618',tee:'#7a3c22',teeD:'#5a2a17',rig:'#4f4a36',rigD:'#36332a',khaki:'#8b7b55',khakiD:'#6b5e40',boot:'#2e2620',metal:'#3a3d42',metalD:'#26282c',wood:'#7a5331',acc:'#c9581c',ink:'#1a1210'};
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ===== 1. Pixel sprite grid (also feeds the voxel model) ===== */
+function spriteGrid(){
+  const W=32,H=48,g=Array.from({length:H},()=>Array(W).fill(null));
+  const P=(x,y,c)=>{if(x>=0&&x<W&&y>=0&&y<H)g[y][x]=c};
+  const Rr=(x,y,w,h,c)=>{for(let j=0;j<h;j++)for(let i=0;i<w;i++)P(x+i,y+j,c)};
+  const Ln=(x0,y0,x1,y1,c,t=1)=>{const dx=Math.abs(x1-x0),dy=Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1;let e=dx-dy;for(;;){Rr(x0,y0,t,t,c);if(x0===x1&&y0===y1)break;const e2=2*e;if(e2>-dy){e-=dy;x0+=sx}if(e2<dx){e+=dx;y0+=sy}}};
+  Rr(11,31,5,13,C.khaki);Rr(17,31,5,13,C.khaki);Rr(15,31,1,13,C.khakiD);Rr(20,31,2,13,C.khakiD);Rr(11,35,3,3,C.khakiD);Rr(17,35,3,3,C.khakiD);
+  Rr(10,44,6,3,C.boot);Rr(17,44,6,3,C.boot);Rr(10,47,6,1,'#141110');Rr(17,47,6,1,'#141110');
+  Rr(9,18,14,13,C.tee);P(9,18,null);P(22,18,null);Rr(20,19,2,11,C.teeD);
+  Rr(14,16,4,2,C.skinD);
+  Ln(12,18,12,23,C.rig);Ln(19,18,19,23,C.rig);Rr(10,24,12,4,C.rig);Rr(11,23,2,1,C.metal);Rr(14,23,2,1,C.metal);Rr(17,23,2,1,C.metal);
+  P(13,25,C.rigD);P(16,25,C.rigD);P(19,25,C.rigD);Rr(10,27,12,1,C.rigD);
+  Rr(10,30,12,1,'#2a2622');Rr(15,30,2,1,'#9c9c94');
+  Rr(6,19,3,4,C.tee);Rr(6,23,3,2,C.skin);Rr(23,19,3,4,C.tee);Rr(23,23,3,6,C.skin);Rr(25,23,1,6,C.skinD);P(24,20,C.acc);P(24,21,C.acc);
+  Ln(2,20,8,24,C.metalD);Ln(8,24,19,31,C.metal,2);Ln(19,31,25,35,C.wood,2);Rr(12,28,2,4,C.metalD);
+  Rr(7,24,3,2,C.skin);Rr(21,29,2,2,C.skin);
+  Rr(12,7,8,9,C.skin);Rr(19,8,1,6,C.skinD);Rr(13,4,6,1,C.hair);Rr(12,5,8,2,C.hair);P(12,7,C.hair);P(19,7,C.hair);
+  P(11,10,C.skinD);P(11,11,C.skinD);P(20,10,C.skinD);P(20,11,C.skinD);
+  Rr(13,9,2,1,C.hair);Rr(17,9,2,1,C.hair);P(14,10,C.ink);P(17,10,C.ink);P(16,11,C.skinD);P(16,12,C.skinD);
+  Rr(12,13,8,3,'#8a5f43');Rr(15,14,2,1,'#3b2219');P(12,15,null);P(19,15,null);
+  return g;
+}
+function drawSprite(cv){
+  const g=spriteGrid(),W=32,H=48;cv.width=W;cv.height=H;const c=cv.getContext('2d');
+  const sky=['#2a1a2e','#3e2238','#5e2c3a','#8a3d36','#b85b34','#e08a3c'];
+  sky.forEach((col,i)=>{c.fillStyle=col;c.fillRect(0,i*7,W,7)});
+  for(let i=1;i<sky.length;i++){c.fillStyle=sky[i];for(let x=i%2;x<W;x+=2)c.fillRect(x,i*7-1,1,1)}
+  c.fillStyle='#ffd27a';c.fillRect(24,34,5,1);c.fillRect(23,35,7,2);
+  c.fillStyle='#1a1018';[[0,30,4],[5,26,3],[27,28,5],[22,32,3]].forEach(([x,y,w])=>c.fillRect(x,y,w,42-y));
+  c.fillStyle='#1c1f24';c.fillRect(0,42,W,3);c.fillStyle='#232528';c.fillRect(0,45,W,3);c.fillStyle='#c9581c';for(let x=0;x<W;x+=4)c.fillRect(x,46,2,1);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    if(g[y][x]){c.fillStyle=g[y][x];c.fillRect(x,y,1,1)}
+    else if((x>0&&g[y][x-1])||(x<W-1&&g[y][x+1])||(y>0&&g[y-1][x])||(y<H-1&&g[y+1]&&g[y+1][x])){c.fillStyle=C.ink;c.fillRect(x,y,1,1)}
+  }
+}
+
+/* ===== 2 & 3. three.js scenes ===== */
+const scenes=[];
+function startLoop(){let last=performance.now();function f(now){const dt=(now-last)/1000;last=now;for(const s of scenes)s(dt);requestAnimationFrame(f)}requestAnimationFrame(f)}
+function makeRenderer(box){
+  const r=new THREE.WebGLRenderer({antialias:true,alpha:true});r.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+  box.appendChild(r.domElement);return r;
+}
+function lowPoly(box){
+  const r=makeRenderer(box),scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(28,2/3,.1,50);
+  cam.position.set(0,1.2,5.3);cam.lookAt(0,1.0,0);
+  scene.add(new THREE.HemisphereLight(0xffe2c4,0x22202c,.75));
+  const key=new THREE.DirectionalLight(0xffffff,.75);key.position.set(3,5,4);scene.add(key);
+  const rim=new THREE.DirectionalLight(0xff8a3c,.9);rim.position.set(-4,2.5,-3);scene.add(rim);
+  const root=new THREE.Group();scene.add(root);
+  const mat=c=>new THREE.MeshLambertMaterial({color:c,flatShading:true});
+  const add=(geo,c,x,y,z,sx=1,sy=1,sz=1,parent=root)=>{const m=new THREE.Mesh(geo,mat(c));m.position.set(x,y,z);m.scale.set(sx,sy,sz);parent.add(m);return m};
+  const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+  const limb=(a,b,rad,c)=>{const d=new THREE.Vector3().subVectors(b,a),len=d.length();const m=new THREE.Mesh(new THREE.CylinderGeometry(rad,rad*.88,len,6),mat(c));m.position.copy(a).add(b).multiplyScalar(.5);m.quaternion.setFromUnitVectors(V(0,1,0),d.normalize());root.add(m);return m};
+  add(new THREE.CylinderGeometry(.75,.8,.08,8),'#2b2420',0,-.04,0);
+  for(const sx of [-1,1]){limb(V(sx*.14,.92,0),V(sx*.15,.12,0),.12,C.khaki);add(new THREE.BoxGeometry(.22,.15,.34),C.boot,sx*.15,.07,.05);add(new THREE.BoxGeometry(.05,.14,.1),C.khakiD,sx*.24,.62,0)}
+  add(new THREE.BoxGeometry(.5,.2,.3),C.khaki,0,.95,0);
+  add(new THREE.BoxGeometry(.52,.06,.32),'#2a2622',0,1.06,0);
+  add(new THREE.CylinderGeometry(.31,.25,.62,6),C.tee,0,1.38,0,1,1,.66);
+  add(new THREE.BoxGeometry(.5,.17,.12),C.rig,0,1.2,.17);
+  for(const sx of [-1,0,1])add(new THREE.BoxGeometry(.11,.08,.05),C.metal,sx*.15,1.31,.19);
+  for(const sx of [-1,1])add(new THREE.BoxGeometry(.06,.4,.04),C.rig,sx*.13,1.47,.17).rotation.x=-.12;
+  add(new THREE.CylinderGeometry(.075,.085,.14,6),C.skinD,0,1.74,0);
+  add(new THREE.IcosahedronGeometry(.2,1),C.skin,0,1.95,0,.9,1.15,1);
+  add(new THREE.IcosahedronGeometry(.17,1),'#7d5a42',0,1.86,.04,.98,.7,.95);
+  add(new THREE.SphereGeometry(.205,7,5,0,Math.PI*2,0,Math.PI*.42),C.hair,0,1.97,0,.92,1.12,1.02);
+  for(const sx of [-1,1]){add(new THREE.BoxGeometry(.04,.025,.02),C.ink,sx*.07,1.97,.175);add(new THREE.BoxGeometry(.08,.025,.03),C.hair,sx*.07,2.02,.17);add(new THREE.BoxGeometry(.04,.08,.06),C.skinD,sx*.185,1.95,0)}
+  add(new THREE.BoxGeometry(.03,.07,.05),C.skinD,0,1.92,.19);
+  const gun=new THREE.Group();gun.position.set(0,1.3,.4);gun.rotation.z=.55;root.add(gun);
+  add(new THREE.BoxGeometry(.62,.09,.07),C.metal,-.05,0,0,1,1,1,gun);
+  add(new THREE.BoxGeometry(.28,.11,.07),C.wood,.38,-.01,0,1,1,1,gun);
+  add(new THREE.BoxGeometry(.2,.07,.075),C.wood,-.28,0,0,1,1,1,gun);
+  add(new THREE.CylinderGeometry(.018,.018,.32,6),C.metalD,-.52,0,0,1,1,1,gun).rotation.z=Math.PI/2;
+  add(new THREE.BoxGeometry(.06,.17,.05),C.metalD,-.08,-.12,0,1,1,1,gun);
+  add(new THREE.BoxGeometry(.16,.04,.04),C.metalD,-.05,.07,0,1,1,1,gun);
+  gun.updateMatrixWorld(true);
+  const grip=gun.localToWorld(V(.2,-.05,0)),fore=gun.localToWorld(V(-.28,-.02,.02));
+  const sR=V(.34,1.6,0),eR=V(.44,1.22,.12),sL=V(-.34,1.6,0),eL=V(-.42,1.36,.2);
+  limb(sR,eR,.085,C.tee);limb(eR,grip,.07,C.skin);limb(sL,eL,.085,C.tee);limb(eL,fore,.07,C.skin);
+  for(const p of [sR,sL])add(new THREE.IcosahedronGeometry(.1,0),C.tee,p.x,p.y,p.z);
+  for(const p of [eR,eL])add(new THREE.IcosahedronGeometry(.075,0),C.skin,p.x,p.y,p.z);
+  for(const p of [grip,fore])add(new THREE.IcosahedronGeometry(.07,0),C.skin,p.x,p.y,p.z);
+  add(new THREE.BoxGeometry(.03,.07,.07),C.acc,.47,1.45,.04).rotation.z=.25;
+  const fit=()=>{const w=box.clientWidth,h=box.clientHeight;r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()};fit();new ResizeObserver(fit).observe(box);
+  root.rotation.y=-.35;let t=0;
+  scenes.push(dt=>{if(!reduce){t+=dt;root.rotation.y=-.35+Math.sin(t*.6)*.75}r.render(scene,cam)});
+}
+function voxel(box){
+  const r=makeRenderer(box),scene=new THREE.Scene();
+  const cam=new THREE.OrthographicCamera(-20,20,30,-30,.1,500);cam.position.set(60,45,60);cam.lookAt(0,22,0);
+  scene.add(new THREE.HemisphereLight(0xfff0e0,0x303040,.8));
+  const d=new THREE.DirectionalLight(0xffffff,.65);d.position.set(30,60,40);scene.add(d);
+  const d2=new THREE.DirectionalLight(0xff9a5a,.35);d2.position.set(-40,20,-30);scene.add(d2);
+  const g=spriteGrid(),depth=c=>({[C.skin]:5,[C.skinD]:5,[C.hair]:6,[C.ink]:5,'#8a5f43':5,'#3b2219':5,[C.tee]:5,[C.teeD]:5,[C.rig]:7,[C.rigD]:7,[C.khaki]:4,[C.khakiD]:4,[C.boot]:5,'#141110':5,'#2a2622':6,'#9c9c94':6,[C.acc]:6}[c]||1);
+  const cells=[];
+  for(let y=0;y<48;y++)for(let x=0;x<32;x++){const c=g[y][x];if(!c)continue;
+    const isGun=(c===C.metal||c===C.metalD||c===C.wood)&&y>=20;
+    if(isGun){for(const z of [4,5])cells.push([x,y,z,c]);continue}
+    const dp=depth(c);for(let z=-Math.floor(dp/2);z<Math.ceil(dp/2);z++)cells.push([x,y,z,c])}
+  const geo=new THREE.BoxGeometry(.94,.94,.94),mesh=new THREE.InstancedMesh(geo,new THREE.MeshLambertMaterial(),cells.length);
+  const m=new THREE.Matrix4(),col=new THREE.Color();
+  cells.forEach(([x,y,z,c],i)=>{m.makeTranslation(x-15.5,47-y,z);mesh.setMatrixAt(i,m);mesh.setColorAt(i,col.set(c))});
+  const root=new THREE.Group();root.add(mesh);
+  const base=new THREE.Mesh(new THREE.BoxGeometry(30,1.5,20),new THREE.MeshLambertMaterial({color:'#2d3436'}));base.position.y=-1.2;root.add(base);
+  for(let i=0;i<8;i++){const s=new THREE.Mesh(new THREE.BoxGeometry(2.5,.3,1),new THREE.MeshLambertMaterial({color:C.acc}));s.position.set(-13+i*3.7,-.4,9.6);root.add(s)}
+  scene.add(root);
+  const fit=()=>{const w=box.clientWidth,h=box.clientHeight;r.setSize(w,h,false);const hh=31,ww=hh*w/h;cam.left=-ww;cam.right=ww;cam.top=hh;cam.bottom=-hh;cam.updateProjectionMatrix()};fit();new ResizeObserver(fit).observe(box);
+  scenes.push(dt=>{if(!reduce)root.rotation.y-=dt*.35;r.render(scene,cam)});
+  root.rotation.y=-.6;
+}
+
+/* ===== 4. Chibi ===== */
+function chibi(){
+  const R=rng(7);let stub='';for(let i=0;i<70;i++){const a=R()*Math.PI,rr=Math.sqrt(R());stub+=`<circle cx="${(100+Math.cos(a)*34*rr).toFixed(1)}" cy="${(150+Math.sin(a)*16*rr).toFixed(1)}" r=".9"/>`}
+  const O='#3b2a20';
+  return `<svg viewBox="0 0 200 300" preserveAspectRatio="xMidYMid slice">
+  <rect width="200" height="300" fill="#f7e3d3"/><circle cx="40" cy="60" r="34" fill="#fbd5c0"/><circle cx="170" cy="230" r="44" fill="#f3cdb6"/><circle cx="168" cy="48" r="10" fill="#f0bfa4"/>
+  <ellipse cx="100" cy="270" rx="46" ry="7" fill="#e3c2ad"/>
+  <g stroke="${O}" stroke-width="3" stroke-linejoin="round">
+   <rect x="80" y="226" width="17" height="30" rx="7" fill="${C.khaki}"/><rect x="103" y="226" width="17" height="30" rx="7" fill="${C.khaki}"/>
+   <rect x="75" y="250" width="25" height="17" rx="8" fill="${C.boot}"/><rect x="100" y="250" width="25" height="17" rx="8" fill="${C.boot}"/>
+   <rect x="68" y="176" width="64" height="58" rx="24" fill="${C.tee}"/>
+   <rect x="70" y="206" width="60" height="18" rx="7" fill="${C.rig}"/>
+  </g>
+  <path d="M84 206 v18 M100 206 v18 M116 206 v18" stroke="${O}" stroke-width="1.5" opacity=".5"/>
+  <g transform="rotate(-24 100 204)" stroke="${O}" stroke-width="3" stroke-linejoin="round">
+   <rect x="44" y="198" width="110" height="12" rx="5" fill="${C.metal}"/><rect x="128" y="196" width="34" height="16" rx="6" fill="${C.wood}"/><rect x="88" y="208" width="10" height="16" rx="3" fill="${C.metalD}"/><rect x="30" y="201" width="18" height="6" rx="3" fill="${C.metalD}"/>
+  </g>
+  <g stroke="${O}" stroke-width="3"><circle cx="68" cy="214" r="10" fill="${C.skin}"/><circle cx="128" cy="196" r="10" fill="${C.skin}"/></g>
+  <circle cx="129" cy="180" r="5" fill="${C.acc}" stroke="${O}" stroke-width="2"/>
+  <g stroke="${O}" stroke-width="3"><circle cx="37" cy="124" r="12" fill="${C.skin}"/><circle cx="163" cy="124" r="12" fill="${C.skin}"/>
+  <ellipse cx="100" cy="116" rx="64" ry="60" fill="${C.skin}"/></g>
+  <path d="M38 108 C38 50 162 50 162 108 C150 90 128 84 100 86 C72 84 50 90 38 108 Z" fill="${C.hair}"/>
+  <path d="M60 70 Q80 56 104 58" stroke="#fff" stroke-opacity=".25" stroke-width="5" stroke-linecap="round" fill="none"/>
+  <ellipse cx="100" cy="116" rx="64" ry="60" fill="none" stroke="${O}" stroke-width="3"/>
+  <g fill="#6b4630" opacity=".35">${stub}</g>
+  <path d="M62 104 L86 110 M138 104 L114 110" stroke="${C.hair}" stroke-width="6" stroke-linecap="round"/>
+  <g><ellipse cx="76" cy="128" rx="11" ry="14" fill="#2a1a12"/><ellipse cx="124" cy="128" rx="11" ry="14" fill="#2a1a12"/><ellipse cx="76" cy="131" rx="7" ry="9" fill="#6b4226"/><ellipse cx="124" cy="131" rx="7" ry="9" fill="#6b4226"/>
+  <circle cx="72" cy="122" r="4.5" fill="#fff"/><circle cx="120" cy="122" r="4.5" fill="#fff"/><circle cx="80" cy="134" r="2" fill="#fff"/><circle cx="128" cy="134" r="2" fill="#fff"/></g>
+  <ellipse cx="60" cy="148" rx="10" ry="6" fill="#f28c8c" opacity=".45"/><ellipse cx="140" cy="148" rx="10" ry="6" fill="#f28c8c" opacity=".45"/>
+  <path d="M93 154 Q100 150 107 154" stroke="${O}" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <g transform="rotate(-20 142 100)"><rect x="132" y="95" width="22" height="9" rx="4" fill="#f1d6b0" stroke="${O}" stroke-width="1.6"/><circle cx="140" cy="99.5" r=".9" fill="${O}"/><circle cx="146" cy="99.5" r=".9" fill="${O}"/></g>
+  </svg>`;
+}
+
+/* ===== 5. Flat geometric ===== */
+function geometric(){
+  return `<svg viewBox="0 0 200 300" preserveAspectRatio="xMidYMid slice">
+  <rect width="200" height="300" fill="#ece3d4"/>
+  <circle cx="118" cy="104" r="74" fill="${C.acc}"/>
+  <path d="M-10 230 L210 170 L210 300 L-10 300 Z" fill="#23303a"/>
+  <rect x="78" y="200" width="20" height="62" fill="${C.khaki}"/><rect x="102" y="200" width="20" height="62" fill="${C.khakiD}"/>
+  <path d="M74 274 A14 14 0 0 1 102 274 Z M100 274 A14 14 0 0 1 128 274 Z" fill="${C.ink}"/>
+  <path d="M60 122 L140 122 L128 204 L72 204 Z" fill="${C.tee}"/><path d="M100 122 L140 122 L128 204 L100 204 Z" fill="${C.teeD}"/>
+  <rect x="70" y="168" width="60" height="18" fill="${C.rig}"/><rect x="80" y="122" width="7" height="46" fill="${C.rig}"/><rect x="113" y="122" width="7" height="46" fill="${C.rig}"/>
+  <path d="M60 122 A18 18 0 0 0 46 150 L60 150 Z" fill="${C.tee}"/><path d="M140 122 A18 18 0 0 1 154 150 L140 150 Z" fill="${C.teeD}"/>
+  <rect x="47" y="150" width="13" height="30" fill="${C.skin}"/><rect x="141" y="150" width="13" height="40" fill="${C.skinD}"/>
+  <g transform="rotate(-30 100 176)"><rect x="34" y="171" width="122" height="9" fill="${C.metal}"/><path d="M146 171 L174 171 L174 188 Z" fill="${C.wood}"/><rect x="92" y="180" width="8" height="15" fill="${C.ink}"/></g>
+  <circle cx="54" cy="176" r="7" fill="${C.skin}"/><circle cx="146" cy="192" r="7" fill="${C.skin}"/>
+  <path d="M147 132 L155 146 L139 146 Z" fill="#f4e7d0"/>
+  <rect x="92" y="102" width="16" height="22" fill="${C.skinD}"/>
+  <circle cx="100" cy="84" r="24" fill="${C.skin}"/>
+  <path d="M76 84 A24 24 0 0 1 124 84 Z" fill="${C.hair}"/>
+  <path d="M77 92 A23 23 0 0 0 123 92 Z" fill="${C.skinD}"/>
+  <rect x="86" y="88" width="8" height="3" fill="${C.ink}"/><rect x="106" y="88" width="8" height="3" fill="${C.ink}"/>
+  <rect x="94" y="100" width="12" height="2.5" fill="${C.ink}"/>
+  <text x="14" y="288" font-family="Teko, 'Arial Narrow', sans-serif" font-size="22" font-weight="600" fill="#ece3d4">KESTREL</text>
+  </svg>`;
+}
+
+/* ===== 6. ASCII ===== */
+function ascii(){
+  const L=[
+  ['          .;;;;;;;;.          ','          hhhhhhhhhh          '],
+  ['         ;;;;;;;;;;;;         ','         hhhhhhhhhhhh         '],
+  ['        (| -==  ==- |)        ','        ss hhh  hhh ss        '],
+  ['         |  o    o  |         ','         s  k    k  s         '],
+  ['         |    \\     |         ','         s    s     s         '],
+  ['         | .:,--,:. |         ','         s hhhkkhhh s         '],
+  ['          \\ .::::. /          ','          s hhhhhh s          '],
+  ['       ____\\______/____       ','       rrrrssssssssrrrr       '],
+  ['      /   \\\\      //   \\      ','      r   gg      gg   r      '],
+  ['     | (o) \\\\    //     |     ','     r ooo gg    gg     r     '],
+  ['  =o=|=====[======]=====|=[]  ','  mmmmmmmmmmmmmmmmmmmmmmmwww  '],
+  ['     |    [##][##][##]  |     ','     r    gggggggggggg  r     '],
+  ['     |____|__________|__|     ','     rrrrrbbbbbbbbbbbbrrr     '],
+  ['         |   |  |   |         ','         q   q  q   q         '],
+  ['         |[] |  | []|         ','         qqqqq  qqqqq         '],
+  ['         |   |  |   |         ','         q   q  q   q         '],
+  ['         |   |  |   |         ','         q   q  q   q         '],
+  ['        _|___|  |___|_        ','        bbbbbb  bbbbbb        '],
+  ['       [_____]  [_____]       ','       bbbbbbb  bbbbbbb       '],
+  ['  ~~~~~~~~~~~~~~~~~~~~~~~~~~  ','  dddddddddddddddddddddddddd  ']];
+  const escH=c=>c==='<'?'&lt;':c==='>'?'&gt;':c==='&'?'&amp;':c;
+  const out=L.map(([t,m])=>{let s='',cur=null,buf='';for(let i=0;i<t.length;i++){const k=m[i]&&m[i]!==' '?m[i]:'';if(k!==cur){if(buf)s+=cur?`<span class="${cur}">${buf}</span>`:buf;buf='';cur=k}buf+=escH(t[i])}if(buf)s+=cur?`<span class="${cur}">${buf}</span>`:buf;return s}).join('\n');
+  return `<div class="ascii"><pre aria-label="ASCII art soldier">${out}</pre></div>`;
+}
+
+/* ===== 7. Continuous line ===== */
+function oneLine(){
+  const d='M58 272 L94 272 Q96 262 88 258 L84 212 L80 206 L74 142 Q72 126 86 120 L92 116 L92 106 C80 104 76 88 78 76 C78 48 122 48 122 76 C124 90 120 104 108 108 Q100 113 93 106 Q97 100 100 102 Q103 100 106 103 Q102 98 100 93 L98 86 Q92 82 89 84 Q87 80 92 79 Q96 81 94 84 Q100 86 107 84 Q105 80 109 79 Q114 81 111 84 Q113 96 108 108 L108 116 Q120 118 126 124 L134 162 L128 192 Q121 198 115 190 L36 128 L40 121 L120 182 L98 168 Q78 160 74 150 Q70 142 78 138 L96 160 L128 160 L126 176 L100 176 L100 206 L104 262 Q106 272 112 272 L142 272 Q142 262 130 258 L124 210 L122 202 L128 146';
+  return `<svg viewBox="0 0 200 300" preserveAspectRatio="xMidYMid slice" class="line-draw"><rect width="200" height="300" fill="#f4efe4"/>
+  <path class="l" d="${d}" fill="none" stroke="#1d2226" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="130" cy="138" r="4" fill="${C.acc}"/><text x="160" y="292" font-family="Teko, sans-serif" font-size="14" fill="#1d2226">K.</text></svg>`;
+}
+
+/* ===== 8. CSS art ===== */
+function cssArt(){
+  const b=(x,y,w,h,st='')=>`<i style="left:${x/2}%;top:${y/3}%;width:${w/2}%;height:${h/3}%;${st}"></i>`;
+  let h='';
+  for(const [x,y,w] of [[4,150,22],[30,118,16],[150,128,20],[176,96,18]])h+=`<i class="tw" style="left:${x/2}%;top:${y/3}%;width:${w/2}%;height:${(243-y)/3}%"></i>`;
+  h+=b(76,256,24,14,`background:${C.boot};border-radius:40% 40% 15% 15%`)+b(102,256,24,14,`background:${C.boot};border-radius:40% 40% 15% 15%`);
+  h+=b(78,198,20,62,`background:linear-gradient(90deg,${C.khaki} 65%,${C.khakiD} 0)`)+b(102,198,20,62,`background:linear-gradient(90deg,${C.khaki} 50%,${C.khakiD} 0)`);
+  h+=b(80,214,10,13,`background:${C.khakiD};border-radius:2px`)+b(104,214,10,13,`background:${C.khakiD};border-radius:2px`);
+  h+=b(66,116,68,88,`background:linear-gradient(90deg,${C.tee} 60%,${C.teeD} 0);border-radius:42% 42% 10% 10% / 26% 26% 6% 6%`);
+  h+=b(82,116,6,56,`background:${C.rig}`)+b(112,116,6,56,`background:${C.rig}`)+b(70,168,60,20,`background:${C.rig};border-radius:4px;box-shadow:inset 0 -4px 0 ${C.rigD}`);
+  h+=b(68,196,64,7,`background:#2a2622`)+b(96,196,8,7,`background:#9c9c94`);
+  h+=b(91,102,18,18,`background:${C.skinD}`);
+  h+=b(76,78,8,13,`background:${C.skinD};border-radius:50%`)+b(116,78,8,13,`background:${C.skinD};border-radius:50%`);
+  h+=b(80,54,40,58,`background:radial-gradient(circle at 38% 42%,${C.skinL},${C.skin} 55%,${C.skinD});border-radius:46% 46% 38% 38% / 42% 42% 58% 58%`);
+  h+=b(80,52,40,22,`background:${C.hair};border-radius:50% 50% 12% 12% / 95% 95% 12% 12%`);
+  h+=b(83,88,34,24,`background:rgba(58,38,24,.32);border-radius:10% 10% 50% 50% / 10% 10% 70% 70%`);
+  h+=b(86,77,11,3,`background:${C.hair};border-radius:2px;transform:rotate(8deg)`)+b(103,77,11,3,`background:${C.hair};border-radius:2px;transform:rotate(-8deg)`);
+  h+=b(89,82,5,3,`background:${C.ink};border-radius:50%`)+b(106,82,5,3,`background:${C.ink};border-radius:50%`);
+  h+=b(98,85,4,9,`background:${C.skinD};border-radius:2px 2px 4px 4px`)+b(94,100,12,2,`background:#3b2219;border-radius:2px`);
+  h+=b(126,120,15,44,`background:${C.tee};border-radius:40%;transform:rotate(-10deg);transform-origin:50% 0`)+b(59,120,15,40,`background:${C.tee};border-radius:40%;transform:rotate(14deg);transform-origin:50% 0`);
+  h+=b(127,160,12,38,`background:${C.skin};border-radius:40%;transform:rotate(22deg);transform-origin:50% 0`)+b(58,156,12,30,`background:${C.skin};border-radius:40%;transform:rotate(-40deg);transform-origin:50% 0`);
+  h+=b(133,130,8,8,`background:${C.acc};border-radius:50%`);
+  h+=`<i class="rifle" style="left:${36/2}%;top:${160/3}%;width:${124/2}%;height:${12/3}%;transform:rotate(-30deg)">
+    <i style="left:0;top:35%;width:22%;height:30%;background:${C.metalD}"></i>
+    <i style="left:20%;top:0;width:56%;height:100%;background:${C.metal};border-radius:2px"></i>
+    <i style="left:22%;top:0;width:18%;height:100%;background:${C.wood}"></i>
+    <i style="left:74%;top:-15%;width:26%;height:130%;background:${C.wood};border-radius:2px 6px 6px 2px"></i>
+    <i style="left:46%;top:100%;width:7%;height:150%;background:${C.metalD}"></i></i>`;
+  h+=b(66,166,13,13,`background:${C.skin};border-radius:50%`)+b(118,186,13,13,`background:${C.skin};border-radius:50%`);
+  return `<div class="cssart" role="img" aria-label="Soldier built from styled boxes">${h}</div>`;
+}
+
+/* ===== 9. Tabletop token ===== */
+function token(){
+  let hex='';const s=14,hh=s*Math.sqrt(3);for(let row=-1;row<14;row++)for(let col=-1;col<10;col++){const x=col*s*1.5,y=row*hh+(col%2?hh/2:0);hex+=`<path d="M${x+s} ${y} L${x+s/2} ${y+hh/2} L${x-s/2} ${y+hh/2} L${x-s} ${y} L${x-s/2} ${y-hh/2} L${x+s/2} ${y-hh/2} Z"/>`}
+  return `<svg viewBox="0 0 200 300" preserveAspectRatio="xMidYMid slice">
+  <defs><path id="ring" d="M100 150 m-74 0 a74 74 0 1 1 148 0 a74 74 0 1 1 -148 0"/><radialGradient id="tk" cx=".4" cy=".35"><stop offset="0" stop-color="#e7dcc4"/><stop offset="1" stop-color="#b8a988"/></radialGradient></defs>
+  <rect width="200" height="300" fill="#26332e"/><g fill="none" stroke="#3b4c45" stroke-width="1">${hex}</g>
+  <ellipse cx="104" cy="158" rx="88" ry="88" fill="#000" opacity=".35"/>
+  <circle cx="100" cy="150" r="88" fill="#2b2420"/><circle cx="100" cy="150" r="84" fill="none" stroke="${C.acc}" stroke-width="5"/>
+  <path d="M100 56 L110 70 L90 70 Z" fill="${C.acc}"/>
+  <text font-family="Teko, sans-serif" font-size="13" fill="#e8dcc6" letter-spacing="2"><textPath href="#ring" startOffset="3%">KESTREL ✦ RESISTANCE SOLDIER ✦ MEDIUM BUILD ✦</textPath></text>
+  <circle cx="100" cy="150" r="64" fill="url(#tk)"/>
+  <g transform="translate(100 156)">
+    <ellipse cx="4" cy="6" rx="40" ry="24" fill="#000" opacity=".22"/>
+    <rect x="-16" y="-34" width="11" height="14" rx="5" fill="${C.boot}"/><rect x="5" y="-34" width="11" height="14" rx="5" fill="${C.boot}"/>
+    <path d="M-36 0 Q-38 -22 0 -24 Q38 -22 36 0 Q34 20 0 22 Q-34 20 -36 0 Z" fill="${C.tee}" stroke="${C.ink}" stroke-width="1.6"/>
+    <path d="M-30 -10 Q0 -20 30 -10 L28 -2 Q0 -12 -28 -2 Z" fill="${C.rig}" stroke="${C.ink}" stroke-width="1.2"/>
+    <path d="M-14 -16 L-12 18 M14 -16 L12 18" stroke="${C.rig}" stroke-width="4"/>
+    <path d="M-34 -4 L-22 -34" stroke="${C.ink}" stroke-width="10.5" stroke-linecap="round"/><path d="M-34 -4 L-22 -34" stroke="${C.skin}" stroke-width="8" stroke-linecap="round"/>
+    <path d="M34 -2 L14 -20" stroke="${C.ink}" stroke-width="10.5" stroke-linecap="round"/><path d="M34 -2 L14 -20" stroke="${C.skin}" stroke-width="8" stroke-linecap="round"/>
+    <path d="M-34 -4 L-30 -14 M34 -2 L28 -8" stroke="${C.tee}" stroke-width="9" stroke-linecap="round"/>
+    <g transform="rotate(-22)"><rect x="-4" y="-74" width="8" height="66" rx="2" fill="${C.metal}" stroke="${C.ink}" stroke-width="1.2"/><rect x="-5" y="-14" width="10" height="22" rx="3" fill="${C.wood}" stroke="${C.ink}" stroke-width="1.2"/><rect x="-1.5" y="-88" width="3" height="16" fill="${C.metalD}"/></g>
+    <circle cx="-22" cy="-34" r="5" fill="${C.skin}" stroke="${C.ink}" stroke-width="1.2"/><circle cx="14" cy="-20" r="5" fill="${C.skin}" stroke="${C.ink}" stroke-width="1.2"/>
+    <circle cx="-17" cy="2" r="2.5" fill="${C.acc}"/>
+    <ellipse cx="-15" cy="1" rx="2.6" ry="4" fill="${C.skinD}"/><ellipse cx="15" cy="1" rx="2.6" ry="4" fill="${C.skinD}"/>
+    <circle cx="0" cy="0" r="15" fill="${C.hair}" stroke="${C.ink}" stroke-width="1.6"/><circle cx="-4" cy="-4" r="7" fill="#fff" opacity=".07"/>
+    <ellipse cx="0" cy="-14" rx="3" ry="2.4" fill="${C.skin}"/>
+  </g>
+  <g font-family="Teko, sans-serif" text-anchor="middle">
+    <circle cx="44" cy="236" r="17" fill="${C.acc}" stroke="#2b2420" stroke-width="3"/><text x="44" y="242" font-size="18" fill="#fff">115</text><text x="44" y="268" font-size="12" fill="#d7e3dd">HEALTH</text>
+    <circle cx="156" cy="236" r="17" fill="#e8dcc6" stroke="#2b2420" stroke-width="3"/><text x="156" y="242" font-size="20" fill="#2b2420">5</text><text x="156" y="268" font-size="12" fill="#d7e3dd">MOVE</text>
+  </g></svg>`;
+}
+
+/* ===== 10. Painted portrait ===== */
+function portrait(){
+  const R=rng(42);
+  const head='M70 104 C68 68 84 50 102 50 C122 50 135 68 133 103 C133 128 128 147 118 161 Q108 173 100 174 Q90 173 82 161 C72 147 70 128 70 104 Z';
+  const jaw='M70 120 C76 132 86 138 100 138 C114 138 124 132 133 120 L133 180 L68 180 Z';
+  const cap='M67 104 C64 64 84 46 102 46 C124 46 138 64 135 104 C132 92 130 86 126 82 C116 76 104 77 100 80 C94 77 84 76 76 82 C71 86 69 94 67 104 Z';
+  let stub='';for(let i=0;i<900;i++){const x=68+R()*66,y=112+R()*64;stub+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(.35+R()*.45).toFixed(2)}" opacity="${(.18+R()*.4).toFixed(2)}"/>`}
+  let hair='';for(let i=0;i<650;i++){const x=64+R()*74,y=44+R()*62,a=-1.2+R()*.6+(x-100)*.012,l=1.4+R()*1.6;hair+=`<path d="M${x.toFixed(1)} ${y.toFixed(1)} l${(Math.cos(a)*l).toFixed(2)} ${(Math.sin(a)*l).toFixed(2)}" opacity="${(.35+R()*.5).toFixed(2)}"/>`}
+  return `<svg viewBox="0 0 200 300" preserveAspectRatio="xMidYMid slice"><defs>
+   <radialGradient id="pbg" cx=".3" cy=".35" r=".9"><stop offset="0" stop-color="#5a3626"/><stop offset=".55" stop-color="#2a1c17"/><stop offset="1" stop-color="#0f0b0a"/></radialGradient>
+   <radialGradient id="pface" cx=".38" cy=".42" r=".7"><stop offset="0" stop-color="#e3ab82"/><stop offset=".55" stop-color="#c48a60"/><stop offset="1" stop-color="#7a4f35"/></radialGradient>
+   <linearGradient id="pshade" x1="0" y1="0" x2="1" y2="0"><stop offset=".45" stop-color="#2a140a" stop-opacity="0"/><stop offset="1" stop-color="#2a140a" stop-opacity=".55"/></linearGradient>
+   <linearGradient id="pneck" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6e452e"/><stop offset=".5" stop-color="#a87050"/><stop offset="1" stop-color="#8a5a3e"/></linearGradient>
+   <linearGradient id="ptee" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b85a2c"/><stop offset=".45" stop-color="#7a3c22"/><stop offset="1" stop-color="#3a1a0e"/></linearGradient>
+   <linearGradient id="prig" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6a6448"/><stop offset="1" stop-color="#2e2b22"/></linearGradient>
+   <radialGradient id="piris" cx=".4" cy=".4"><stop offset="0" stop-color="#8a5a32"/><stop offset="1" stop-color="#2a170c"/></radialGradient>
+   <clipPath id="phead"><path d="${head}"/></clipPath><clipPath id="pcap"><path d="${cap}"/></clipPath><clipPath id="pjaw"><path d="${jaw}"/></clipPath>
+   <filter id="psoft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.2"/></filter>
+   <filter id="pgrain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="1.3" numOctaves="2" seed="5"/><feColorMatrix type="matrix" values="0 0 0 0 .5  0 0 0 0 .4  0 0 0 0 .3  .5 0 0 0 -.2"/></filter>
+  </defs>
+  <rect width="200" height="300" fill="url(#pbg)"/><circle cx="30" cy="90" r="60" fill="#ff8a3c" opacity=".18" filter="url(#psoft)"/>
+  <path d="M0 300 L0 262 C14 236 46 226 72 222 L128 222 C154 226 186 236 200 262 L200 300 Z" fill="url(#ptee)"/>
+  <path d="M46 228 C54 250 58 276 60 300 L80 300 C78 276 74 246 66 224 Z M154 228 C146 250 142 276 140 300 L120 300 C122 276 126 246 134 224 Z" fill="url(#prig)"/>
+  <rect x="58" y="262" width="16" height="10" rx="2" fill="#2a2622" stroke="#121010" stroke-width="1"/><circle cx="176" cy="268" r="6" fill="${C.acc}" opacity=".85"/>
+  <path d="M82 150 L118 150 L124 228 Q100 240 76 228 Z" fill="url(#pneck)"/>
+  <path d="M76 226 Q100 244 124 226" stroke="#4a2414" stroke-width="5" fill="none"/>
+  <ellipse cx="100" cy="176" rx="22" ry="10" fill="#3a2014" opacity=".55" filter="url(#psoft)"/>
+  <path d="M70 104 Q62 98 62 112 Q62 126 72 128 Z" fill="#a46a46"/><path d="M133 104 Q141 98 141 112 Q141 126 131 128 Z" fill="#7a4c32"/>
+  <path d="${head}" fill="url(#pface)"/>
+  <g clip-path="url(#phead)">
+   <rect x="60" y="40" width="80" height="140" fill="url(#pshade)"/>
+   <ellipse cx="82" cy="126" rx="10" ry="16" fill="#6b3f28" opacity=".28" filter="url(#psoft)"/><ellipse cx="122" cy="126" rx="9" ry="16" fill="#4a2a18" opacity=".4" filter="url(#psoft)"/>
+   <ellipse cx="85" cy="104" rx="13" ry="8" fill="#4a2a18" opacity=".45" filter="url(#psoft)"/><ellipse cx="116" cy="104" rx="13" ry="8" fill="#3a2010" opacity=".55" filter="url(#psoft)"/>
+   <g clip-path="url(#pjaw)" fill="#24150d">${stub}</g>
+   <path d="M70 92 Q68 120 78 150" stroke="#ffb070" stroke-width="2.5" fill="none" opacity=".75" filter="url(#psoft)"/>
+  </g>
+  <path d="${cap}" fill="#2e1d12" opacity=".9"/><g clip-path="url(#pcap)" stroke="#120a06" stroke-width=".8" stroke-linecap="round">${hair}</g>
+  <path d="M74 95 Q84 89 95 95" stroke="#2a180e" stroke-width="4.2" stroke-linecap="round" fill="none"/><path d="M106 95 Q117 89 127 95" stroke="#2a180e" stroke-width="4.2" stroke-linecap="round" fill="none"/>
+  <path d="M78 104 Q86 99 94 104 Q86 108 78 104 Z" fill="#efe2d2"/><path d="M107 104 Q115 99 123 104 Q115 108 107 104 Z" fill="#d9c8b4"/>
+  <circle cx="86.5" cy="104" r="3.4" fill="url(#piris)"/><circle cx="115" cy="104" r="3.4" fill="url(#piris)"/><circle cx="86.5" cy="104" r="1.4" fill="#0a0604"/><circle cx="115" cy="104" r="1.4" fill="#0a0604"/>
+  <circle cx="85.3" cy="102.8" r=".9" fill="#fff"/><circle cx="113.8" cy="102.8" r=".9" fill="#fff" opacity=".8"/>
+  <path d="M77 103.5 Q86 97.5 95 103.5" stroke="#1a0e08" stroke-width="1.6" fill="none"/><path d="M106 103.5 Q115 97.5 124 103.5" stroke="#1a0e08" stroke-width="1.6" fill="none"/>
+  <path d="M98 104 Q96 120 93 128 Q99 133 107 128" stroke="#7a4a2e" stroke-width="1.4" fill="none"/><path d="M97 106 L95 124" stroke="#f0bf98" stroke-width="1.6" opacity=".7" stroke-linecap="round"/>
+  <ellipse cx="96" cy="128" rx="2.4" ry="1.4" fill="#5a3220"/><ellipse cx="105" cy="128" rx="2.4" ry="1.4" fill="#4a2818"/>
+  <path d="M88 143 Q100 140 112 143 Q100 146 88 143 Z" fill="#8a4e36"/><path d="M90 144 Q100 150 110 144 Q100 147 90 144 Z" fill="#a8664a"/><path d="M88 143 Q100 145 112 143" stroke="#3a1a10" stroke-width="1.2" fill="none"/>
+  <path d="M96 160 Q100 162 104 160" stroke="#4a2818" stroke-width="1" fill="none" opacity=".7"/>
+  <rect width="200" height="300" filter="url(#pgrain)" opacity=".5"/>
+  </svg>`;
+}
+
+/* ===== Build ===== */
+const ITEMS=[
+ {name:'Hand-placed pixel sprite',desc:'Every pixel plotted on a 32×48 grid in code, with an automatic outline. A proper retro sprite.',make:box=>{const cv=document.createElement('canvas');cv.className='pix';box.appendChild(cv);drawSprite(cv)}},
+ {name:'Low-poly 3D',desc:'Real 3D built from about 40 primitive shapes in three.js, flat-shaded with a warm rim light. It turns.',gl:lowPoly},
+ {name:'Voxel model',desc:'The pixel sprite given depth, then rebuilt from around 3,000 cubes and viewed isometrically.',gl:voxel},
+ {name:'Chibi',desc:'Big head, tiny body, soft brown outlines. The mobile-game mascot version.',html:chibi},
+ {name:'Flat geometric',desc:'Only circles, rectangles and triangles. No outlines, poster palette.',html:geometric},
+ {name:'ASCII',desc:'Typed characters, colour-coded. Terminal or in-game console flavour.',html:ascii},
+ {name:'Continuous line',desc:'One single unbroken line, drawn in front of you as the page loads.',make:box=>{box.innerHTML=oneLine();const p=box.querySelector('path.l');p.style.setProperty('--len',Math.ceil(p.getTotalLength()))}},
+ {name:'CSS art',desc:'No images or SVG at all: about 40 styled HTML boxes with gradients and rounded corners.',html:cssArt},
+ {name:'Tabletop token',desc:'Top-down view with a facing notch and stats, ready to drop onto a hex grid.',html:token},
+ {name:'Painted portrait',desc:'Layered gradients, procedural stubble and hair texture, and a rim light. The concept art option.',html:portrait}
+];
+const grid=document.getElementById('grid');
+grid.innerHTML=ITEMS.map((it,i)=>`<figure class="card"><div class="art" id="art${i}"></div><figcaption><b>${it.name}</b><span>${it.desc}</span></figcaption></figure>`).join('');
+let glUsed=false;
+ITEMS.forEach((it,i)=>{const box=document.getElementById('art'+i);
+  try{
+    if(it.html)box.innerHTML=it.html();
+    else if(it.make)it.make(box);
+    else if(it.gl){if(typeof THREE==='undefined')throw new Error('no three');it.gl(box);glUsed=true}
+  }catch(e){box.innerHTML='<div class="fail">This one needs WebGL, which isn’t available in this browser.</div>'}
+});
+if(glUsed)startLoop();
+</script>
+</body>
+</html>

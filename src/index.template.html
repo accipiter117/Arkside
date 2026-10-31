@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arkside</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>/*__CSS__*/</style>
+</head>
+<body data-view="title" data-faction="resistance">
+<section id="v-title" class="page"></section>
+<section id="v-camp" class="page" hidden></section>
+<section id="v-roster" class="page" hidden></section>
+<section id="v-brief" class="page" hidden></section>
+<section id="v-debrief" class="page" hidden></section>
+<section id="v-game" hidden>
+  <header id="top"><button type="button" id="retreat">Retreat</button><div class="mission"><b id="mtitle"></b><span id="obj"></span></div><span id="turn"></span><button type="button" id="endTurn">End turn</button></header>
+  <div id="stage"><div id="hud"></div>
+    <div class="camctl"><button type="button" id="rotL" aria-label="Rotate left">⟲</button><button type="button" id="rotR" aria-label="Rotate right">⟳</button><button type="button" id="zin" aria-label="Zoom in">+</button><button type="button" id="zout" aria-label="Zoom out">−</button><button type="button" id="spd" aria-label="Game speed">1×</button><button type="button" id="snd" aria-label="Sound on or off">🔊</button></div>
+    <button type="button" id="undoBtn" hidden>↶ Undo move</button><div id="banner"></div><div id="log" role="status" aria-live="polite"></div></div>
+  <footer id="panel"><div id="roster"></div><div id="detail"></div></footer>
+</section>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+if(typeof THREE==='undefined'){document.body.insertAdjacentHTML('afterbegin','<p style="padding:20px;text-align:center">The 3D engine couldn’t load. Check your connection and reload.</p>')}
+</script>
+<script>
+//__CREATOR_CORE__
+//__MODEL_KIT__
+//__ENGINE__
+</script>
+</body>
+</html>
