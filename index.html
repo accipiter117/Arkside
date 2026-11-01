@@ -462,28 +462,22 @@ const RIG_SCALE=.52;               // rig units -> world units (neck height matc
 const RIG_P=.5/RIG_SCALE;          // procedural units -> rig units
 const RIG_WEAPON={rifle:'AK',smg:'SMG',mpistol:'Pistol',sniper:'Sniper'};
 const RIG_WEAPONS=['AK','SMG','Pistol','Sniper'];
-// Body types (Brink's "exaggerated reality": thick arms, broad heavies,
-// slim long-limbed lights, but still human). Every bone scales evenly (s),
-// never unevenly, so nothing further down the limb gets skewed. Scales
-// multiply down the chain, so child bones counter-scale to keep hands the
-// right size, and joint positions (p, a multiplier on the bone's rest
-// position in its parent) set limb length and shoulder width. Legs keep
-// their length because the feet are separate bones. three.js drops the dots
-// from bone names (UpperArm.L is UpperArmL); L and R are both applied.
+// Body types, tuned by Matthew in the body tuner on the current models.
+// Each entry is an [x,y,z] scale on that bone (L and R both, as three.js
+// drops the dots: UpperArm.L is UpperArmL). Scales multiply down the bone
+// chain on purpose (no counter-scaling): sizes were tuned that way. root
+// scales the whole unit; head sizes the creator head (fixHolder).
 const RIG_BUILD={
-  light:{root:[.95,1.05,.95],head:1.12,
-    s:{Abdomen:.92,Torso:.95,Shoulder:1/.874,UpperArm:.86,LowerArm:1.02/.86,UpperLeg:.88,LowerLeg:.94/.88},
-    p:{LowerArm:[1,1.02/.86,1],Shoulder:[1.02,1,1]}},
-  medium:{head:1.12,
-    s:{UpperArm:1.08,LowerArm:1.02/1.08,UpperLeg:1.03,LowerLeg:1/1.03},
-    p:{LowerArm:[1,1/1.08,1],LowerLeg:[1,1/1.03,1]}},
-  heavy:{root:[1.03,1,1.03],head:.98,
-    s:{Abdomen:1.08,Torso:1.1,Neck:1/1.188,Shoulder:1/1.188,UpperArm:1.26,LowerArm:1.12/1.26,UpperLeg:1.2,LowerLeg:1.1/1.2},
-    p:{Neck:[1,.9,1],Shoulder:[1.12,.97,1],LowerArm:[1,1.04/1.26,1],LowerLeg:[1,1/1.2,1]}}};
+  light:{root:[0.93,0.99,0.93],Hips:[0.91,1.04,0.91],Abdomen:[0.88,0.99,0.88],Torso:[1.25,0.98,1.25],head:1.24,Shoulder:[0.75,1,0.75],UpperArm:[1.41,1.11,1.41],LowerArm:[0.5,0.5,0.5],UpperLeg:[0.67,1,0.67],LowerLeg:[0.65,1.1,0.65],Foot:[0.84,1.16,0.84]},
+  medium:{root:[1,1.09,1],Hips:[0.79,0.96,0.79],Abdomen:[1.03,1.04,1.03],Torso:[1.33,1.07,1.33],Neck:[1.6,1.6,1.6],head:1.28,Shoulder:[0.66,1.4,0.66],UpperArm:[0.91,1.19,0.91],LowerArm:[0.5,0.5,0.5],UpperLeg:[1,1,1.17],LowerLeg:[0.71,1,0.71]},
+  heavy:{root:[1.2,1.16,1.2],Hips:[1.12,1,1.12],Abdomen:[1.6,1.21,1.6],Torso:[0.88,0.78,0.88],Neck:[0.5,1.22,0.5],head:1.41,Shoulder:[1.36,1.06,1.36],UpperArm:[1.05,0.69,1.05],LowerArm:[0.5,0.5,0.5],UpperLeg:[1.45,0.92,1.45],LowerLeg:[0.67,1,0.67],Foot:[1.19,1.44,1.19]}};
+// Gun size multiplier on top of each gun's own scale (stock and procedural),
+// tuned with the 0.5 forearms above. The sniper wasn't in the tuner, so it
+// uses the rifle's value.
+const RIG_GUN_SCALE={mpistol:1.78,smg:1.35,rifle:1.65,shotgun:1.80,sniper:1.65,lmg:1.80,minigun:1.80};
 // Limb bones keep their rest positions from us, not the clips: only these
 // bones' positions really animate (feet and pole targets are IK-style
 // targets; Body bobs; upper legs sway a little).
-const RIG_HAND=.78;
 const RIG_POS_ANIMATED=new Set(['Root','Body','FootL','FootR','PoleTargetL','PoleTargetR','UpperLegL','UpperLegR']);
 const RIG_CLIPS=['Idle','Walk','Run','Run_Gun','Walk_Shoot','Idle_Shoot','HitReact','Duck','Death','Jump','Jump_Idle','Jump_Land','Wave','Yes','No','Punch'];
 
@@ -559,9 +553,10 @@ function buildRigged(look,wkey,cls,opts={}){
   // Weapon: stock model if the rig has it, otherwise a procedural one in the same grip.
   const wk=wkey||'rifle',stock=RIG_WEAPON[wk];let gun=null,muzzle=null,barrels=null;
   for(const k of RIG_WEAPONS)weapons[k].visible=k===stock;
-  if(stock){gun=weapons[stock];muzzle=tpl.muzzle[stock].clone()}
+  const GS=(RIG_BUILD[look.body]||{}).legacy?1:(RIG_GUN_SCALE[wk]||1);
+  if(stock){gun=weapons[stock];gun.scale.multiplyScalar(GS);muzzle=tpl.muzzle[stock].clone()}
   else{const hand=bones[tpl.hand],K=opKit(),fur=sec?'#3a4048':'#7a5331',W=weaponModel(wk,fur,'#2b2e32','#4a4f55',K.box,K.cylZ,K.mesh,FACTIONS[look.faction].accent);
-    gun=new THREE.Group();gun.add(W.g);gun.position.copy(tpl.gunPos);gun.quaternion.copy(tpl.gunQ);const gs=look.body==='heavy'?1.1:1;gun.scale.setScalar(tpl.gunScale*gs);hand.add(gun);barrels=W.barrels||null;
+    gun=new THREE.Group();gun.add(W.g);gun.position.copy(tpl.gunPos);gun.quaternion.copy(tpl.gunQ);const gs=look.body==='heavy'?1.1:1;gun.scale.setScalar(tpl.gunScale*gs*GS);hand.add(gun);barrels=W.barrels||null;
     const bb=new THREE.Box3();W.g.updateMatrixWorld(true);W.g.traverse(o=>{if(o.isMesh){o.geometry.computeBoundingBox();bb.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrix))}});muzzle=new THREE.Vector3(0,(bb.max.y+bb.min.y)/2,bb.max.z);gun.userData.proc=true}
   // Head: the creator head on the Head bone.
   // The stock face is skinned into the Security body mesh, so we collapse
@@ -573,11 +568,12 @@ function buildRigged(look,wkey,cls,opts={}){
   rigGear(look,cls,tpl,bones,K,col);
   // Body type.
   const B=RIG_BUILD[look.body]||{};const each=(k,f)=>{for(const n of[k,k+'L',k+'R'])if(bones[n])f(bones[n])};
-  for(const[k,v]of Object.entries(B.s||{}))each(k,b=>b.scale.setScalar(v));
-  for(const[k,v]of Object.entries(B.p||{}))each(k,b=>{const r=b.userData.rest;if(r)b.position.set(r[0]*v[0],r[1]*v[1],r[2]*v[2])});
-  // The stock hands are cartoon-sized: shrink them at the finger roots and
-  // counter-scale anything held there (the weapons) so guns keep their size.
-  for(const f of['Index1','Middle1','Pinky1','Thumb1'])each(f,b=>{b.scale.multiplyScalar(RIG_HAND);for(const c of b.children)if(!c.isBone)c.scale.multiplyScalar(1/RIG_HAND)});
+  for(const[k,v]of Object.entries(B)){if(['root','head','s','p','hand','legacy'].includes(k))continue;each(k,b=>b.scale.set(...v))}
+  // Older format (kept so the lab can show the previous proportions): even
+  // scales (s), joint positions (p) and a finger shrink with guns counter-scaled.
+  if(B.legacy){for(const[k,v]of Object.entries(B.s||{}))each(k,b=>b.scale.setScalar(v));
+    for(const[k,v]of Object.entries(B.p||{}))each(k,b=>{const r=b.userData.rest;if(r)b.position.set(r[0]*v[0],r[1]*v[1],r[2]*v[2])});
+    if(B.hand)for(const f of['Index1','Middle1','Pinky1','Thumb1'])each(f,b=>{b.scale.multiplyScalar(B.hand);for(const c of b.children)if(!c.isBone)c.scale.multiplyScalar(1/B.hand)})}
   fixHolder(root,hh,B.head||1);
   const holder=new THREE.Group();holder.add(root);root.scale.setScalar(RIG_SCALE);if(B.root)holder.scale.set(...B.root);
   // Outlines: skinned hulls share the skeleton; rigid parts get scaled hulls.
@@ -608,10 +604,18 @@ function rigGear(look,cls,tpl,bones,K,col){const{mesh,box,sph}=K,sec=look.factio
   const T=rigHolder(tpl,bones,'Torso');T.userData.attach=true;
   // Per-body fit: half shoulder width, chest front, chest centre height. The
   // Torso bone already scales evenly with the body type.
-  const FIT={light:[.29,.19,.15],medium:[.3,.2,.15],heavy:[.3,.205,.14]}[look.body]||[.3,.2,.15],[sw,zf,Y]=FIT,vest=shade(c2,-42);
-  if(look.armour==='carrier'){box(sw*1.5,.3,.06,vest,T,0,Y,zf+.02);box(sw*1.5,.3,.06,vest,T,0,Y,-zf-.03);for(const sd of[-1,0,1])box(.11,.1,.06,shade(vest,14),T,sd*.14,Y-.08,zf+.07);box(.16,.04,.005,'#e6e1d4',T,0,Y+.1,zf+.055)}
+  // Per faction and build fit, measured from each model's chest in Idle with
+  // the tuned proportions: [half shoulder width, chest front, chest centre
+  // height, chest back]. Security's own chest pouches sit further forward, so
+  // its plates sit further out. The Torso bone carries the build's scale.
+  const FIT={'resistance-light':[.29,.205,.15,.17],'resistance-medium':[.3,.215,.15,.17],'resistance-heavy':[.3,.245,.14,.22],
+    'security-light':[.29,.295,.15,.17],'security-medium':[.3,.295,.15,.17],'security-heavy':[.3,.385,.14,.22]}[look.faction+'-'+look.body]||[.3,.2,.15,.17],[sw,zf,Y,zb]=FIT,vest=shade(c2,-42);
+  // Front plates keep their outer face just off the chest and grow deeper
+  // where the chest sits further out, so there's no gap behind them.
+  const pd=.06+Math.max(0,zf-.21),pz=zf+.05-pd/2;
+  if(look.armour==='carrier'){box(sw*1.5,.3,pd,vest,T,0,Y,pz);box(sw*1.5,.3,.06,vest,T,0,Y,-zb-.03);for(const sd of[-1,0,1])box(.11,.1,.06,shade(vest,14),T,sd*.14,Y-.08,zf+.07);box(.16,.04,.005,'#e6e1d4',T,0,Y+.1,zf+.055)}
   if(look.armour==='rig'){const rc=shade(c2,-30);box(sw*1.6,.12,.07,rc,T,0,Y-.12,zf+.03);for(let i=0;i<4;i++)box(.07,.09,.05,'#2f3134',T,-sw*.6+i*sw*.4,Y-.06,zf+.06);for(const sd of[-1,1]){const st=box(.05,.36,.02,rc,T,sd*sw*.45,Y+.06,zf+.02);st.rotation.z=sd*.08}}
-  if(look.armour==='riot'){const rp='#d4dadf';box(sw*1.45,.32,.06,rp,T,0,Y,zf+.02);box(sw*1.45,.32,.06,rp,T,0,Y,-zf+.02);box(.05,.26,.005,acc,T,0,Y,zf+.055);mesh(new THREE.TorusGeometry(.1,.035,6,14),'#a7b1b8',T,0,Y+.22,0).rotation.x=Math.PI/2}
+  if(look.armour==='riot'){const rp='#d4dadf';box(sw*1.45,.32,pd,rp,T,0,Y,pz);box(sw*1.45,.32,.06,rp,T,0,Y,-zb-.03);box(.05,.26,.005,acc,T,0,Y,zf+.055);mesh(new THREE.TorusGeometry(.1,.035,6,14),'#a7b1b8',T,0,Y+.22,0).rotation.x=Math.PI/2}
   if(look.armour==='scrap'){const p1=box(sw*.9,.24,.05,'#8b4a2a',T,-sw*.32,Y+.04,zf+.03);p1.rotation.z=.12;const p2=box(sw*.75,.2,.05,'#7f858b',T,sw*.36,Y,zf+.035);p2.rotation.z=-.1;const sp=box(.06,.42,.02,'#4a3423',T,0,Y,zf+.06);sp.rotation.z=.6}
   // Pauldrons (riot and scrap) on the upper arms.
   if(look.armour==='riot'||look.armour==='scrap')for(const s of['L','R']){const A=rigHolder(tpl,bones,'UpperArm'+s);if(!A)continue;A.userData.attach=true;const sd=s==='L'?1:-1;
@@ -619,7 +623,7 @@ function rigGear(look,cls,tpl,bones,K,col){const{mesh,box,sph}=K,sec=look.factio
   // Kneepads with armoured legs, riot and carrier armour.
   if(look.legs==='armoured'||look.armour==='riot')for(const s of['L','R']){const L=rigHolder(tpl,bones,'LowerLeg'+s);if(!L)continue;L.userData.attach=true;box(.13,.13,.07,look.armour==='riot'?'#d4dadf':'#2b2d30',L,0,0,.1)}
   // Class gear on the back (and a chest bandolier for soldiers).
-  const back=-zf-.06;
+  const back=-zb-.06;
   if(cls==='soldier'){const bd=box(.06,.5,.03,'#5a4128',T,0,Y,zf+.075);bd.rotation.z=-.62;for(let i=-3;i<=3;i++){const s=box(.03,.05,.02,'#c9a046',T,Math.sin(.62)*i*.06,Y+Math.cos(.62)*i*.06,zf+.09);s.rotation.z=-.62}
     box(.3,.22,.12,sec?'#3a4048':'#5a4128',T,0,Y-.04,back)}
   if(cls==='medic'){box(.34,.32,.14,'#e8e6df',T,0,Y,back-.02);box(.12,.04,.005,'#2c9d68',T,0,Y+.02,back-.095);box(.04,.12,.005,'#2c9d68',T,0,Y+.02,back-.095)}
