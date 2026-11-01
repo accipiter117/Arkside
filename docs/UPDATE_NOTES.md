@@ -48,3 +48,13 @@ Built in the Claude chat and already playable there. This brings the repo up to 
 - Bot movement rule, both modes: it moves if its side has someone beside it and the other side doesn't outnumber them there.
 - Defence stars: complete, nobody downed, and the first line never fell.
 - Operations list shows A (attack) or D (defence).
+
+# Update 6: painted portraits
+
+- 15 painted portraits in `assets/portraits/` (768×768 WebP, about 1.5 MB), embedded by `tools/build.py` as `PORTRAITS`, keyed by file name.
+- **Briefings:** the speaker's portrait at the top, full width with their title: Resistance leader or Security commander. A mission can set `portrait` (for example `'prisoner'`) to override the speaker.
+- **Debriefs:** the same speaker, smaller, beside the debrief text.
+- **Faction art:** each faction button on the title screen and the campaign banner show one of that faction's six soldier paintings, picked at random each visit.
+- Roster, squad picker, recruit and debrief operative cards keep the 3D renders of each operative's own model.
+- `index.html` is now about 9.2 MB (5.6 MB gzipped).
+

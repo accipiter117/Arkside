@@ -29,7 +29,7 @@ python3 tools/build.py      # src/* -> index.html and lab/unit-review.html
 | `src/lab/unit-review.template.html` | The unit review lab page (built into `lab/unit-review.html`) |
 | `src/engine.js` | Everything else: data, missions, save system, menus, tactics engine, AI, visuals, audio |
 
-Never edit `index.html` or `lab/unit-review.html` directly. Edit `src/` and rebuild. The build embeds the unit models (`assets/models/`), faction themes (`assets/audio/`) and sound effects (`assets/sfx/`).
+Never edit `index.html` or `lab/unit-review.html` directly. Edit `src/` and rebuild. The build embeds the unit models (`assets/models/`), faction themes (`assets/audio/`), sound effects (`assets/sfx/`) and painted portraits (`assets/portraits/`: story speakers in briefings and debriefs, soldier paintings on the title and campaign screens).
 
 ## Testing
 
