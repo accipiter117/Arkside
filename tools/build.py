@@ -12,7 +12,8 @@ Google Fonts, so it runs straight from GitHub Pages. Embedded at build time:
 - assets/audio/theme-*.m4a, the faction themes, as data URIs (MUSIC_RES, MUSIC_SEC)
 - assets/sfx/*.mp3, sound effects grouped by name without the trailing
   number (rifle1, rifle2 -> "rifle"), as base64 (SFX_DATA)
-- assets/portraits/*.webp, painted portraits, as data URIs (PORTRAITS)
+- assets/portraits/*.webp and assets/title/*.webp, painted portraits and
+  title art, as data URIs (PORTRAITS)
 """
 import base64
 import json
@@ -62,11 +63,12 @@ def audio_script():
             sfx.setdefault(name, []).append(base64.b64encode(f.read_bytes()).decode())
     out.append("const SFX_DATA=" + (json.dumps(sfx, separators=(",", ":")) if sfx else "null") + ";")
     # Painted portraits (assets/portraits/*.webp), keyed by file name without extension.
-    pdir = ROOT / "assets" / "portraits"
+    # Title art (assets/title/*.webp) goes in the same object, keyed the same way.
     paint = {}
-    if pdir.exists():
-        for f in sorted(pdir.glob("*.webp")):
-            paint[f.stem] = "data:image/webp;base64," + base64.b64encode(f.read_bytes()).decode()
+    for pdir in (ROOT / "assets" / "portraits", ROOT / "assets" / "title"):
+        if pdir.exists():
+            for f in sorted(pdir.glob("*.webp")):
+                paint[f.stem] = "data:image/webp;base64," + base64.b64encode(f.read_bytes()).decode()
     out.append("const PORTRAITS=" + json.dumps(paint, separators=(",", ":")) + ";")
     return "\n".join(out)
 
