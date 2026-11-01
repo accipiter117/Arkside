@@ -7,7 +7,7 @@ Unofficial and non-commercial. Brink and its setting belong to their owners.
 ## Play
 
 - **Game:** `index.html` (GitHub Pages: https://accipiter117.github.io/Arkside/)
-- **Operative Creator:** `creator.html`. Its squad export code imports straight into the game.
+- **Operative Creator:** in the game: Roster, then Recruit operative or Edit look, with a live 3D preview. Share operatives on the title screen exports and imports operative codes. `creator.html` now just points players to the game.
 - **Lab:** experiments and art reviews in `lab/` (unit model review, art style tests).
 
 ## How it's built
@@ -22,9 +22,10 @@ python3 tools/build.py      # src/* -> index.html and lab/unit-review.html
 |---|---|
 | `src/index.template.html` | Page shell and DOM for every view |
 | `src/style.css` | All styling (light and dark tokens, mobile-first) |
-| `src/creator-core.js` | Shared character data and the 2D SVG operative renderer (same as the creator) |
+| `src/creator-core.js` | Shared character look data (`DEFAULT`, `OPTS`, `clean()`, `normalize()`) |
 | `src/model-kit.js` | Palette, seeded RNG, toon material and outline helpers |
-| `src/units.js` | Unit models: the animated Toon Shooter soldiers (loading, recolouring, attachments, body types, animation), the creator head, procedural weapons and a capsule fallback |
+| `src/units.js` | Unit models: the animated Toon Shooter soldiers (loading, recolouring, attachments, body types, animation), the creator head, procedural weapons, a capsule fallback, and the 3D menu portraits |
+| `src/creator-ui.js` | The in-game Operative Creator with its live 3D preview |
 | `src/lab/unit-review.template.html` | The unit review lab page (built into `lab/unit-review.html`) |
 | `src/engine.js` | Everything else: data, missions, save system, menus, tactics engine, AI, visuals, audio |
 

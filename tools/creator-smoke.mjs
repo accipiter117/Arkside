@@ -31,7 +31,7 @@ try {
   const n0 = await count(); log(`roster starts with ${n0}`);
 
   // Recruit
-  await page.click('.crt-recruit'); await page.waitForSelector('#v-creator:not([hidden]) #crtPv');
+  await page.click('.crt-recruit'); await page.waitForSelector('#v-creator:not([hidden]) #crtStage canvas');
   await page.fill('#crtName', 'Testa'); await page.fill('#crtCall', 'Smoke');
   await page.click('.crt-card[data-k="body"][data-v="medium"]');
   await page.click('.crt-chip[data-k="weapon"][data-v="sniper"]');
