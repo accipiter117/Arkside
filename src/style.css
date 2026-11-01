@@ -120,7 +120,9 @@ button,[data-tip],#stage{-webkit-touch-callout:none;-webkit-user-select:none;use
 
 /* ===================== In-game Operative Creator (src/creator-ui.js) ===================== */
 .crt-stage{position:relative;height:clamp(240px,38vh,380px);border-radius:6px 20px 6px 6px;overflow:hidden;background:#0f2133;border:1px solid rgba(0,0,0,.25)}
-.crt-stage svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.crt-stage{background:linear-gradient(#3a7fc4,#9fcfe8 60%,#d8c3a8)}
+body[data-faction="security"] .crt-stage{background:linear-gradient(#2f86cf,#9fcde6 60%,#e6f2f6)}
+.crt-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .crt-zoom{position:absolute;top:10px;right:10px;border:0;border-radius:8px;background:rgba(8,12,15,.6);color:#fff;padding:8px 12px;font-size:13px;font-weight:600;min-height:40px}
 .crt-tag{position:absolute;left:10px;bottom:10px;max-width:calc(100% - 20px);color:#fff;padding:7px 11px 6px;background:rgba(8,12,15,.62);border-left:4px solid var(--acc);border-radius:2px 8px 8px 2px}
 .crt-tag b{display:block;font-family:Teko,'Arial Narrow',sans-serif;font-size:27px;line-height:.85;font-weight:500}
@@ -178,3 +180,9 @@ button,[data-tip],#stage{-webkit-touch-callout:none;-webkit-user-select:none;use
 .perkopt b{display:block;font-family:Teko,sans-serif;font-weight:500;font-size:21px;line-height:1}.perkopt span{font-size:13.5px;color:var(--muted)}
 .perkbtn{background:var(--acc)!important;color:#fff;border-color:var(--acc)!important;margin-left:6px;min-height:28px!important;padding:3px 9px!important}
 .perks{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}.perks span{font-size:12px;background:color-mix(in srgb,var(--acc) 18%,transparent);border-radius:6px;padding:2px 7px}
+
+/* 3D portraits (portraitHTML in src/units.js) */
+.pf img.p3d{width:100%;height:100%;display:block;object-fit:cover}
+.pf img.p3d[data-pk]{opacity:0}
+.pf img.p3d{transition:opacity .2s}
+@media (prefers-reduced-motion:reduce){.pf img.p3d{transition:none}}

@@ -51,8 +51,8 @@ Map sources and a reachability validator live in `tools/maps/` (`python3 tools/m
 ## Progression
 XP from missions, kills and objective actions. Levels at 100, 250, 450 and 700 XP (max 5): +8 HP and +3 accuracy per level, +1 move at level 3. Operatives downed on a won mission sit out the next one. Each level after the first earns a **perk**, picked in the Roster from three offered (`PERKS`: general, body, class and a sniper-only Marksman perk). Each first-time campaign win recruits a new operative. Stars: complete, nobody downed, within par.
 
-## Creator link
-`creator.html` exports a JSON array of operative looks (see `DEFAULT` in `src/creator-core.js`). The game's title screen imports it into the matching faction roster. The 2D portraits in menus use the same renderer (`render()` in `src/creator-core.js`).
+## Creator
+The Operative Creator lives in the game (`src/creator-ui.js`): Roster, then Recruit operative (up to 12 per faction) or Edit look. It shows a live 3D preview of the operative's own animated soldier (swipe to turn, Idle, a short aim when the weapon changes). Body type is fixed after recruiting. The title screen's Share operatives exports every operative as a JSON code and imports codes (including old ones from the standalone creator, which `creator.html` now retires). Menu portraits are head-and-shoulders snapshots of each operative's 3D model (`portraitHTML()` in `src/units.js`), rendered offscreen and cached in memory by look; they aren't stored in the save.
 
 ## Presentation
 - Isometric three.js view with pan, pinch zoom and 90° rotation. Toon-shaded units with inverted-hull outlines.

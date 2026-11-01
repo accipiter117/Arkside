@@ -118,8 +118,8 @@ function prepRig(g,key){
   // Clips animate scale on every bone (always 1). Drop those tracks so body
   // type bone scaling survives playback.
   for(const c of g.animations){c.tracks=c.tracks.filter(t=>!t.name.endsWith('.scale'));clips[c.name]=c}
-  const tpl={key,root,clips,bones:{},weapons:{}};
-  root.traverse(o=>{if(o.isBone)tpl.bones[o.name]=o;if(RIG_WEAPONS.includes(o.name))tpl.weapons[o.name]=o;
+  const tpl={key,root,clips,bones:{},weapons:{},geoms:new Set()};
+  root.traverse(o=>{if(o.isBone)tpl.bones[o.name]=o;if(RIG_WEAPONS.includes(o.name))tpl.weapons[o.name]=o;if(o.geometry)tpl.geoms.add(o.geometry);
     if(o.isMesh){let a=o,head=false;while(a&&!head){head=(!a.isBone&&/^Head(_\d+)?$/.test(a.name))||/^Character_Enemy_Head/.test(a.name);a=a.parent}if(head)o.userData.rigHead=true;
       for(const m of[].concat(o.material)){m.userData.role=rigRole(m.name,key);m.userData.orig=m.color.clone().convertLinearToSRGB()}}});
   // Bind-pose world rotation of each bone we attach to, so attachments can be
@@ -283,5 +283,40 @@ function bakeGroup(h,outline,t=.014){
     if(outline&&!o.userData.noOutline&&!(mt.transparent)){o.geometry.computeBoundingBox();o.geometry.boundingBox.getSize(v);const s=o.scale,k=new THREE.Vector3(1+2*t/Math.max(.02,v.x*Math.abs(s.x)),1+2*t/Math.max(.02,v.y*Math.abs(s.y)),1+2*t/Math.max(.02,v.z*Math.abs(s.z)));
       const c=o.geometry.boundingBox.getCenter(new THREE.Vector3());ol.push({g:o.geometry,m:m.clone().multiply(new THREE.Matrix4().makeTranslation(c.x,c.y,c.z)).multiply(new THREE.Matrix4().makeScale(k.x,k.y,k.z)).multiply(new THREE.Matrix4().makeTranslation(-c.x,-c.y,-c.z))})}}
   for(const c of[...h.children])h.remove(c);
-  for(const[mt,parts]of byMat){const m=new THREE.Mesh(mergeGeos(parts),mt);m.castShadow=true;m.receiveShadow=true;h.add(m)}
-  if(ol.length){const m=new THREE.Mesh(mergeGeos(ol),rigOutlineMat(false,true));m.userData.isOutline=true;h.add(m)}}
+  for(const[mt,parts]of byMat){const m=new THREE.Mesh(mergeGeos(parts),mt);m.castShadow=true;m.receiveShadow=true;m.userData.own=true;h.add(m)}
+  if(ol.length){const m=new THREE.Mesh(mergeGeos(ol),rigOutlineMat(false,true));m.userData.isOutline=true;m.userData.own=true;h.add(m)}}
+
+// Free a unit model's own GPU data (merged attachments, procedural parts).
+// Shared body geometry and shared materials are left alone.
+function disposeUnitModel(m){if(!m)return;const rig=m.userData.rig;if(rig){rig.mixer.stopAllAction();rig.mixer.uncacheRoot(rig.mixer.getRoot())}
+  m.traverse(o=>{if(!o.isMesh||o.isSkinnedMesh)return;const shared=o.geometry&&RIG.tpl&&Object.values(RIG.tpl).some(t=>t.geoms&&t.geoms.has(o.geometry));
+    if(!shared&&!(o.parent&&RIG_WEAPONS.includes(o.parent.name)))o.geometry&&o.geometry.dispose()})}
+
+/* ---------- 3D portraits ----------
+   Head-and-shoulders snapshots of each operative's own model, used for
+   every portrait in the menus. Rendered offscreen a couple per frame,
+   cached in memory by look (re-rendered on reload, never saved: a PNG per
+   operative would bloat the save). portraitHTML() returns an <img> at once;
+   if the snapshot isn't ready yet it fills in when it is. */
+const PORTRAIT={cache:new Map(),queue:[],r:null,scene:null,cam:null,pending:false,size:168};
+function portraitKey(l){return['faction','body','cls','weapon','skin','face','expr','facial','mark','hair','hairCol','headgear','facegear','top','armour','legs','gloves','primary','secondary'].map(k=>l[k]).join('|')}
+function portraitHTML(look){const k=portraitKey(look),src=PORTRAIT.cache.get(k);
+  if(src)return `<img class="p3d" src="${src}" alt="">`;
+  if(!PORTRAIT.queue.some(q=>q.k===k))PORTRAIT.queue.push({k,look:{...look}});portraitPump();
+  return `<img class="p3d" data-pk="${esc(k)}" alt="">`}
+function portraitPump(){if(PORTRAIT.pending||!PORTRAIT.queue.length)return;PORTRAIT.pending=true;
+  RIG.ready.then(()=>requestAnimationFrame(function step(){const t0=performance.now();
+    while(PORTRAIT.queue.length&&performance.now()-t0<24){const q=PORTRAIT.queue.shift();let src=PORTRAIT.cache.get(q.k);
+      if(!src){try{src=portraitRender(q.look)}catch(e){console.warn('portrait failed',e);src=''}if(src){PORTRAIT.cache.set(q.k,src);if(PORTRAIT.cache.size>160)PORTRAIT.cache.delete(PORTRAIT.cache.keys().next().value)}}
+      if(src)document.querySelectorAll('img[data-pk]').forEach(i=>{if(i.dataset.pk===q.k){i.src=src;i.removeAttribute('data-pk')}})}
+    if(PORTRAIT.queue.length)requestAnimationFrame(step);else PORTRAIT.pending=false}))}
+function portraitRender(look){
+  if(!PORTRAIT.r){const r=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});r.setPixelRatio(1);r.setSize(PORTRAIT.size,PORTRAIT.size,false);PORTRAIT.r=r;
+    const sc=new THREE.Scene();sc.add(new THREE.HemisphereLight(0xdcefff,0x6a5a4a,.8));const sun=new THREE.DirectionalLight(0xfff1dc,.85);sun.position.set(-2,3,4);sc.add(sun);const rim=new THREE.DirectionalLight(0xbfe4ff,.55);rim.position.set(3,2,-3);sc.add(rim);
+    PORTRAIT.scene=sc;PORTRAIT.cam=new THREE.PerspectiveCamera(20,1,.05,20)}
+  const m=buildRigged(look,look.weapon,look.cls,{outline:true})||capsuleSoldier(look,true);m.rotation.y=-.38;PORTRAIT.scene.add(m);
+  const rig=m.userData.rig;if(rig){rig.play('Idle');rig.update(.35)}m.updateMatrixWorld(true);
+  const head=new THREE.Vector3();if(rig&&rig.bones.Neck)rig.bones.Neck.getWorldPosition(head);else head.set(0,.8,0);head.y+=.1;
+  const cam=PORTRAIT.cam;cam.position.set(head.x+.18,head.y+.1,head.z+1.6);cam.lookAt(head.x,head.y-.05,head.z);
+  PORTRAIT.r.render(PORTRAIT.scene,cam);const src=PORTRAIT.r.domElement.toDataURL('image/png');
+  PORTRAIT.scene.remove(m);disposeUnitModel(m);return src}
