@@ -3,6 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#c9581c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Arkside">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
 <title>Arkside</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,11 +31,12 @@
   <header id="top"><button type="button" id="retreat">Retreat</button><div class="mission"><b id="mtitle"></b><span id="obj"></span></div><span id="turn"></span><button type="button" id="endTurn">End turn</button></header>
   <div id="stage"><div id="hud"></div>
     <div class="camctl"><button type="button" id="rotL" aria-label="Rotate left">⟲</button><button type="button" id="rotR" aria-label="Rotate right">⟳</button><button type="button" id="zin" aria-label="Zoom in">+</button><button type="button" id="zout" aria-label="Zoom out">−</button><button type="button" id="spd" aria-label="Game speed">1×</button><button type="button" id="snd" aria-label="Sound on or off">🔊</button></div>
-    <button type="button" id="undoBtn" data-tip="undo" hidden>↶ Undo move</button><div id="banner"></div><div id="log" role="status" aria-live="polite"></div></div>
+    <canvas id="mini" width="120" height="170" data-tip="mini" aria-label="Minimap"></canvas><div id="objMark" hidden><i></i><span></span></div><button type="button" id="undoBtn" data-tip="undo" hidden>↶ Undo move</button><div id="banner"></div><div id="log" role="status" aria-live="polite"></div></div>
   <footer id="panel"><div id="roster"></div><div id="detail"></div></footer>
 </section>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="tip" role="tooltip" hidden></div>
+<div id="modal" hidden></div>
 <script>
 if(typeof THREE==='undefined'){document.body.insertAdjacentHTML('afterbegin','<p style="padding:20px;text-align:center">The 3D engine couldn’t load. Check your connection and reload.</p>')}
 </script>

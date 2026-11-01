@@ -27,3 +27,24 @@ Built in the Claude chat and already playable there. This brings the repo up to 
 - New map tiles: gate `D`, hackable door `K`, buildable scaffold/stairs `Y`, MG nest spot `M`.
 - The engine now supports non-square maps (`NX` × `NZ`).
 - Long maps live in `tools/maps/long.py`, checked by `tools/maps/validate_long.py`. Mission data is in `OPERATIONS` in `src/engine.js`.
+
+# Update 4: perks, phone-friendly extras, redeploy choice
+
+- **Perks:** each level after the first earns a perk, chosen in the Roster from three offered (14 in total: general, body-specific, class-specific, and a sniper-only Marksman perk). Effects apply in missions.
+- **Objective marker:** a gold diamond over the current objective, or an arrow at the screen edge pointing to it when it's off-screen.
+- **Minimap** in the top-left of every mission. Tap it to move the camera. Shows explored terrain, your squad, visible enemies, the objective and the camera view.
+- **Swipe** left or right on the bottom panel to switch operative.
+- **Install to home screen:** `manifest.webmanifest`, `sw.js` and `icons/` make the GitHub Pages site installable, full screen and playable offline. The service worker only registers on github.io.
+- **Redeploy as a choice:** downed operatives can be told to redeploy at the drop point next turn, or wait for a medic. They still redeploy automatically after 3 turns.
+- The Undo button moved to the top centre to make room for the minimap.
+- New: `docs/OPERATIONS_PLAN.md`, the agreed plan for the operations rebuild.
+
+# Update 5: defence operations and the attacker AI
+
+- New operation **Container City Hold** (`x1d`): the defence version of Container City Push on the same map. Survive the turn budget; each line that falls adds more turns to hold and moves your drop point back.
+- **Attacker AI** with roles assigned every enemy turn: **pushers** (the two best-placed attackers, preferring the class that works the objective fastest) plant, repair, push the bot, repair a disabled bot, pick up and carry the cache; **escorts** fight around the objective; **flankers** (light bodies) take vents and perches. Attackers stay off the bot's route.
+- **Attacker reinforcements** top the attacking force back up at their drop point each turn (capped by difficulty), and their drop point advances when a line falls.
+- **Defender actions:** Defuse (charges), Reset (hacks) and Sabotage (repairs) undo enemy progress from an adjacent tile; Engineers and Operatives undo twice as much where it fits. Shooting the bot disables it until an attacker repairs it. Kill the cache carrier and step on the dropped cache to send it back to the lab.
+- Bot movement rule, both modes: it moves if its side has someone beside it and the other side doesn't outnumber them there.
+- Defence stars: complete, nobody downed, and the first line never fell.
+- Operations list shows A (attack) or D (defence).

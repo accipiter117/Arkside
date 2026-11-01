@@ -49,7 +49,7 @@ Map sources and a reachability validator live in `tools/maps/` (`python3 tools/m
 - **Enemies** (`ETYPES`): trooper, heavy, marksman, medic (heals allies), engineer (drops a turret), infiltrator (flanks), turret, cell leader (runs for the exit).
 
 ## Progression
-XP from missions, kills and objective actions. Levels at 100, 250, 450 and 700 XP (max 5): +8 HP and +3 accuracy per level, +1 move at level 3. Operatives downed on a won mission sit out the next one. Each first-time campaign win recruits a new operative. Stars: complete, nobody downed, within par.
+XP from missions, kills and objective actions. Levels at 100, 250, 450 and 700 XP (max 5): +8 HP and +3 accuracy per level, +1 move at level 3. Operatives downed on a won mission sit out the next one. Each level after the first earns a **perk**, picked in the Roster from three offered (`PERKS`: general, body, class and a sniper-only Marksman perk). Each first-time campaign win recruits a new operative. Stars: complete, nobody downed, within par.
 
 ## Creator link
 `creator.html` exports a JSON array of operative looks (see `DEFAULT` in `src/creator-core.js`). The game's title screen imports it into the matching faction roster. The 2D portraits in menus use the same renderer (`render()` in `src/creator-core.js`).
@@ -66,3 +66,6 @@ Two pipelines, both in `src/units.js`, chosen by Settings, Units:
 - **Animated (preview)**: the Quaternius Toon Shooter soldiers (Security `soldier_ct`, Resistance `soldier_t`), recoloured from the creator look, with the creator head, armour, class gear and weapon attached to bones, and body types done by bone scaling. Clips: Idle, Duck on overwatch and in crawl vents, Walk or Run (lights) while moving, Jump on climbs and drops, Idle_Shoot per shot, HitReact, Death when downed. Falls back to Classic if the models can't load.
 
 Clothing shapes come from the base models, so tops (tee, tank, hoodie, jacket) don't change the silhouette yet; gloves recolour the hands.
+
+## Operations
+Long multi-stage missions (`OPERATIONS`), see `docs/OPERATIONS_PLAN.md`. Attack versions move your drop point forward as stages fall; defence versions (`defend:true`, e.g. `x1d`) flip the roles, with the attacker AI assigning pushers, escorts and flankers each turn. Downed operatives can redeploy at the drop point (by choice, or automatically after 3 turns) or wait for a medic.
