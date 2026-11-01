@@ -37,11 +37,11 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:7
 h2{font:600 22px Teko,sans-serif;margin:10px 0 2px}
 </style></head><body data-f="resistance"><main>
 <h1>Unit review</h1>
-<p class="intro">The animated units exactly as the game builds them: Quaternius Toon Shooter soldiers (CC0) recoloured from a creator look, with the creator head, armour, gear and weapon attached to the skeleton. Pick a look, try the animations, and check the squad view.</p>
+<p class="intro">The soldiers exactly as the game builds them: Quaternius Toon Shooter soldiers (CC0) recoloured from a creator look, with the creator head, armour, gear and weapon attached to the skeleton. Pick a look, try the animations, and check the squad view.</p>
 <div class="lay">
   <div class="view" id="view"><span class="tag" id="tag">Resistance</span><span class="fps" id="fps"></span><div class="who" id="who"></div></div>
   <div>
-    <div class="row"><button type="button" class="btn" id="rand">Random look</button><button type="button" class="btn" id="size" aria-pressed="false">View: close-up</button><button type="button" class="btn" id="crowd" aria-pressed="false">Squad of 12</button></div>
+    <div class="row"><button type="button" class="btn" id="rand">Random look</button><button type="button" class="btn" id="size" aria-pressed="false">View: close-up</button><button type="button" class="btn" id="lineup" aria-pressed="false">Line-up</button><button type="button" class="btn" id="crowd" aria-pressed="false">Squad of 12</button></div>
     <div class="row anim" id="anim"></div>
     <div class="panel"><h2>Look</h2><div class="grid" id="picks"></div>
       <h2>Creator code</h2><p class="note" style="margin:0 0 6px">Paste an operative or squad export from the Operative Creator to load it (the first operative is shown).</p><textarea id="code" spellcheck="false" placeholder="Paste creator export code"></textarea><div class="row"><button type="button" class="btn" id="load">Load code</button><button type="button" class="btn" id="copy">Show this look’s code</button></div></div>
@@ -165,7 +165,12 @@ function toonTex(){const t=new THREE.DataTexture(new Uint8Array([95,95,95,255,17
 /* ===================== UNIT MODELS =====================
    The animated Toon Shooter soldiers, the creator head and procedural
    weapons they wear, and a plain capsule fallback. */
-let UNIT_TEX=null;const unitTex=()=>UNIT_TEX||(UNIT_TEX=toonTex());
+// Unit shading: a bold three-band toon ramp plus a stepped rim light, for
+// Brink's "bold forms". toonRim() patches any MeshToonMaterial.
+let UNIT_TEX=null;const unitTex=()=>UNIT_TEX||(UNIT_TEX=(()=>{const t=new THREE.DataTexture(new Uint8Array([92,92,92,255,178,178,178,255,255,255,255,255]),3,1,THREE.RGBAFormat);t.minFilter=t.magFilter=THREE.NearestFilter;t.needsUpdate=true;return t})());
+function toonRim(m){m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <dithering_fragment>',
+  'float rimF=1.0-clamp(dot(normalize(geometry.normal),normalize(geometry.viewDir)),0.0,1.0);gl_FragColor.rgb+=vec3(0.26,0.29,0.34)*smoothstep(0.66,0.74,rimF);\n#include <dithering_fragment>')};
+  m.customProgramCacheKey=()=>'toonRim';return m}
 const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
 // Fallback if the soldier models can't load: a plain capsule soldier in the
 // look's colours with the creator head and a procedural gun. No animation.
@@ -196,11 +201,12 @@ function opHead(look,K){
   const c1=F.pal[look.primary],c2=F.pal[look.secondary],skin=SKIN[look.skin],skinD=shade(skin,-18),hair=HAIRC[look.hairCol],acc=F.accent,ink='#16120e';
   const hd=new THREE.Group();
   const fs={long:[.86,1.16,.95],square:[1,1.02,1],angular:[.88,1.1,.95],broad:[1.1,.97,1.02]}[look.face]||[1,1,1];
-  sph(.15,skin,hd,0,0,0,fs);
-  if(look.face==='square'||look.face==='broad')box(.2*fs[0],.09,.18,skin,hd,0,-.1,.02);else box(.15*fs[0],.08,.16,skin,hd,0,-.1,.02);
+  // Brink faces: a little longer, with a wider, squarer jaw.
+  sph(.15,skin,hd,0,.01,0,[fs[0],fs[1]*1.1,fs[2]]);
+  if(look.face==='square'||look.face==='broad')box(.235*fs[0],.1,.18,skin,hd,0,-.11,.02);else box(.185*fs[0],.095,.165,skin,hd,0,-.11,.02);
   for(const sd of[-1,1])sph(.035,skinD,hd,sd*.15*fs[0],0,0,[.6,1,1]);
   const ez=.142*fs[2];
-  for(const sd of[-1,1]){box(.05,.024,.01,'#f1ece2',hd,sd*.055,.02,ez);box(.022,.022,.012,ink,hd,sd*.055,.02,ez+.003)}
+  for(const sd of[-1,1]){box(.05,.024,.01,'#f1ece2',hd,sd*.055,.02,ez);box(.028,.028,.012,ink,hd,sd*.055,.02,ez+.003)}
   const er={neutral:0,grim:.28,smirk:0,snarl:.45}[look.expr]||0;
   for(const sd of[-1,1]){const b=box(.065,.02,.012,shade(hair,-10),hd,sd*.055,.062+(look.expr==='smirk'&&sd>0?.014:0),ez+.002);b.rotation.z=-sd*er}
   box(.032,.06,.04,skinD,hd,0,-.015,ez+.012);
@@ -253,15 +259,29 @@ const RIG_SCALE=.52;               // rig units -> world units (neck height matc
 const RIG_P=.5/RIG_SCALE;          // procedural units -> rig units
 const RIG_WEAPON={rifle:'AK',smg:'SMG',mpistol:'Pistol',sniper:'Sniper'};
 const RIG_WEAPONS=['AK','SMG','Pistol','Sniper'];
-// Body types scale bones, not the whole model. [x,y,z] per bone (three.js
-// drops the dots from bone names: UpperArm.L is UpperArmL). Head values
-// are relative to the scaled torso so heavies get a slightly smaller head.
+// Body types (Brink's "exaggerated reality": thick arms, broad heavies,
+// slim long-limbed lights, but still human). Every bone scales evenly (s),
+// never unevenly, so nothing further down the limb gets skewed. Scales
+// multiply down the chain, so child bones counter-scale to keep hands the
+// right size, and joint positions (p, a multiplier on the bone's rest
+// position in its parent) set limb length and shoulder width. Legs keep
+// their length because the feet are separate bones. three.js drops the dots
+// from bone names (UpperArm.L is UpperArmL); L and R are both applied.
 const RIG_BUILD={
-  light:{root:[.96,1.05,.96],Torso:[.9,1,.9],Shoulder:[1.02,1,1.02],UpperArm:[.92,1,.92],UpperLeg:[.88,1,.88],Hips:[.92,1,.92],head:1.16},
-  medium:{head:1.15},
-  heavy:{root:[1.03,1,1.03],Abdomen:[1.1,1,1.08],Torso:[1.14,1.04,1.12],Shoulder:[.95,.95,.95],UpperArm:[1.1,1,1.1],UpperLeg:[1.16,1,1.16],LowerLeg:[.97,1,.97],Hips:[1.12,1,1.1],head:1.04}};
-// Scales multiply down the chain (Abdomen > Torso > Shoulder > arms), so
-// Shoulder counter-scales to keep heavy hands a sensible size.
+  light:{root:[.95,1.05,.95],head:1.12,
+    s:{Abdomen:.92,Torso:.95,Shoulder:1/.874,UpperArm:.86,LowerArm:1.02/.86,UpperLeg:.88,LowerLeg:.94/.88},
+    p:{LowerArm:[1,1.02/.86,1],Shoulder:[1.02,1,1]}},
+  medium:{head:1.12,
+    s:{UpperArm:1.08,LowerArm:1.02/1.08,UpperLeg:1.03,LowerLeg:1/1.03},
+    p:{LowerArm:[1,1/1.08,1],LowerLeg:[1,1/1.03,1]}},
+  heavy:{root:[1.03,1,1.03],head:.98,
+    s:{Abdomen:1.08,Torso:1.1,Neck:1/1.188,Shoulder:1/1.188,UpperArm:1.26,LowerArm:1.12/1.26,UpperLeg:1.2,LowerLeg:1.1/1.2},
+    p:{Neck:[1,.9,1],Shoulder:[1.12,.97,1],LowerArm:[1,1.04/1.26,1],LowerLeg:[1,1/1.2,1]}}};
+// Limb bones keep their rest positions from us, not the clips: only these
+// bones' positions really animate (feet and pole targets are IK-style
+// targets; Body bobs; upper legs sway a little).
+const RIG_HAND=.78;
+const RIG_POS_ANIMATED=new Set(['Root','Body','FootL','FootR','PoleTargetL','PoleTargetR','UpperLegL','UpperLegR']);
 const RIG_CLIPS=['Idle','Walk','Run','Run_Gun','Walk_Shoot','Idle_Shoot','HitReact','Duck','Death','Jump','Jump_Idle','Jump_Land','Wave','Yes','No','Punch'];
 
 function b64buf(s){const bin=atob(s),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u.buffer}
@@ -281,9 +301,9 @@ function prepRig(g,key){
   const root=g.scene,clips={};
   // Clips animate scale on every bone (always 1). Drop those tracks so body
   // type bone scaling survives playback.
-  for(const c of g.animations){c.tracks=c.tracks.filter(t=>!t.name.endsWith('.scale'));clips[c.name]=c}
+  for(const c of g.animations){c.tracks=c.tracks.filter(t=>!t.name.endsWith('.scale')&&!(t.name.endsWith('.position')&&!RIG_POS_ANIMATED.has(t.name.split('.')[0])));clips[c.name]=c}
   const tpl={key,root,clips,bones:{},weapons:{},geoms:new Set()};
-  root.traverse(o=>{if(o.isBone)tpl.bones[o.name]=o;if(RIG_WEAPONS.includes(o.name))tpl.weapons[o.name]=o;if(o.geometry)tpl.geoms.add(o.geometry);
+  root.traverse(o=>{if(o.isBone){tpl.bones[o.name]=o;o.userData.rest=o.position.toArray()}if(RIG_WEAPONS.includes(o.name))tpl.weapons[o.name]=o;if(o.geometry)tpl.geoms.add(o.geometry);
     if(o.isMesh){let a=o,head=false;while(a&&!head){head=(!a.isBone&&/^Head(_\d+)?$/.test(a.name))||/^Character_Enemy_Head/.test(a.name);a=a.parent}if(head)o.userData.rigHead=true;
       for(const m of[].concat(o.material)){m.userData.role=rigRole(m.name,key);m.userData.orig=m.color.clone().convertLinearToSRGB()}}});
   // Bind-pose world rotation of each bone we attach to, so attachments can be
@@ -307,7 +327,7 @@ function rigMuzzle(w){const b=new THREE.Box3(),inv=new THREE.Matrix4().copy(w.ma
 
 // Shared materials: one per (role colour, skinned) so units with the same
 // colours share them.
-function rigMat(hex,skinned){const k=hex+(skinned?'|s':'');let m=RIG.mats.get(k);if(!m){m=new THREE.MeshToonMaterial({color:hex,gradientMap:unitTex(),skinning:skinned});RIG.mats.set(k,m)}return m}
+function rigMat(hex,skinned){const k=hex+(skinned?'|s':'');let m=RIG.mats.get(k);if(!m){m=toonRim(new THREE.MeshToonMaterial({color:hex,gradientMap:unitTex(),skinning:skinned}));RIG.mats.set(k,m)}return m}
 const RIG_OL={};function rigOutlineMat(skinned,plain){const k=plain?'p':skinned?'s':'r';if(!RIG_OL[k]){const m=new THREE.MeshBasicMaterial({color:0x17140f,side:THREE.BackSide,skinning:skinned});if(plain)return RIG_OL[k]=m;m.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n transformed += normalize(normal) * 0.026;')};m.customProgramCacheKey=()=>'ol'+k;RIG_OL[k]=m}return RIG_OL[k]}
 
 function rigColours(look){const F=FACTIONS[look.faction],sec=look.faction==='security',c1=F.pal[look.primary],c2=F.pal[look.secondary];
@@ -329,7 +349,8 @@ function buildRigged(look,wkey,cls,opts={}){
   root.traverse(o=>{if(o.isBone)bones[o.name]=o;if(RIG_WEAPONS.includes(o.name))weapons[o.name]=o;if(o.isMesh)meshes.push(o)});
   const col=rigColours(look),outline=opts.outline!==false;
   // Recolour, sharing materials between units.
-  for(const m of meshes){if(m.userData.rigHead){m.visible=false;continue}
+  const pauldrons=look.armour==='riot'||look.armour==='scrap';
+  for(const m of meshes){if(m.userData.rigHead||(pauldrons&&/^ShoulderPad/.test(m.name))){m.visible=false;continue}
     const mats=[].concat(m.material).map(mt=>{const r=mt.userData.role;return rigMat(r?col[r]:'#'+mt.userData.orig.getHexString(),!!m.isSkinnedMesh)});
     m.material=Array.isArray(m.material)?mats:mats[0];m.castShadow=true;m.receiveShadow=true}
   // Weapon: stock model if the rig has it, otherwise a procedural one in the same grip.
@@ -348,7 +369,12 @@ function buildRigged(look,wkey,cls,opts={}){
   // Armour, pauldrons, kneepads and class gear.
   rigGear(look,cls,tpl,bones,K,col);
   // Body type.
-  const B=RIG_BUILD[look.body]||{};for(const[k,v]of Object.entries(B)){if(k==='root'||k==='head')continue;for(const n of[k,k+'L',k+'R'])if(bones[n])bones[n].scale.set(...v)}
+  const B=RIG_BUILD[look.body]||{};const each=(k,f)=>{for(const n of[k,k+'L',k+'R'])if(bones[n])f(bones[n])};
+  for(const[k,v]of Object.entries(B.s||{}))each(k,b=>b.scale.setScalar(v));
+  for(const[k,v]of Object.entries(B.p||{}))each(k,b=>{const r=b.userData.rest;if(r)b.position.set(r[0]*v[0],r[1]*v[1],r[2]*v[2])});
+  // The stock hands are cartoon-sized: shrink them at the finger roots and
+  // counter-scale anything held there (the weapons) so guns keep their size.
+  for(const f of['Index1','Middle1','Pinky1','Thumb1'])each(f,b=>{b.scale.multiplyScalar(RIG_HAND);for(const c of b.children)if(!c.isBone)c.scale.multiplyScalar(1/RIG_HAND)});
   fixHolder(root,hh,B.head||1);
   const holder=new THREE.Group();holder.add(root);root.scale.setScalar(RIG_SCALE);if(B.root)holder.scale.set(...B.root);
   // Outlines: skinned hulls share the skeleton; rigid parts get scaled hulls.
@@ -377,7 +403,9 @@ function opKit(){const MC={},M=(c,o)=>{const k=c+(o?JSON.stringify(o):'');return
 // (mid chest); numbers are procedural units (1 = about half a metre... ish).
 function rigGear(look,cls,tpl,bones,K,col){const{mesh,box,sph}=K,sec=look.faction==='security',acc=FACTIONS[look.faction].accent,c2=col.pants;
   const T=rigHolder(tpl,bones,'Torso');T.userData.attach=true;
-  const sw=.3,zf={light:.18,medium:.2,heavy:.25}[look.body]||.2,vest=shade(c2,-42),Y=.15; // zf: chest front, further out on heavies (bone scaling pushes the jacket forward) // half shoulder width, chest front, chest centre
+  // Per-body fit: half shoulder width, chest front, chest centre height. The
+  // Torso bone already scales evenly with the body type.
+  const FIT={light:[.29,.19,.15],medium:[.3,.2,.15],heavy:[.3,.205,.14]}[look.body]||[.3,.2,.15],[sw,zf,Y]=FIT,vest=shade(c2,-42);
   if(look.armour==='carrier'){box(sw*1.5,.3,.06,vest,T,0,Y,zf+.02);box(sw*1.5,.3,.06,vest,T,0,Y,-zf-.03);for(const sd of[-1,0,1])box(.11,.1,.06,shade(vest,14),T,sd*.14,Y-.08,zf+.07);box(.16,.04,.005,'#e6e1d4',T,0,Y+.1,zf+.055)}
   if(look.armour==='rig'){const rc=shade(c2,-30);box(sw*1.6,.12,.07,rc,T,0,Y-.12,zf+.03);for(let i=0;i<4;i++)box(.07,.09,.05,'#2f3134',T,-sw*.6+i*sw*.4,Y-.06,zf+.06);for(const sd of[-1,1]){const st=box(.05,.36,.02,rc,T,sd*sw*.45,Y+.06,zf+.02);st.rotation.z=sd*.08}}
   if(look.armour==='riot'){const rp='#d4dadf';box(sw*1.45,.32,.06,rp,T,0,Y,zf+.02);box(sw*1.45,.32,.06,rp,T,0,Y,-zf+.02);box(.05,.26,.005,acc,T,0,Y,zf+.055);mesh(new THREE.TorusGeometry(.1,.035,6,14),'#a7b1b8',T,0,Y+.22,0).rotation.x=Math.PI/2}
@@ -444,7 +472,9 @@ function bakeGroup(h,outline,t=.014){
   h.traverse(o=>{if(o.isMesh&&!o.isSkinnedMesh&&!o.userData.isOutline)list.push(o)});
   if(list.length<2)return;
   for(const o of list){const m=rel(o),mt=o.material;if(!byMat.has(mt))byMat.set(mt,[]);byMat.get(mt).push({g:o.geometry,m});
-    if(outline&&!o.userData.noOutline&&!(mt.transparent)){o.geometry.computeBoundingBox();o.geometry.boundingBox.getSize(v);const s=o.scale,k=new THREE.Vector3(1+2*t/Math.max(.02,v.x*Math.abs(s.x)),1+2*t/Math.max(.02,v.y*Math.abs(s.y)),1+2*t/Math.max(.02,v.z*Math.abs(s.z)));
+    // Small parts (buckles, pouches, eyes, antennae) get no hull: at game size
+    // their outlines just read as ragged dark edges.
+    if(outline&&!o.userData.noOutline&&!(mt.transparent)&&(o.geometry.computeBoundingBox(),o.geometry.boundingBox.getSize(v),Math.max(v.x*Math.abs(o.scale.x),v.y*Math.abs(o.scale.y),v.z*Math.abs(o.scale.z))>=.09)){const s=o.scale,k=new THREE.Vector3(1+2*t/Math.max(.02,v.x*Math.abs(s.x)),1+2*t/Math.max(.02,v.y*Math.abs(s.y)),1+2*t/Math.max(.02,v.z*Math.abs(s.z)));
       const c=o.geometry.boundingBox.getCenter(new THREE.Vector3());ol.push({g:o.geometry,m:m.clone().multiply(new THREE.Matrix4().makeTranslation(c.x,c.y,c.z)).multiply(new THREE.Matrix4().makeScale(k.x,k.y,k.z)).multiply(new THREE.Matrix4().makeTranslation(-c.x,-c.y,-c.z))})}}
   for(const c of[...h.children])h.remove(c);
   for(const[mt,parts]of byMat){const m=new THREE.Mesh(mergeGeos(parts),mt);m.castShadow=true;m.receiveShadow=true;m.userData.own=true;h.add(m)}
@@ -492,9 +522,9 @@ if(typeof THREE==='undefined'){document.querySelector('main').insertAdjacentHTML
 const box=document.getElementById('view');
 const r=new THREE.WebGLRenderer({antialias:true,alpha:true});r.setPixelRatio(Math.min(2,devicePixelRatio||1));r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;box.prepend(r.domElement);
 const s=new THREE.Scene();s.add(new THREE.HemisphereLight(0xdcefff,0x8a7a66,.75));const sun=new THREE.DirectionalLight(0xfff3e0,.85);sun.position.set(4,7,5);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-3,right:3,top:3,bottom:-3});s.add(sun);
-const floor=new THREE.Mesh(new THREE.BoxGeometry(5,.2,5),new THREE.MeshLambertMaterial({color:0x8f7462}));floor.position.y=-.1;floor.receiveShadow=true;s.add(floor);
+const floor=new THREE.Mesh(new THREE.BoxGeometry(8,.2,8),new THREE.MeshLambertMaterial({color:0x8f7462}));floor.position.y=-.1;floor.receiveShadow=true;s.add(floor);
 const pc=new THREE.PerspectiveCamera(28,.75,.05,50),oc=new THREE.OrthographicCamera(-2,2,2,-2,.1,60);
-let look=clean({...DEFAULT}),wkey=look.weapon,classic=false,game=false,crowd=false,unit=null,rig=null,crowdUnits=[],yaw=.4,drag=null,curAnim='Idle';
+let look=clean({...DEFAULT}),wkey=look.weapon,classic=false,game=false,crowd=false,lineup=false,unit=null,rig=null,crowdUnits=[],yaw=.4,drag=null,curAnim='Idle';
 const ANIMS=[['Idle','Idle'],['Walk','Walk'],['Run','Run'],['Shoot','Idle_Shoot'],['Walk + shoot','Walk_Shoot'],['Hit','HitReact'],['Take cover','Duck'],['Down','Death'],['Jump','Jump'],['Wave','Wave'],['Yes','Yes'],['No','No']];
 document.getElementById('anim').innerHTML=ANIMS.map(([l,a])=>`<button type="button" class="btn" data-a="${a}">${l}</button>`).join('');
 const LBL={faction:'Faction',body:'Build',cls:'Class',weapon:'Weapon',skin:'Skin',face:'Face',expr:'Expression',facial:'Facial hair',mark:'Markings',hair:'Hair',hairCol:'Hair colour',headgear:'Headgear',facegear:'Face gear',top:'Top',armour:'Armour',legs:'Legs',gloves:'Gloves',primary:'Main colour',secondary:'Second colour'};
@@ -515,25 +545,28 @@ function randomLook(){const f=pick(['resistance','security']),body=pick(Object.k
 function make(l,outline=true){return buildRigged(l,l.weapon,l.cls,{outline})||capsuleSoldier(l,outline)}
 function clear(){if(unit)s.remove(unit);for(const u of crowdUnits)s.remove(u);crowdUnits=[];unit=null;rig=null}
 function rebuild(){clear();document.body.dataset.f=look.faction;document.getElementById('tag').textContent=FACTIONS[look.faction].label;picks();
-  if(crowd){for(let i=0;i<12;i++){const l=randomLook(),m=make(l);m.position.set((i%4-1.5)*1.1,0,(Math.floor(i/4)-1)*1.1);m.rotation.y=Math.random()*.8-.4;m.traverse(o=>{if(o.isMesh&&!o.userData.isOutline)o.castShadow=true});s.add(m);crowdUnits.push(m);const rg=m.userData.rig;if(rg){rg.play(pick(['Idle','Idle','Walk','Idle_Shoot','Duck']));rg.update(Math.random()*2)}}}
+  if(lineup){const W={light:'smg',medium:'rifle',heavy:'minigun'},A={resistance:{light:'rig',medium:'carrier',heavy:'scrap'},security:{light:'rig',medium:'carrier',heavy:'riot'}};let i=0;
+    for(const f of['resistance','security'])for(const b of['light','medium','heavy']){const l=clean({...look,faction:f,body:b,weapon:W[b],armour:A[f][b],headgear:f==='security'&&b!=='light'?(b==='heavy'?'riothelm':'helmet'):look.headgear}),m=make(l);
+      m.position.set((i%3-1)*1.05+(Math.floor(i/3)?.3:-.3),0,(Math.floor(i/3)-.5)*1.9);m.traverse(o=>{if(o.isMesh&&!o.userData.isOutline)o.castShadow=true});s.add(m);crowdUnits.push(m);const rg=m.userData.rig;if(rg)rg.play(curAnim==='Death'?'Death':curAnim,curAnim==='Death'?{clamp:true}:{});i++}}
+  else if(crowd){for(let i=0;i<12;i++){const l=randomLook(),m=make(l);m.position.set((i%4-1.5)*1.1,0,(Math.floor(i/4)-1)*1.1);m.rotation.y=Math.random()*.8-.4;m.traverse(o=>{if(o.isMesh&&!o.userData.isOutline)o.castShadow=true});s.add(m);crowdUnits.push(m);const rg=m.userData.rig;if(rg){rg.play(pick(['Idle','Idle','Walk','Idle_Shoot','Duck']));rg.update(Math.random()*2)}}}
   else{unit=make(look);unit.traverse(o=>{if(o.isMesh&&!o.userData.isOutline)o.castShadow=true});s.add(unit);rig=unit.userData.rig||null;if(rig)rig.play(curAnim,curAnim==='Death'?{clamp:true}:{})}
-  document.getElementById('who').innerHTML=crowd?'<b>Squad of 12</b>Random looks at game size':`<b>${esc(look.name)}</b>“${esc(look.callsign)}”, ${BODY[look.body].label.toLowerCase()} ${look.cls}, ${WEAPONS[look.weapon].label.toLowerCase()}${!rig?' (models unavailable, showing the fallback)':''}`;
+  document.getElementById('who').innerHTML=lineup?'<b>Line-up</b>Light, medium and heavy, Resistance (back) and Security (front), in this look':crowd?'<b>Squad of 12</b>Random looks at game size':`<b>${esc(look.name)}</b>“${esc(look.callsign)}”, ${BODY[look.body].label.toLowerCase()} ${look.cls}, ${WEAPONS[look.weapon].label.toLowerCase()}${!rig?' (models unavailable, showing the fallback)':''}`;
   document.querySelectorAll('#anim .btn').forEach(b=>b.setAttribute('aria-pressed',b.dataset.a===curAnim))}
 document.getElementById('anim').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;curAnim=b.dataset.a;if(rig)rig.play(curAnim,curAnim==='Death'?{clamp:true}:{});document.querySelectorAll('#anim .btn').forEach(x=>x.setAttribute('aria-pressed',x===b))});
 document.getElementById('rand').onclick=()=>{look=randomLook();rebuild()};
 const tgl=(id,fn)=>{const b=document.getElementById(id);b.onclick=()=>{fn();b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true');rebuild();lbl()}};
-function lbl(){document.getElementById('size').textContent='View: '+(game?'game size':'close-up');document.getElementById('crowd').textContent=crowd?'Single unit':'Squad of 12'}
-tgl('size',()=>game=!game);tgl('crowd',()=>{crowd=!crowd;if(crowd)game=true});
+function lbl(){document.getElementById('size').textContent='View: '+(game?'game size':'close-up');document.getElementById('crowd').textContent=crowd?'Single unit':'Squad of 12';document.getElementById('lineup').textContent=lineup?'Single unit':'Line-up'}
+tgl('size',()=>game=!game);tgl('crowd',()=>{crowd=!crowd;lineup=false;if(crowd)game=true});tgl('lineup',()=>{lineup=!lineup;crowd=false});
 document.getElementById('load').onclick=()=>{try{let a=JSON.parse(document.getElementById('code').value);if(Array.isArray(a))a=a[0];look=clean(a);rebuild()}catch(e){alert('That doesn’t look like a creator export code')}};
 document.getElementById('copy').onclick=()=>{const t=document.getElementById('code');t.value=JSON.stringify(look);t.select()};
 const cv=r.domElement;cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:yaw};cv.setPointerCapture(e.pointerId)});cv.addEventListener('pointermove',e=>{if(drag)yaw=drag.y+(e.clientX-drag.x)*.012});cv.addEventListener('pointerup',()=>drag=null);
 function fit(){const w=box.clientWidth,h=box.clientHeight;if(!w||!h)return;r.setSize(w,h,false);pc.aspect=w/h;pc.updateProjectionMatrix()}new ResizeObserver(fit).observe(box);fit();
 const clock=new THREE.Clock();let fr=0,ft=0;
 function tick(){requestAnimationFrame(tick);const dt=Math.min(.05,clock.getDelta());
-  if(rig)rig.update(dt);for(const u of crowdUnits)u.userData.rig&&u.userData.rig.update(dt);
+  if(rig)rig.update(dt);for(const u of crowdUnits){u.userData.rig&&u.userData.rig.update(dt);if(lineup)u.rotation.y=yaw}
   if(unit)unit.rotation.y=yaw;
-  let cam=pc;if(game||crowd){cam=oc;const w=box.clientWidth,h=box.clientHeight,hh=crowd?3:1.4,ww=hh*w/h;Object.assign(oc,{left:-ww,right:ww,top:hh,bottom:-hh});oc.updateProjectionMatrix();oc.position.set(Math.sin(Math.PI/4)*24,19,Math.cos(Math.PI/4)*24);oc.lookAt(0,.35,0)}
-  else{pc.position.set(0,.6,2.9);pc.lookAt(0,.47,0)}
+  let cam=pc;if(lineup){pc.position.set(0,2.4,10.5);pc.lookAt(0,.4,0)}else if(game||crowd){cam=oc;const w=box.clientWidth,h=box.clientHeight,hh=crowd?3:1.4,ww=hh*w/h;Object.assign(oc,{left:-ww,right:ww,top:hh,bottom:-hh});oc.updateProjectionMatrix();oc.position.set(Math.sin(Math.PI/4)*24,19,Math.cos(Math.PI/4)*24);oc.lookAt(0,.35,0)}
+  else if(!lineup){pc.position.set(0,.6,2.9);pc.lookAt(0,.47,0)}
   r.render(s,cam);fr++;ft+=dt;if(ft>1){document.getElementById('fps').textContent=Math.round(fr/ft)+' fps';fr=0;ft=0}}
 window.REVIEW={get look(){return look},set look(v){look=clean(v);rebuild()},rebuild,randomLook,play:a=>{curAnim=a;if(rig)rig.play(a,a==='Death'?{clamp:true}:{})},setYaw:v=>yaw=v,toggle:id=>document.getElementById(id).click()};
 RIG.ready.then(()=>{rebuild();tick()});
