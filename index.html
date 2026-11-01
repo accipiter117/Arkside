@@ -185,7 +185,6 @@ body[data-faction="security"] .crt-stage{background:linear-gradient(#2f86cf,#9fc
 .mis.op em{background:#d99a1a}
 .act.sec{background:#5a6a7a;border-color:#5a6a7a}
 
-#mini{position:absolute;left:8px;top:8px;border-radius:8px;background:rgba(10,12,14,.55);box-shadow:0 2px 8px rgba(0,0,0,.3);touch-action:none;image-rendering:pixelated}
 #objMark{position:absolute;left:0;top:0;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:2px;transform:translate(-50%,-50%)}
 #objMark i{display:block;width:22px;height:22px;background:#ffc04a;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);box-shadow:0 0 8px rgba(255,192,74,.8);animation:obp 1.2s ease-in-out infinite}
 #objMark.edge i{clip-path:polygon(0 15%,100% 50%,0 85%,22% 50%)}
@@ -219,7 +218,7 @@ body[data-faction="security"] .crt-stage{background:linear-gradient(#2f86cf,#9fc
   <header id="top"><button type="button" id="retreat">Retreat</button><div class="mission"><b id="mtitle"></b><span id="obj"></span></div><span id="turn"></span><button type="button" id="endTurn">End turn</button></header>
   <div id="stage"><div id="hud"></div>
     <div class="camctl"><button type="button" id="rotL" aria-label="Rotate left">⟲</button><button type="button" id="rotR" aria-label="Rotate right">⟳</button><button type="button" id="zin" aria-label="Zoom in">+</button><button type="button" id="zout" aria-label="Zoom out">−</button><button type="button" id="spd" aria-label="Game speed">1×</button><button type="button" id="snd" aria-label="Sound on or off">🔊</button></div>
-    <canvas id="mini" width="120" height="170" data-tip="mini" aria-label="Minimap"></canvas><div id="objMark" hidden><i></i><span></span></div><button type="button" id="undoBtn" data-tip="undo" hidden>↶ Undo move</button><div id="banner"></div><div id="log" role="status" aria-live="polite"></div></div>
+    <div id="objMark" hidden><i></i><span></span></div><button type="button" id="undoBtn" data-tip="undo" hidden>↶ Undo move</button><div id="banner"></div><div id="log" role="status" aria-live="polite"></div></div>
   <footer id="panel"><div id="roster"></div><div id="detail"></div></footer>
 </section>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -1066,8 +1065,7 @@ function tipHTML(k){const[a,b]=k.split(':');
   if(k==='perks')return '<b>Levels and perks</b>Each level adds +8 health and +3 accuracy, and lets you choose a perk. Level 3 adds +1 move. New abilities unlock at levels 2 and 4.';
   if(a==='perk')return `<b>${PERKS[b].name}</b>${PERKS[b].desc}`;
   if(k==='redeploy')return '<b>Redeploy</b>Come back at the drop point at the start of your next turn with half health (move only). Or stay down and wait: a medic can revive you where you fell. After 3 turns you redeploy automatically.';
-  if(k==='mini')return '<b>Minimap</b>Tap to move the camera there. Gold box: current objective. Your squad in faction colour, enemies you can see in red.';
-  if(k==='undo')return '<b>Undo move</b>Puts the operative back. Not possible if the move triggered overwatch, got you spotted, revealed an enemy or picked up the cartridge.';
+  if(k==='undo')return '<b>Undo move</b>Puts the operative back, along with anything the move set off (overwatch shots, being spotted, the cartridge). Tap again to undo earlier moves this turn. Shooting, abilities and ending the turn can’t be undone, and nor can a move that completes an objective.';
   if(k==='unit:me'&&S.sel)return unitTip(S.sel);
   return ''}
 function unitTip(u){if(u.cls==='bot')return `<b>Maintenance bot</b>${u.down?'Disabled. Stand next to it and repair it.':'Moves up to 2 tiles along its route at the end of its side’s turn, as long as its side has someone next to it and the other side doesn’t outnumber them there.'}<small>${u.hp}/${u.maxHp} health.</small>`;if(u.op){return `<b>${esc(u.name)}</b>Lv ${u.lvl} ${u.body} ${u.cls}. ${u.hp}/${u.maxHp} health${u.shield?`, +${u.shield} shield`:''}.<small>${u.weapon.name}: ${u.weapon.dmg} dmg, range ${u.weapon.range}. ${MOVE_TIP[u.body]}</small>${u.down?`<small>Down. Back on their feet in ${Math.max(1,3-(u.downTurns||0))} turn(s) at the drop point, or sooner if a medic revives them.</small>`:''}`}
@@ -1481,7 +1479,7 @@ function spawnEnemy(type,x,z,R){const T=ETYPES[type],ef=ENEMY_OF[CUR.faction],B=
 function startMission(m,ops){
   if(!initRenderer()){$('#hud').innerHTML='<div class="fail">This game needs WebGL and the 3D engine, which couldn’t load here. Check your connection and reload.</div>';return}
   M=m;units=[];$('#hud').innerHTML='';
-  S={undo:null,reacted:false,phase:'player',sel:null,mode:null,turn:1,objIdx:0,prog:{},carrier:null,hold:0,vis:new Set(),explored:new Set(),alerted:!!m.alerted,reveals:[],credit:{},busy:false,reach:null,over:false,item:null,stats:{shots:0,hits:0,downs:0}};
+  S={undo:null,undoStack:[],reacted:false,phase:'player',sel:null,mode:null,turn:1,objIdx:0,prog:{},carrier:null,hold:0,vis:new Set(),explored:new Set(),alerted:!!m.alerted,reveals:[],credit:{},busy:false,reach:null,over:false,item:null,stats:{shots:0,hits:0,downs:0}};
   if(m.stages){m.objectives=m.stages.flatMap((st,i)=>st.objectives.map(o=>({...o,stage:i})));m.enemies=m.stages[0].enemies;m.reinf=m.stages[0].reinf}
   S.stage=0;S.stageTurn=1;S.turnsLeft=m.turns||null;S.poolIdx=0;if(m.defend){m.enemies=[];m.reinf=[];S.alerted=true}S.sec=(m.secondaries||[]).map(sc=>({...sc,done:false}));S.bot=null;
   const info=parseMap(m);S.info=info;S.item=info.item;
@@ -1549,7 +1547,7 @@ async function moveBot(){const b=S.bot,o=curObj();if(!b||!o||o.type!=='escort'||
 function secNear(u){return S.sec.filter(sc=>!sc.done&&sc.stage<=S.stage&&sc.targets.some(([x,z])=>Math.max(Math.abs(u.x-x),Math.abs(u.z-z))<=1))}
 const DEF_FAST={plant:'engineer',hack:'operative',repair:'engineer'},DEF_VERB={plant:'Defuse',hack:'Reset',repair:'Sabotage'};
 const SEC_FAST={hack:'operative',build:'engineer',mg:'engineer'};
-async function doSecondary(u,sc){S.undo=null;S.busy=true;const[x,z]=sc.targets[0],t=G[z][x];await face(u,x,z);const add=SEC_FAST[sc.type]===u.cls?2:1;S.prog['sec:'+sc.id]=Math.min(sc.need,(S.prog['sec:'+sc.id]||0)+add);u.acted=true;S.credit[u.op.id]=(S.credit[u.op.id]||0)+1;
+async function doSecondary(u,sc){clearUndo();S.busy=true;const[x,z]=sc.targets[0],t=G[z][x];await face(u,x,z);const add=SEC_FAST[sc.type]===u.cls?2:1;S.prog['sec:'+sc.id]=Math.min(sc.need,(S.prog['sec:'+sc.id]||0)+add);u.acted=true;S.credit[u.op.id]=(S.credit[u.op.id]||0)+1;
   const pr=S.prog['sec:'+sc.id];if(pr<sc.need){popup(u,`${pr}/${sc.need}`,'good');log(`${sc.label}: ${pr}/${sc.need}`)}
   else{sc.done=true;popup(u,'Done','good');
     if(sc.type==='hack'){sfx('good');if(t.objMesh){tileGroup.remove(t.objMesh);t.objMesh=null}t.obj=null;log('Side door open. A new route is clear.')}
@@ -1557,7 +1555,7 @@ async function doSecondary(u,sc){S.undo=null;S.busy=true;const[x,z]=sc.targets[0
     if(sc.type==='mg'){sfx('build',W(x,z));if(t.mgMesh){tileGroup.remove(t.mgMesh)}const tu=newUnit({team:'p',name:'MG nest',short:'MG nest',cls:'turret',body:'turret',hp:90,maxHp:90,move:0,vis:5,weapon:{...WPN.turret,dmg:22,range:7,acc:76},x,z});units.push(tu);makeUnitMesh(tu);tu.group.rotation.y=Math.PI;log('MG nest built. It fires at the end of every turn.')}}
   computeVis();S.busy=false;afterOrder()}
 
-/* ---------- objective marker, minimap, swipe ---------- */
+/* ---------- objective marker, swipe ---------- */
 function objPoint(){const o=curObj();if(!o||S.over)return null;let t=null,label='Objective';
   if(o.type==='escort'&&S.bot)return{v:S.bot.group.position.clone().setY(S.bot.group.position.y+1.1),label:M.defend?(S.bot.down?'Bot down':'Stop the bot'):S.bot.down?'Repair the bot':'Bot'};
   if(o.type==='extract'){if(S.carrier){const e=S.info.exits[0];t=e;label='Exit'}else{t=S.item;label='Pick up'}}
@@ -1573,16 +1571,6 @@ function updObjMark(){const el=$('#objMark');if(!el)return;const op=document.bod
   el.hidden=false;el.classList.toggle('edge',!inside);el.querySelector('span').textContent=op.label;
   if(inside){el.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%)`;el.querySelector('i').style.rotate='0deg'}
   else{const cx=w/2,cy=h/2,dx=x-cx,dy=y-cy,k=Math.min((w/2-m)/Math.abs(dx||1e-6),(h/2-m)/Math.abs(dy||1e-6));const ex=cx+dx*k,ey=cy+dy*k;el.style.transform=`translate(${ex}px,${ey}px) translate(-50%,-50%)`;el.querySelector('i').style.rotate=Math.atan2(dy,dx)+'rad'}}
-let miniT=0;
-function drawMini(){const c=$('#mini');if(!c||!G.length)return;const sc=Math.max(3,Math.floor(Math.min(110/NX,170/NZ)));c.width=NX*sc;c.height=NZ*sc;c.style.width=NX*sc+'px';c.style.height=NZ*sc+'px';const x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);
-  for(const row of G)for(const t of row){const k=key(t.x,t.z);if(!S.explored.has(k)&&!S.over){x.fillStyle='rgba(0,0,0,.55)';x.fillRect(t.x*sc,t.z*sc,sc,sc);continue}
-    x.fillStyle=t.type==='water'?'#1d5a78':t.obj?'#24272a':t.pass?'#38a0c8':t.h>=2?'#b9b3a6':t.h>=1?'#8f897e':'#5e5a54';if(t.zone)x.fillStyle='#b8963c';if(t.exit)x.fillStyle='#3f9a5c';x.fillRect(t.x*sc,t.z*sc,sc,sc);
-    if(!S.vis.has(k)&&!S.over){x.fillStyle='rgba(0,0,0,.35)';x.fillRect(t.x*sc,t.z*sc,sc,sc)}}
-  const dot=(u,col,r)=>{x.fillStyle=col;x.beginPath();x.arc(u.x*sc+sc/2,u.z*sc+sc/2,r,0,7);x.fill()};
-  const op=objPoint();if(op){const o=curObj();let tx,tz;if(o.type==='escort'&&S.bot){tx=S.bot.x;tz=S.bot.z}else{const p=op.v;tx=p.x+(NX-1)/2;tz=p.z+(NZ-1)/2}x.strokeStyle='#ffc04a';x.lineWidth=2;x.strokeRect(tx*sc-1,tz*sc-1,sc+2,sc+2)}
-  for(const u of units){if(u.gone)continue;if(u.team==='e'){if(u.seen&&!u.down)dot(u,'#ff4a3a',Math.max(1.6,sc*.38))}else if(u.cls==='bot')dot(u,'#ffd23a',sc*.45);else if(u.op)dot(u,u.down?'#777':FACTIONS[CUR.faction].accent,Math.max(1.8,sc*.42))}
-  const ct=camState.target;x.strokeStyle='rgba(255,255,255,.8)';x.lineWidth=1;const cx=(ct.x+(NX-1)/2)*sc+sc/2,cz=(ct.z+(NZ-1)/2)*sc+sc/2;x.strokeRect(cx-sc*2.5,cz-sc*2.5,sc*5,sc*5)}
-document.addEventListener('pointerdown',e=>{const c=e.target.closest&&e.target.closest('#mini');if(!c)return;const r=c.getBoundingClientRect(),sc=c.width/NX,tx=(e.clientX-r.left)/sc,tz=(e.clientY-r.top)/sc;camState.follow=W(tx,tz)});
 {let sx=null,sy=null;const pn=$('#panel');pn.addEventListener('touchstart',e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY},{passive:true});
   pn.addEventListener('touchend',e=>{if(sx==null)return;const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;sx=null;if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*.6||S.phase!=='player'||S.busy)return;
     const sq=squad().filter(p=>!p.down||true);if(!sq.length)return;let i=sq.indexOf(S.sel);i=(i+(dx<0?1:-1)+sq.length)%sq.length;select(sq[i])},{passive:true})}
@@ -1636,10 +1624,10 @@ function abilityTargets(u,id){const A=AB[id],out=[];
 $('#roster').addEventListener('click',e=>{const b=e.target.closest('.ro');if(b)select(squad()[+b.dataset.n])});
 $('#detail').addEventListener('click',async e=>{const b=e.target.closest('.act');if(!b||b.disabled||S.busy||S.phase!=='player')return;const u=S.sel,a=b.dataset.a;
   if(a==='redeploy'){u.redeploy=!u.redeploy;log(u.redeploy?`${u.name} will redeploy at the drop point at the start of your next turn.`:`${u.name} will wait for a medic.`);refresh();return}
-  if(a==='wait'){S.undo=null;u.moved=u.acted=true;S.mode=null;afterOrder();return}
-  if(a==='ow'){sfx('ready',u.group.position);S.undo=null;u.ow=true;u.acted=true;u.moved=true;updBar(u);log(`${u.name} is on overwatch`);afterOrder();return}
+  if(a==='wait'){clearUndo();u.moved=u.acted=true;S.mode=null;afterOrder();return}
+  if(a==='ow'){sfx('ready',u.group.position);clearUndo();u.ow=true;u.acted=true;u.moved=true;updBar(u);log(`${u.name} is on overwatch`);afterOrder();return}
   if(a==='swap'){S.swap=true;refresh();return}if(a==='swapcancel'){S.swap=false;refresh();return}
-  if(a==='swapto'){S.undo=null;u.cls=b.dataset.c;u.cd={};rebuildModel(u);u.acted=true;S.swap=false;popup(u,b.dataset.c,'good');log(`${u.name} swaps to ${u.cls}`);afterOrder();return}
+  if(a==='swapto'){clearUndo();u.cls=b.dataset.c;u.cd={};rebuildModel(u);u.acted=true;S.swap=false;popup(u,b.dataset.c,'good');log(`${u.name} swaps to ${u.cls}`);afterOrder();return}
   if(a==='obj'){await doObjective(u);return}
   if(a==='sec'){const sc=S.sec.find(x=>x.id===b.dataset.id);if(sc)await doSecondary(u,sc);return}
   if(a==='ab'){const id=b.dataset.id;if(AB[id].tgt==='self'){await doAbility(u,id,G[u.z][u.x]);return}S.mode=S.mode===id?null:id;refresh()}});
@@ -1649,13 +1637,30 @@ let retreatArmed=false;$('#retreat').onclick=()=>{if(S.over)return;if(!retreatAr
 async function tap(cx,cy){if(S.phase!=='player'||S.busy)return;const h=pickAt(cx,cy),u=S.sel;
   if(S.mode&&u){const t=h.unit?G[h.unit.z][h.unit.x]:h.tile;if(t&&abilityTargets(u,S.mode).includes(t)){await doAbility(u,S.mode,t);return}S.mode=null;refresh();return}
   if(h.unit){const v=h.unit;if(v.team==='p'){if(v.op)select(v);return}
-    if(u&&!u.down&&!u.acted&&!v.down&&v.seen){const c=hitChance(u,v);if(c){S.undo=null;S.busy=true;refresh();await shoot(u,v);u.acted=true;u.disg=0;S.busy=false;afterOrder();return}}if(v.seen&&!v.down)log(`${v.name}: ${v.hp}/${v.maxHp} health, ${v.weapon.name.toLowerCase()}, range ${v.weapon.range}${u&&!u.acted&&!u.down&&!hitChance(u,v)?'. Out of range or no line of sight':''}`);return}
+    if(u&&!u.down&&!u.acted&&!v.down&&v.seen){const c=hitChance(u,v);if(c){clearUndo();S.busy=true;refresh();await shoot(u,v);u.acted=true;u.disg=0;S.busy=false;afterOrder();return}}if(v.seen&&!v.down)log(`${v.name}: ${v.hp}/${v.maxHp} health, ${v.weapon.name.toLowerCase()}, range ${v.weapon.range}${u&&!u.acted&&!u.down&&!hitChance(u,v)?'. Out of range or no line of sight':''}`);return}
   if(h.tile&&u&&S.reach&&S.reach.d.has(key(h.tile.x,h.tile.z))&&!(h.tile.x===u.x&&h.tile.z===u.z)){S.busy=true;hl.clear();$('#hud').querySelectorAll('.tg').forEach(e=>e.remove());
-    const snap={u,x:u.x,z:u.z,rot:u.group.rotation.y,alerted:S.alerted,carrier:S.carrier,owners:S.info.cps.map(t=>t.owner),seen:new Set(living('e').filter(e=>e.seen)),hp:u.hp};S.reacted=false;S.undo=null;
+    const snap=undoSnap(u);S.reacted=false;
     await moveAlong(u,pathTo(S.reach,h.tile.x,h.tile.z));u.moved=true;
-    const contact=living('e').some(e=>e.seen&&!snap.seen.has(e)),blocked=S.reacted||S.alerted!==snap.alerted||S.carrier!==snap.carrier||S.extracted||u.down||u.hp!==snap.hp||contact;
-    S.undo=blocked?null:snap;S.busy=false;afterOrder();if(blocked&&(contact||S.reacted||S.alerted!==snap.alerted))setTimeout(()=>log(contact?'New contact spotted, so that move can’t be undone.':'The enemy reacted, so that move can’t be undone.'),250)}}
-function doUndo(){const s=S.undo;if(!s||S.busy||S.phase!=='player')return;const u=s.u;u.x=s.x;u.z=s.z;place(u);u.group.rotation.y=s.rot;u.moved=false;S.info.cps.forEach((t,i)=>{if(t.owner!==s.owners[i]){if(s.owners[i])setOwner(t,s.owners[i]);else{t.owner=null;t.flag.material.color.set('#999999')}}});S.undo=null;computeVis();sfx('ui');log(`${u.name}’s move undone`);S.sel=null;select(u)}
+    // Every move can be undone, along with anything it set off (overwatch
+    // shots, being spotted, new contacts, the cartridge). Only a move that
+    // ends the mission or completes an objective (which spawns the next
+    // stage) can't be.
+    const fixed=S.over||S.objIdx!==snap.objIdx||S.stage!==snap.stage||units.length!==snap.units.length||S.extracted;
+    if(fixed)clearUndo();else{S.undoStack.push(snap);S.undo=snap}S.busy=false;afterOrder();if(fixed&&!S.over)setTimeout(()=>log('That move completed an objective, so it can’t be undone.'),250)}}
+function doUndo(){const s=S.undoStack.pop();if(!s||S.busy||S.phase!=='player')return;undoRestore(s);S.undo=S.undoStack[S.undoStack.length-1]||null;sfx('ui');log(`${s.u.name}’s move undone`);S.sel=null;select(s.u)}
+function clearUndo(){S.undo=null;S.undoStack=[]}
+// Full snapshot of everything a move can change, so undo puts it all back.
+function undoSnap(mover){return{u:mover,objIdx:S.objIdx,stage:S.stage,alerted:S.alerted,carrier:S.carrier,extracted:S.extracted,item:S.item,itemFlag:S.item?!!S.item.item:false,
+  prog:JSON.parse(JSON.stringify(S.prog)),stats:{...S.stats},credit:{...S.credit},vis:new Set(S.vis),explored:new Set(S.explored),reveals:JSON.parse(JSON.stringify(S.reveals||[])),
+  owners:S.info.cps.map(t=>t.owner),units:units.map(u=>({u,x:u.x,z:u.z,rot:u.group.rotation.y,hp:u.hp,down:u.down,gone:u.gone,ow:u.ow,shield:u.shield,stun:u.stun,acted:u.acted,moved:u.moved,seen:u.seen,last:u.last?[...u.last]:null,carry:u.carry,downTurns:u.downTurns,disg:u.disg,kills:u.kills,cd:{...u.cd}}))}}
+function undoRestore(s){
+  for(const o of s.units){const u=o.u,wasCarry=u.carry;Object.assign(u,{x:o.x,z:o.z,hp:o.hp,down:o.down,gone:o.gone,ow:o.ow,shield:o.shield,stun:o.stun,acted:o.acted,moved:o.moved,seen:o.seen,last:o.last,carry:o.carry,downTurns:o.downTurns,disg:o.disg,kills:o.kills,cd:o.cd});
+    place(u);u.group.rotation.y=o.rot;if(!u.rig&&u.lie&&u.cls!=='bot'){u.lie.rotation.x=u.down?-Math.PI/2:0;u.lie.position.y=u.down?.08:0}if(u.ringMesh)u.ringMesh.visible=!u.down;
+    if(wasCarry&&!u.carry&&u.carryMesh){u.group.remove(u.carryMesh);u.carryMesh=null}if(!wasCarry&&u.carry&&!u.carryMesh)attachCarry(u);if(u.el)updBar(u)}
+  Object.assign(S,{alerted:s.alerted,carrier:s.carrier,extracted:s.extracted,item:s.item,prog:s.prog,stats:s.stats,credit:s.credit,vis:s.vis,explored:s.explored,reveals:s.reveals});
+  if(S.item){S.item.item=s.itemFlag;if(S.itemMesh){const p=W(S.item.x,S.item.z);S.itemMesh.position.set(p.x,topY(S.item)+.25,p.z);S.itemMesh.visible=!S.carrier}}
+  S.info.cps.forEach((t,i)=>{if(t.owner!==s.owners[i]){if(s.owners[i])setOwner(t,s.owners[i]);else{t.owner=null;t.flag.material.color.set('#999999')}}});
+  computeVis();applyFog()}
 $('#undoBtn').onclick=doUndo;
 function afterOrder(){computeVis();if(checkEnd())return;if(advanceObj())return;
   if(S.sel&&isDone(S.sel)){const nx=squad().find(p=>!isDone(p));if(nx){S.sel=nx;focus(nx)}}refresh();
@@ -1696,7 +1701,7 @@ function damage(u,n,by,fl){if(u.cls==='bot')n=Math.round(n*.5);if(u.perks&&u.per
   if(u.hp<=0&&!u.down){u.down=true;u.ow=false;puff(u.group.position.clone(),4,0x9a8f80,.9);if(u.op)S.stats.downs++;if(u.rig)u.rig.setBase('Death');else tween(300,k=>{u.lie.rotation.x=-Math.PI/2*k;u.lie.position.y=.08*k});u.ringMesh.visible=false;if(by&&by.team==='p'&&u.team==='e')by.kills++;
     if(u.carry)dropCarry(u);if(u.cls==='turret'){u.gone=true;u.group.visible=false;u.el.remove()}log(u.team==='p'?`${u.name} is down!`:`${u.name} down`)}
   else{if(u.rig)u.rig.once('HitReact',1/SPD);if(by)log(`${by.team==='p'?by.name:'Enemy'} hits for ${n}`)}}
-async function doObjective(u){const o=curObj(),t=objTargetsNear(u)[0];if(!t)return;if(M.defend){S.undo=null;S.busy=true;await face(u,t.x,t.z);const k=key(t.x,t.z),sub=DEF_FAST[o.type]===u.cls?2:1;S.prog[k]=Math.max(0,(S.prog[k]||0)-sub);u.acted=true;S.credit[u.op.id]=(S.credit[u.op.id]||0)+1;popup(u,S.prog[k]?`${S.prog[k]}/${o.need}`:'Undone','good');log(S.prog[k]?`${u.name} sets them back (${S.prog[k]}/${o.need}).`:`${u.name} undoes all their progress.`);S.busy=false;afterOrder();return}if(o.type==='escort'){S.undo=null;S.busy=true;await face(u,t.x,t.z);S.prog.bot=(S.prog.bot||0)+(u.cls==='engineer'?2:1);u.acted=true;S.credit[u.op.id]=(S.credit[u.op.id]||0)+1;if(S.prog.bot>=2){const b=S.bot;b.down=false;b.hp=Math.round(b.maxHp*.5);S.prog.bot=0;b.ringMesh.visible=true;updBar(b);popup(b,'Repaired','good');log('The bot is running again.')}else popup(u,'1/2','good');S.busy=false;afterOrder();return}S.undo=null;S.busy=true;await face(u,t.x,t.z);const add=(OBJ_FAST[o.type]===u.cls?2:1)+(o.type==='plant'&&u.perks.has('demo')?1:0),k=key(t.x,t.z);S.prog[k]=Math.min(o.need,(S.prog[k]||0)+add);u.acted=true;
+async function doObjective(u){const o=curObj(),t=objTargetsNear(u)[0];if(!t)return;if(M.defend){clearUndo();S.busy=true;await face(u,t.x,t.z);const k=key(t.x,t.z),sub=DEF_FAST[o.type]===u.cls?2:1;S.prog[k]=Math.max(0,(S.prog[k]||0)-sub);u.acted=true;S.credit[u.op.id]=(S.credit[u.op.id]||0)+1;popup(u,S.prog[k]?`${S.prog[k]}/${o.need}`:'Undone','good');log(S.prog[k]?`${u.name} sets them back (${S.prog[k]}/${o.need}).`:`${u.name} undoes all their progress.`);S.busy=false;afterOrder();return}if(o.type==='escort'){clearUndo();S.busy=true;await face(u,t.x,t.z);S.prog.bot=(S.prog.bot||0)+(u.cls==='engineer'?2:1);u.acted=true;S.credit[u.op.id]=(S.credit[u.op.id]||0)+1;if(S.prog.bot>=2){const b=S.bot;b.down=false;b.hp=Math.round(b.maxHp*.5);S.prog.bot=0;b.ringMesh.visible=true;updBar(b);popup(b,'Repaired','good');log('The bot is running again.')}else popup(u,'1/2','good');S.busy=false;afterOrder();return}clearUndo();S.busy=true;await face(u,t.x,t.z);const add=(OBJ_FAST[o.type]===u.cls?2:1)+(o.type==='plant'&&u.perks.has('demo')?1:0),k=key(t.x,t.z);S.prog[k]=Math.min(o.need,(S.prog[k]||0)+add);u.acted=true;
   S.credit[u.op.id]=(S.credit[u.op.id]||0)+1;const done=S.prog[k]>=o.need;
   if(t.lamp)await tween(400,kk=>t.lamp.material.color.setHSL(.15+.2*Math.sin(kk*Math.PI),1,.6));
   if(done){if(o.type==='plant'){await explode(t,false);tileGroup.remove(t.objMesh);t.obj=null;const r=new THREE.Mesh(new THREE.BoxGeometry(.7,.15,.7),lam('#2a2622'));const p=W(t.x,t.z);r.position.set(p.x,topY(t)+.07,p.z);tileGroup.add(r)}
@@ -1706,7 +1711,7 @@ async function doObjective(u){const o=curObj(),t=objTargetsNear(u)[0];if(!t)retu
 async function explode(t,dmgIt){const b=W(t.x,t.z);sfx('boom',b);setTimeout(()=>sfx('debris',b),180);b.y=topY(t)+.2;const ex=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),new THREE.MeshBasicMaterial({color:0xffa040,transparent:true}));ex.position.copy(b);scene.add(ex);
   flashLight(b.clone().setY(b.y+.6),0xff9a40,4,520);shake(.28);burst(b,22,0xff9a3a,4.5,.7,-9,1.3,1.2);burst(b,12,0x3a3430,3.5,1,-9,1.6,1);puff(b,9,0x5a5550,1.6);
   await tween(420,k=>{ex.scale.setScalar(.2+k*1.3);ex.material.opacity=1-k});scene.remove(ex)}
-async function doAbility(u,id,t){S.undo=null;S.busy=true;S.mode=null;hl.clear();const A=AB[id];
+async function doAbility(u,id,t){clearUndo();S.busy=true;S.mode=null;hl.clear();const A=AB[id];
   if(t&&!(t.x===u.x&&t.z===u.z))await face(u,t.x,t.z);
   if(id==='grenade'||id==='emp'){sfx('throw',u.group.position);const a=muzzle(u),b=W(t.x,t.z);b.y=topY(t)+.1;const g=new THREE.Mesh(new THREE.SphereGeometry(.08,8,6),new THREE.MeshBasicMaterial({color:id==='emp'?0x5fd8ff:0x556036}));scene.add(g);
     await tween(480,k=>{g.position.lerpVectors(a,b,k);g.position.y+=Math.sin(k*Math.PI)*1.6});scene.remove(g);
@@ -1734,7 +1739,7 @@ async function turretsFire(team){for(const tu of units.filter(x=>x.cls==='turret
 function startTurnEffects(team){for(const t of S.info.cps){if(t.owner!==team)continue;for(const v of living(team)){if(v.cls==='turret')continue;
     if(t.cp==='health'&&v.hp<v.maxHp){v.hp=Math.min(v.maxHp,v.hp+10);updBar(v)}if(t.cp==='supply')for(const k in v.cd)v.cd[k]=Math.max(0,v.cd[k]-1)}}
   for(const v of units.filter(x=>x.team===team&&!x.gone)){for(const k in v.cd)v.cd[k]=Math.max(0,v.cd[k]-1);v.ow=false;if(v.disg>0)v.disg--;v.moved=v.acted=false;if(v.stun>0&&v.cls!=='turret'){v.moved=v.acted=true;v.stun--}updBar(v)}}
-async function endPlayerTurn(){S.undo=null;S.phase='enemy';S.sel=null;S.mode=null;refresh();if(!M.defend)await moveBot();if(advanceObj())return;await turretsFire('p');if(checkEnd()||advanceObj())return;await enemyTurn()}
+async function endPlayerTurn(){clearUndo();S.phase='enemy';S.sel=null;S.mode=null;refresh();if(!M.defend)await moveBot();if(advanceObj())return;await turretsFire('p');if(checkEnd()||advanceObj())return;await enemyTurn()}
 async function enemyTurn(){banner('Enemy turn','enemy');await sleep(800);startTurnEffects('e');if(M.defend){topUpAttackers();assignRoles()}
   for(const[t,list]of(M.stages?(M.stages[S.stage].reinf||[]):(M.reinf||[])))if(t===(M.stages?S.stageTurn:S.turn)){let any=false,cnt=0;for(const[type,x,z]of list){if(cnt>=DF().wave)break;if(unitAt(x,z)||G[z][x].obj)continue;cnt++;const e=spawnEnemy(type,x,z,S.R);e.fresh=true;any=true}if(any){log('Enemy reinforcements have arrived');S.alerted=true;applyFog();await sleep(500)}}
   for(const e of [...living('e')]){if(S.over)return;if(e.fresh){e.fresh=false;continue}if(e.cls==='turret'||e.cls==='bot')continue;if(e.moved&&e.acted)continue;await aiAct(e);updBar(e);if(checkEnd())return;if(S.over)return}
@@ -1847,7 +1852,7 @@ function frame(now){requestAnimationFrame(frame);const fdt=Math.min(.1,(now-last
     if(u.ow&&!u.down&&!u.owRing){const r=new THREE.Mesh(new THREE.RingGeometry(u.weapon.range-.07,u.weapon.range,80),new THREE.MeshBasicMaterial({color:u.team==='p'?0xffc04a:0xff5a4a,transparent:true,opacity:.4,side:THREE.DoubleSide,depthWrite:false}));r.rotation.x=-Math.PI/2;scene.add(r);u.owRing=r}
     if(u.owRing){if(!u.ow||u.down){scene.remove(u.owRing);u.owRing=null}else{u.owRing.position.set(u.group.position.x,u.group.position.y+.06,u.group.position.z);u.owRing.visible=u.team==='p'||u.seen;u.owRing.material.opacity=.3+.12*Math.sin(t*4)}}}
   for(const u of units){if(u.gone)continue;const hide=u.team==='e'&&(!u.seen||u.down);u.el.style.display=hide?'none':'';if(!hide)overlayPos(u.el,u,u.down?.35:u.cls==='turret'?.85:u.body==='heavy'?1.2:1.16)}
-  $('#hud').querySelectorAll('.tg').forEach(l=>overlayPos(l,l._u,1.35));updObjMark();if(now-miniT>250){miniT=now;drawMini()}
+  $('#hud').querySelectorAll('.tg').forEach(l=>overlayPos(l,l._u,1.35));updObjMark();
   for(const u of units){if(!u.gh)continue;const on=!S.over&&!u.seen&&u.last&&!u.down&&!u.gone;u.gh.style.display=on?'':'none';if(on){const p=W(u.last[0],u.last[1]);tmpV.set(p.x,topY(G[u.last[1]][u.last[0]])+.5,p.z).project(cam);u.gh.style.transform=`translate(${(tmpV.x+1)/2*stage.clientWidth}px,${(1-tmpV.y)/2*stage.clientHeight}px) translate(-50%,-50%)`}}
   if(S.sel&&selRing.visible){selRing.position.copy(S.sel.group.position);selRing.position.y+=.025;selRing.scale.setScalar(1+.06*Math.sin(t*5))}
   for(const m of hl.children)if(m.userData.pulse)m.scale.setScalar(1+.08*Math.sin(t*6));

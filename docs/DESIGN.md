@@ -30,7 +30,7 @@ Maps are 12×12 and come in two layers per mission:
 Map sources and a reachability validator live in `tools/maps/` (`python3 tools/maps/validate.py`). Reinforcements arrive on set turns. Each mission has a par turn count (`PAR`) for stars.
 
 ## Rules
-- Each operative gets one move and one action per turn. Undo is allowed for the last move unless it triggered overwatch, alerted the enemy, revealed new contacts or picked up the item.
+- Each operative gets one move and one action per turn. Every move can be undone, several moves back within a turn, along with anything it set off (overwatch shots, being spotted, new contacts, picking up the item): each move saves a full snapshot of the board. Shooting, abilities, objective work and ending the turn clear the undo history, and a move that completes an objective (starting the next stage) or ends the mission can't be undone.
 - **Body types** (`EB`), inspired by Brink's SMART movement:
   - Light: 80 HP, move 7, vision 7. Climbs one level for 1 move, wall-hops two levels for 2, drops two levels, fits through vents and gaps.
   - Medium: 110 HP, move 5, vision 6. Climbs one level for 2 moves, drops two levels, fits through gaps.
