@@ -1,6 +1,6 @@
 // Arkside service worker: lets the game install to the home screen and run offline.
 // The game page is fetched fresh when online (so updates arrive) and served from cache when offline.
-const CACHE = 'arkside-v1';
+const CACHE = 'arkside-v2';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 const CDN = ['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'];
 
@@ -18,8 +18,9 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   const isPage = req.mode === 'navigate' || url.pathname.endsWith('/index.html') || url.pathname.endsWith('/');
   if (isPage) {
-    // network first, cache fallback
-    e.respondWith(fetch(req).then(r => { const copy = r.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return r; }).catch(() => caches.match(req).then(r => r || caches.match('./index.html'))));
+    // network first (always checking with the server, so a new build shows up
+    // straight away rather than after GitHub Pages' 10-minute cache), cache fallback
+    e.respondWith(fetch(req.url, {cache: 'no-cache'}).then(r => { const copy = r.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return r; }).catch(() => caches.match(req).then(r => r || caches.match('./index.html'))));
     return;
   }
   // everything else (three.js, fonts, icons): cache first, then network
