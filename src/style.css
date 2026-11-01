@@ -185,3 +185,22 @@ body[data-faction="security"] .crt-stage{background:linear-gradient(#2f86cf,#9fc
 .pf img.p3d[data-pk]{opacity:0}
 .pf img.p3d{transition:opacity .2s}
 @media (prefers-reduced-motion:reduce){.pf img.p3d{transition:none}}
+
+/* ===================== Painted portraits (assets/portraits) ===================== */
+.painted{position:relative;margin:0;overflow:hidden;border-radius:6px 18px 6px 6px;border:1px solid rgba(0,0,0,.22);background:#1b2329}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .painted{border-color:rgba(255,255,255,.14)}}
+:root[data-theme="dark"] .painted{border-color:rgba(255,255,255,.14)}
+.painted img{display:block;width:100%;height:100%;object-fit:cover}
+.painted figcaption{position:absolute;left:10px;bottom:10px;color:#fff;font-weight:600;font-size:13px;padding:5px 10px 4px;background:rgba(8,12,15,.62);border-left:4px solid var(--acc);border-radius:2px 8px 8px 2px}
+.brief-art{aspect-ratio:4/3;margin:4px 0 12px}
+.brief-art img{object-position:50% 22%}
+.debrief-say{display:flex;gap:12px;align-items:flex-start}
+.debrief-say .story{flex:1;min-width:0}
+.debrief-art{flex:none;width:96px;height:96px;border-radius:6px 14px 6px 6px}
+.debrief-art img{object-position:50% 18%}
+.debrief-art figcaption{display:none}
+.camp-art.painted{height:170px;border-width:0 0 1px;border-radius:0 0 14px 14px}
+.camp-art.painted img{object-position:50% 25%}
+.fac{position:relative;overflow:hidden;isolation:isolate}
+.fac-art{position:absolute;top:0;right:0;height:100%;width:62%;object-fit:cover;object-position:50% 20%;z-index:-1;-webkit-mask-image:linear-gradient(90deg,transparent,#000 45%);mask-image:linear-gradient(90deg,transparent,#000 45%)}
+.fac b,.fac span,.fac em{text-shadow:0 1px 3px rgba(0,0,0,.55);max-width:72%}

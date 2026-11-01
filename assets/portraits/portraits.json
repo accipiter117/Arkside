@@ -1,0 +1,11 @@
+{
+  "story": {
+    "res-leader": {"file": "story-res-leader.webp", "faction": "resistance", "role": "Resistance leader, gives Resistance briefings"},
+    "sec-commander": {"file": "story-sec-commander.webp", "faction": "security", "role": "Security commander, gives Security briefings"},
+    "prisoner": {"file": "story-prisoner.webp", "faction": "resistance", "role": "Resistance organiser held in Security Tower (upcoming operation)"}
+  },
+  "soldiers": {
+    "resistance": ["res-heavy-1.webp", "res-heavy-2.webp", "res-medium-1.webp", "res-medium-2.webp", "res-light-1.webp", "res-light-2.webp"],
+    "security": ["sec-heavy-1.webp", "sec-heavy-2.webp", "sec-medium-1.webp", "sec-medium-2.webp", "sec-light-1.webp", "sec-light-2.webp"]
+  }
+}
