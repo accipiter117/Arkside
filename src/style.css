@@ -204,3 +204,7 @@ body[data-faction="security"] .crt-stage{background:linear-gradient(#2f86cf,#9fc
 .fac{position:relative;overflow:hidden;isolation:isolate}
 .fac-art{position:absolute;top:0;right:0;height:100%;width:62%;object-fit:cover;object-position:50% 20%;z-index:-1;-webkit-mask-image:linear-gradient(90deg,transparent,#000 45%);mask-image:linear-gradient(90deg,transparent,#000 45%)}
 .fac b,.fac span,.fac em{text-shadow:0 1px 3px rgba(0,0,0,.55);max-width:72%}
+
+/* Title art (assets/title/title-banner.webp): same banner size and corners
+   as before, centred on the Ark and the two sides facing each other. */
+.hero-art img{width:100%;height:100%;display:block;object-fit:cover;object-position:50% 50%}
