@@ -41,7 +41,7 @@ h2{font:600 22px Teko,sans-serif;margin:10px 0 2px}
 <div class="lay">
   <div class="view" id="view"><span class="tag" id="tag">Resistance</span><span class="fps" id="fps"></span><div class="who" id="who"></div></div>
   <div>
-    <div class="row"><button type="button" class="btn" id="rand">Random look</button><button type="button" class="btn" id="size" aria-pressed="false">View: close-up</button><button type="button" class="btn" id="lineup" aria-pressed="false">Line-up</button><button type="button" class="btn" id="crowd" aria-pressed="false">Squad of 12</button></div>
+    <div class="row"><button type="button" class="btn" id="rand">Random look</button><button type="button" class="btn" id="size" aria-pressed="false">View: close-up</button><button type="button" class="btn" id="prev" aria-pressed="false">Proportions: tuned</button><button type="button" class="btn" id="lineup" aria-pressed="false">Line-up</button><button type="button" class="btn" id="crowd" aria-pressed="false">Squad of 12</button></div>
     <div class="row anim" id="anim"></div>
     <div class="panel"><h2>Look</h2><div class="grid" id="picks"></div>
       <h2>Creator code</h2><p class="note" style="margin:0 0 6px">Paste an operative or squad export from the Operative Creator to load it (the first operative is shown).</p><textarea id="code" spellcheck="false" placeholder="Paste creator export code"></textarea><div class="row"><button type="button" class="btn" id="load">Load code</button><button type="button" class="btn" id="copy">Show this look’s code</button></div></div>
@@ -63,6 +63,11 @@ const r=new THREE.WebGLRenderer({antialias:true,alpha:true});r.setPixelRatio(Mat
 const s=new THREE.Scene();s.add(new THREE.HemisphereLight(0xdcefff,0x8a7a66,.75));const sun=new THREE.DirectionalLight(0xfff3e0,.85);sun.position.set(4,7,5);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-3,right:3,top:3,bottom:-3});s.add(sun);
 const floor=new THREE.Mesh(new THREE.BoxGeometry(8,.2,8),new THREE.MeshLambertMaterial({color:0x8f7462}));floor.position.y=-.1;floor.receiveShadow=true;s.add(floor);
 const pc=new THREE.PerspectiveCamera(28,.75,.05,50),oc=new THREE.OrthographicCamera(-2,2,2,-2,.1,60);
+// Previous proportions (before Matthew's body-tuner values), for comparison.
+const RIG_PREV={light:{legacy:true,hand:.78,root:[.95,1.05,.95],head:1.12,s:{Abdomen:.92,Torso:.95,Shoulder:1/.874,UpperArm:.86,LowerArm:1.02/.86,UpperLeg:.88,LowerLeg:.94/.88},p:{LowerArm:[1,1.02/.86,1],Shoulder:[1.02,1,1]}},
+  medium:{legacy:true,hand:.78,head:1.12,s:{UpperArm:1.08,LowerArm:1.02/1.08,UpperLeg:1.03,LowerLeg:1/1.03},p:{LowerArm:[1,1/1.08,1],LowerLeg:[1,1/1.03,1]}},
+  heavy:{legacy:true,hand:.78,root:[1.03,1,1.03],head:.98,s:{Abdomen:1.08,Torso:1.1,Neck:1/1.188,Shoulder:1/1.188,UpperArm:1.26,LowerArm:1.12/1.26,UpperLeg:1.2,LowerLeg:1.1/1.2},p:{Neck:[1,.9,1],Shoulder:[1.12,.97,1],LowerArm:[1,1.04/1.26,1],LowerLeg:[1,1/1.2,1]}}};
+const RIG_TUNED={...RIG_BUILD};let prev=false;
 let look=clean({...DEFAULT}),wkey=look.weapon,classic=false,game=false,crowd=false,lineup=false,unit=null,rig=null,crowdUnits=[],yaw=.4,drag=null,curAnim='Idle';
 const ANIMS=[['Idle','Idle'],['Walk','Walk'],['Run','Run'],['Shoot','Idle_Shoot'],['Walk + shoot','Walk_Shoot'],['Hit','HitReact'],['Take cover','Duck'],['Down','Death'],['Jump','Jump'],['Wave','Wave'],['Yes','Yes'],['No','No']];
 document.getElementById('anim').innerHTML=ANIMS.map(([l,a])=>`<button type="button" class="btn" data-a="${a}">${l}</button>`).join('');
@@ -94,8 +99,8 @@ function rebuild(){clear();document.body.dataset.f=look.faction;document.getElem
 document.getElementById('anim').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;curAnim=b.dataset.a;if(rig)rig.play(curAnim,curAnim==='Death'?{clamp:true}:{});document.querySelectorAll('#anim .btn').forEach(x=>x.setAttribute('aria-pressed',x===b))});
 document.getElementById('rand').onclick=()=>{look=randomLook();rebuild()};
 const tgl=(id,fn)=>{const b=document.getElementById(id);b.onclick=()=>{fn();b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true');rebuild();lbl()}};
-function lbl(){document.getElementById('size').textContent='View: '+(game?'game size':'close-up');document.getElementById('crowd').textContent=crowd?'Single unit':'Squad of 12';document.getElementById('lineup').textContent=lineup?'Single unit':'Line-up'}
-tgl('size',()=>game=!game);tgl('crowd',()=>{crowd=!crowd;lineup=false;if(crowd)game=true});tgl('lineup',()=>{lineup=!lineup;crowd=false});
+function lbl(){document.getElementById('size').textContent='View: '+(game?'game size':'close-up');document.getElementById('crowd').textContent=crowd?'Single unit':'Squad of 12';document.getElementById('lineup').textContent=lineup?'Single unit':'Line-up';document.getElementById('prev').textContent='Proportions: '+(prev?'previous':'tuned')}
+tgl('size',()=>game=!game);tgl('crowd',()=>{crowd=!crowd;lineup=false;if(crowd)game=true});tgl('prev',()=>{prev=!prev;Object.assign(RIG_BUILD,prev?RIG_PREV:RIG_TUNED)});tgl('lineup',()=>{lineup=!lineup;crowd=false});
 document.getElementById('load').onclick=()=>{try{let a=JSON.parse(document.getElementById('code').value);if(Array.isArray(a))a=a[0];look=clean(a);rebuild()}catch(e){alert('That doesn’t look like a creator export code')}};
 document.getElementById('copy').onclick=()=>{const t=document.getElementById('code');t.value=JSON.stringify(look);t.select()};
 const cv=r.domElement;cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:yaw};cv.setPointerCapture(e.pointerId)});cv.addEventListener('pointermove',e=>{if(drag)yaw=drag.y+(e.clientX-drag.x)*.012});cv.addEventListener('pointerup',()=>drag=null);
@@ -105,7 +110,7 @@ function tick(){requestAnimationFrame(tick);const dt=Math.min(.05,clock.getDelta
   if(rig)rig.update(dt);for(const u of crowdUnits){u.userData.rig&&u.userData.rig.update(dt);if(lineup)u.rotation.y=yaw}
   if(unit)unit.rotation.y=yaw;
   let cam=pc;if(lineup){pc.position.set(0,2.4,10.5);pc.lookAt(0,.4,0)}else if(game||crowd){cam=oc;const w=box.clientWidth,h=box.clientHeight,hh=crowd?3:1.4,ww=hh*w/h;Object.assign(oc,{left:-ww,right:ww,top:hh,bottom:-hh});oc.updateProjectionMatrix();oc.position.set(Math.sin(Math.PI/4)*24,19,Math.cos(Math.PI/4)*24);oc.lookAt(0,.35,0)}
-  else if(!lineup){pc.position.set(0,.6,2.9);pc.lookAt(0,.47,0)}
+  else if(!lineup){pc.position.set(0,.7,3.5);pc.lookAt(0,.53,0)}
   r.render(s,cam);fr++;ft+=dt;if(ft>1){document.getElementById('fps').textContent=Math.round(fr/ft)+' fps';fr=0;ft=0}}
 window.REVIEW={get look(){return look},set look(v){look=clean(v);rebuild()},rebuild,randomLook,play:a=>{curAnim=a;if(rig)rig.play(a,a==='Death'?{clamp:true}:{})},setYaw:v=>yaw=v,toggle:id=>document.getElementById(id).click()};
 RIG.ready.then(()=>{rebuild();tick()});
