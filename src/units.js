@@ -1,67 +1,16 @@
 /* ===================== UNIT MODELS =====================
-   Procedural operatives (the fallback and the Classic look), the shared
-   creator head, procedural weapons, and the rigged Toon Shooter pipeline. */
+   The animated Toon Shooter soldiers, the creator head and procedural
+   weapons they wear, and a plain capsule fallback. */
 let UNIT_TEX=null;const unitTex=()=>UNIT_TEX||(UNIT_TEX=toonTex());
 const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
-function buildOperative(look,wkey,cls){
-  const F=FACTIONS[look.faction],sec=look.faction==='security';
-  const c1=F.pal[look.primary],c2=F.pal[look.secondary],skin=SKIN[look.skin],skinD=shade(skin,-18),hair=HAIRC[look.hairCol],acc=F.accent;
-  const fur=sec?'#3a4048':'#7a5331',metal='#2b2e32',metal2='#4a4f55',boot=sec?'#1f2328':'#2e2620',ink='#16120e';
-  const glove=look.gloves==='tactical'?'#2b2e31':look.gloves==='fingerless'?'#3a3430':skin;
-  const MC={},M=(c,o)=>{const k=c+(o?JSON.stringify(o):'');return MC[k]||(MC[k]=new THREE.MeshToonMaterial(Object.assign({color:c,gradientMap:unitTex()},o||{})))};
-  const mesh=(geo,c,p,x=0,y=0,z=0,o)=>{const m=new THREE.Mesh(geo,M(c,o));m.position.set(x,y,z);p.add(m);return m};
-  const box=(w,h,d,c,p,x,y,z,o)=>mesh(new THREE.BoxGeometry(w,h,d),c,p,x,y,z,o);
-  const sph=(r,c,p,x,y,z,s=[1,1,1])=>{const m=mesh(new THREE.SphereGeometry(r,12,9),c,p,x,y,z);m.scale.set(...s);return m};
-  const cylZ=(r,len,c,p,x,y,z,seg=10)=>{const m=mesh(new THREE.CylinderGeometry(r,r,len,seg),c,p,x,y,z);m.rotation.x=Math.PI/2;return m};
-  const limb=(a,b,r,c,p,joint=true)=>{const d=new THREE.Vector3().subVectors(b,a),len=d.length();const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r*.9,len,10),M(c));m.position.copy(a).add(b).multiplyScalar(.5);m.quaternion.setFromUnitVectors(V3(0,1,0),d.normalize());p.add(m);if(joint)sph(r,c,p,a.x,a.y,a.z);return m};
-  const B={light:{sw:.25,hw:.15,lr:.085,ar:.062,th:.5,td:.22,ll:.88,hs:1.02},medium:{sw:.3,hw:.17,lr:.1,ar:.075,th:.56,td:.26,ll:.86,hs:1},heavy:{sw:.42,hw:.23,lr:.14,ar:.11,th:.62,td:.36,ll:.8,hs:.88}}[look.body]||{sw:.3,hw:.17,lr:.1,ar:.075,th:.56,td:.26,ll:.86,hs:1};
-  const root=new THREE.Group(),hips=new THREE.Group();hips.position.y=B.ll;root.add(hips);
-  box(B.hw*2+.07,.2,B.td*.92,c2,hips,0,0,0);box(B.hw*2+.09,.06,B.td*.98,'#2a2622',hips,0,.09,0);box(.07,.06,.02,'#9c9c94',hips,0,.09,B.td*.49);
-  const legs=[];
-  for(const sd of[-1,1]){const pv=new THREE.Group();pv.position.set(sd*B.hw*.6,-.04,0);hips.add(pv);legs.push(pv);
-    const knee=V3(0,-.42,.03),ank=V3(0,-B.ll+.13,0);limb(V3(0,0,0),knee,B.lr,c2,pv);limb(knee,ank,B.lr*.88,c2,pv);
-    box(B.lr*2.7,.17,B.lr*4,boot,pv,0,-B.ll+.09,B.lr*.7);box(B.lr*2.8,.04,B.lr*4.1,'#141110',pv,0,-B.ll+.01,B.lr*.7);
-    if(look.legs==='cargo')box(.03,.12,.11,shade(c2,-18),pv,sd*(B.lr+.012),-.22,.01);
-    if(look.legs==='armoured'){box(B.lr*1.9,.13,.07,'#2b2d30',pv,0,-.42,.06+B.lr*.7);box(B.lr*1.7,.16,.05,shade(c2,-30),pv,0,-.2,B.lr+.01)}}
-  const torso=new THREE.Group();torso.position.y=.1;hips.add(torso);
-  const tankTop=look.top==='tank',sleeve=tankTop?skin:c1,longSl=['long','hoodie','jacket'].includes(look.top);
-  const chest=mesh(new THREE.CylinderGeometry(B.sw/.72,(B.hw+.04)/.72,B.th,4,1),c1,torso,0,B.th/2,0);chest.rotation.y=Math.PI/4;chest.scale.z=B.td/(2*B.sw)*1.45;chest.scale.x=1;
-  if(tankTop){box(B.sw*.5,.04,B.td*.7,skin,torso,0,B.th-.01,0)}
-  if(look.top==='jacket'){box(.08,B.th*.92,.02,shade(c2,25),torso,0,B.th*.5,B.td*.5+.005);for(const sd of[-1,1]){const cl=box(.1,.12,.03,shade(c1,-15),torso,sd*.08,B.th-.04,B.td*.48);cl.rotation.z=sd*.4}}
-  if(look.top==='hoodie'){const hd=mesh(new THREE.TorusGeometry(.12,.055,6,14,Math.PI),shade(c1,-12),torso,0,B.th-.01,-.03);hd.rotation.x=-Math.PI/2.2;hd.rotation.z=Math.PI;box(B.sw*1.1,.13,.02,shade(c1,-10),torso,0,B.th*.22,B.td*.42)}
-  const S_R=V3(B.sw*.95,B.th-.07,0),S_L=V3(-B.sw*.95,B.th-.07,0);
-  sph(B.ar*1.45,sleeve,torso,S_R.x,S_R.y,S_R.z);sph(B.ar*1.45,sleeve,torso,S_L.x,S_L.y,S_L.z);
-  // weapon
-  const gun=new THREE.Group(),W=weaponModel(wkey||'rifle',fur,metal,metal2,box,cylZ,mesh,acc);const gs=look.body==='heavy'?1.15:look.body==='light'?.92:1;
-  gun.add(W.g);gun.scale.setScalar(gs);const G=V3(B.sw*.38,B.th*.3,B.td*.5+.13);gun.position.copy(G);gun.rotation.x=.1;torso.add(gun);
-  const F2=W.fore.clone().multiplyScalar(gs).applyEuler(gun.rotation).add(G);
-  const E_R=V3(B.sw*1.05,B.th*.22,.0),E_L=V3(-B.sw*.7,B.th*.2,B.td*.5+.05);
-  limb(S_R,E_R,B.ar,sleeve,torso);limb(E_R,G,B.ar*.9,longSl?c1:skin,torso);limb(S_L,E_L,B.ar,sleeve,torso);limb(E_L,F2,B.ar*.9,longSl?c1:skin,torso);
-  if(longSl){for(const[e,h]of[[E_R,G],[E_L,F2]]){const c=e.clone().lerp(h,.82);sph(B.ar*.98,shade(c1,-25),torso,c.x,c.y,c.z)}}
-  sph(B.ar*1.4,glove,torso,G.x,G.y-.02,G.z);sph(B.ar*1.4,glove,torso,F2.x,F2.y-.02,F2.z);
-  if(!tankTop)box(.025,.08,.08,acc,torso,S_R.x+B.ar*1.3,S_R.y-.12,0);
-  // armour
-  const vest=shade(c2,-42),zf=B.td*.5;
-  if(look.armour==='carrier'){box(B.sw*1.35,B.th*.58,.06,vest,torso,0,B.th*.58,zf+.03);box(B.sw*1.35,B.th*.58,.06,vest,torso,0,B.th*.58,-zf-.03);for(const sd of[-1,0,1])box(.11,.1,.06,shade(vest,14),torso,sd*.13,B.th*.33,zf+.07);box(.16,.04,.005,'#e6e1d4',torso,0,B.th*.78,zf+.062);for(const sd of[-1,1])box(.07,.03,B.td+.12,vest,torso,sd*B.sw*.45,B.th-.01,0)}
-  if(look.armour==='rig'){const rc=shade(c2,-30);box(B.sw*1.5,.12,.07,rc,torso,0,B.th*.32,zf+.035);for(let i=0;i<4;i++)box(.07,.09,.05,'#2f3134',torso,-B.sw*.55+i*B.sw*.37,B.th*.42,zf+.05);for(const sd of[-1,1]){const st=box(.05,B.th*.7,.02,rc,torso,sd*B.sw*.42,B.th*.62,zf+.02);st.rotation.z=sd*.08}}
-  if(look.armour==='riot'){const rp='#d4dadf';box(B.sw*1.5,B.th*.7,.09,rp,torso,0,B.th*.55,zf+.04);box(B.sw*1.5,B.th*.7,.07,rp,torso,0,B.th*.55,-zf-.03);box(.05,B.th*.6,.005,acc,torso,0,B.th*.56,zf+.09);
-    for(const s of[S_R,S_L]){sph(B.ar*2.1,rp,torso,s.x*1.03,s.y+.02,s.z,[1,.7,1]);box(B.ar*2.2,.02,.03,acc,torso,s.x*1.05,s.y+.05,B.ar*1.4)}mesh(new THREE.TorusGeometry(.1,.035,6,14),'#a7b1b8',torso,0,B.th+.01,0).rotation.x=Math.PI/2}
-  if(look.armour==='scrap'){const p1=box(B.sw*.85,B.th*.45,.05,'#8b4a2a',torso,-B.sw*.3,B.th*.62,zf+.03);p1.rotation.z=.12;const p2=box(B.sw*.7,B.th*.4,.05,'#7f858b',torso,B.sw*.35,B.th*.55,zf+.035);p2.rotation.z=-.1;
-    const ty=mesh(new THREE.TorusGeometry(B.ar*1.5,B.ar*.6,6,12),'#262626',torso,S_L.x*1.05,S_L.y+.02,0);ty.rotation.y=Math.PI/2;const sp=box(.06,B.th*.9,.02,'#4a3423',torso,0,B.th*.55,zf+.06);sp.rotation.z=.6}
-  // class gear
-  if(cls==='soldier'){const bd=box(.06,B.th*1.05,.03,'#5a4128',torso,0,B.th*.55,zf+.075);bd.rotation.z=-.62;for(let i=-3;i<=3;i++){const sh=box(.03,.05,.02,'#c9a046',torso,Math.sin(.62)*i*.06,B.th*.55+Math.cos(.62)*i*.06,zf+.09);sh.rotation.z=-.62}
-    for(const sd of[-1,1])sph(.045,'#556036',hips,sd*(B.hw+.03),.02,B.td*.3)}
-  if(cls==='medic'){box(B.sw*1.1,B.th*.55,.14,'#e8e6df',torso,0,B.th*.55,-zf-.1);box(.12,.04,.005,'#2c9d68',torso,0,B.th*.58,-zf-.175);box(.04,.12,.005,'#2c9d68',torso,0,B.th*.58,-zf-.175);
-    const m=S_L.clone().lerp(E_L,.45);const ab=mesh(new THREE.CylinderGeometry(B.ar*1.08,B.ar*1.08,.05,10),'#f2f2ee',torso,m.x,m.y,m.z);ab.quaternion.setFromUnitVectors(V3(0,1,0),E_L.clone().sub(S_L).normalize())}
-  if(cls==='engineer'){box(B.sw*1.1,B.th*.5,.12,'#4a4f55',torso,0,B.th*.55,-zf-.08);const tk=mesh(new THREE.CylinderGeometry(.06,.06,B.th*.7,10),'#d9771f',torso,B.sw*.3,B.th*.6,-zf-.17);mesh(new THREE.CylinderGeometry(.06,.06,B.th*.7,10),'#d9771f',torso,-B.sw*.3,B.th*.6,-zf-.17);
-    box(.1,.1,.08,'#6b5233',hips,-(B.hw+.04),-.02,0);const wr=box(.025,.16,.02,'#9aa0a5',hips,-(B.hw+.06),.06,.04);wr.rotation.z=.3;const lamp=sph(.035,'#ffe08a',torso,S_R.x,S_R.y+.06,.06)}
-  if(cls==='operative'){box(B.sw*.9,B.th*.4,.1,'#25292d',torso,0,B.th*.6,-zf-.07);const an=mesh(new THREE.CylinderGeometry(.008,.008,.45,5),'#25292d',torso,B.sw*.3,B.th+.18,-zf-.07);sph(.022,'#38e0ff',torso,B.sw*.3,B.th+.42,-zf-.07);
-    const w=E_L.clone().lerp(F2,.55);box(.07,.05,.09,'#25292d',torso,w.x,w.y+.03,w.z);box(.05,.006,.06,'#38e0ff',torso,w.x,w.y+.058,w.z)}
-  // head
-  mesh(new THREE.CylinderGeometry(.065*(look.body==='heavy'?1.5:1),.075*(look.body==='heavy'?1.5:1),.12,8),skinD,torso,0,B.th+.05,0);
-  const hd=opHead(look,{mesh,box,sph,cylZ});hd.position.set(0,B.th+.2,.01);hd.scale.setScalar(B.hs);torso.add(hd);
-  root.userData.anim={legs,torso,gun,barrels:W.barrels||null};
-  return root}
+// Fallback if the soldier models can't load: a plain capsule soldier in the
+// look's colours with the creator head and a procedural gun. No animation.
+function capsuleSoldier(look,outline){const F=FACTIONS[look.faction],K=opKit(),g=new THREE.Group(),c1=F.pal[look.primary],c2=F.pal[look.secondary];
+  const legs=K.mesh(new THREE.CylinderGeometry(.16,.14,.8,10),c2,g,0,.4,0);
+  const body=K.mesh(new THREE.CylinderGeometry(.24,.2,.55,12),c1,g,0,1.07,0);body.scale.z=.7;
+  const hd=opHead(look,K);hd.position.set(0,1.55,.01);g.add(hd);
+  const W=weaponModel(look.weapon||'rifle',look.faction==='security'?'#3a4048':'#7a5331','#2b2e32','#4a4f55',K.box,K.cylZ,K.mesh,F.accent);W.g.position.set(.18,.95,.22);g.add(W.g);
+  if(outline)addOutlines(g,.016);g.scale.setScalar(.5);return g}
 function weaponModel(k,fur,metal,metal2,box,cylZ,mesh,acc){const g=new THREE.Group();let fore=V3(0,-.03,.3),barrels=null;
   const grip=box(.04,.1,.05,metal,g,0,-.06,0);grip.rotation.x=.25;
   if(k==='rifle'){box(.065,.1,.34,metal2,g,0,.01,.08);box(.05,.09,.2,fur,g,0,-.01,-.19);box(.07,.08,.2,fur,g,0,0,.32);cylZ(.015,.2,metal,g,0,.01,.52);box(.05,.14,.07,metal,g,0,-.1,.13).rotation.x=.25;box(.035,.05,.12,metal,g,0,.08,.1);fore=V3(0,-.04,.3)}
@@ -134,7 +83,7 @@ function opHead(look,K){
    model's own materials from the creator look, hide its head and attach the
    creator head, armour and gear to bones, and drive it with the model's clips.
    Attachments are built in "procedural units" (the same numbers as
-   buildOperative), held by a group that converts them to the rig's scale. */
+   the old procedural body), held by a group that converts them to the rig's scale. */
 const RIG={ok:false,failed:false,tpl:{},mats:new Map()};
 const RIG_SCALE=.52;               // rig units -> world units (neck height matches the procedural body)
 const RIG_P=.5/RIG_SCALE;          // procedural units -> rig units
@@ -252,7 +201,7 @@ function buildRigged(look,wkey,cls,opts={}){
   const rig=new RigAnim(root,tpl.clips);rig.gun=gun;rig.muzzle=muzzle;rig.barrels=barrels;rig.bones=bones;
   holder.userData.rig=rig;return holder}
 
-// Shared mesh helpers (same signatures as inside buildOperative).
+// Shared mesh helpers.
 function opKit(){const MC={},M=(c,o)=>{const k=c+(o?JSON.stringify(o):'');return MC[k]||(MC[k]=new THREE.MeshToonMaterial(Object.assign({color:c,gradientMap:unitTex()},o||{})))};
   const mesh=(geo,c,p,x=0,y=0,z=0,o)=>{const m=new THREE.Mesh(geo,M(c,o));m.position.set(x,y,z);p.add(m);m.castShadow=true;return m};
   const box=(w,h,d,c,p,x,y,z,o)=>mesh(new THREE.BoxGeometry(w,h,d),c,p,x,y,z,o);

@@ -3,7 +3,7 @@
 // overwatch, then the enemy and the escort bot move), and fail on any
 // console error. Saves shots/ops-<id>.png.
 //
-//   node tools/ops-smoke.mjs [--animated] [--turns N]
+//   node tools/ops-smoke.mjs [--turns N]
 import path from 'node:path';
 import fs from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -24,7 +24,7 @@ try {
     page.on('pageerror', e => errors.push(`[${faction}] ${e.message}`));
     await page.goto(url + 'index.html');
     await page.waitForFunction(() => window.ARKSIDE, null, {timeout: 20000});
-    await page.evaluate(a => { SAVE.settings.sound = false; SAVE.settings.units = a ? 'animated' : 'classic' }, ANIM);
+    await page.evaluate(a => { SAVE.settings.sound = false; SAVE.settings.units = 'animated' }, ANIM);
     await page.click(`.fac.${faction}`);
     const ids = await page.$$eval('.mis.op', b => b.map(x => x.dataset.op));
     if (!ids.length) throw new Error(`no Operations section on the ${faction} campaign`);
@@ -57,4 +57,4 @@ try {
 } catch (e) { errors.push('FAILED: ' + e.message.split('\n')[0]) }
 finally { await browser.close(); close() }
 if (errors.length) { console.error('Errors:\n' + errors.join('\n')); process.exit(1) }
-console.log(`OPS SMOKE PASSED (${ANIM ? 'animated' : 'classic'} units, ${TURNS} turns)`);
+console.log(`OPS SMOKE PASSED (${TURNS} turns)`);

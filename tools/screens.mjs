@@ -4,7 +4,6 @@
 //   node tools/screens.mjs --out some/dir     # elsewhere
 //   node tools/screens.mjs --mission s3       # in-mission view of another mission
 //   node tools/screens.mjs --low              # Low graphics
-//   node tools/screens.mjs --animated         # animated (rigged) units
 //
 // Saves: title, campaign, briefing, mission start, and a close-up of the squad.
 import path from 'node:path';
@@ -30,7 +29,7 @@ try {
   page.on('pageerror', e => errors.push(e.message));
   await page.goto(url + 'index.html');
   await page.waitForFunction(()=>window.ARKSIDE, null, {timeout:20000});
-  await page.evaluate(async ([low, anim]) => { SAVE.settings.sound = false; SAVE.settings.gfx = low ? 'low' : 'high'; SAVE.settings.units = anim ? 'animated' : 'classic'; if (anim) await RIG.wait(8000) }, [LOW, ANIM]);
+  await page.evaluate(async ([low, anim]) => { SAVE.settings.sound = false; SAVE.settings.gfx = low ? 'low' : 'high'; SAVE.settings.units = 'animated'; await RIG.wait(8000) }, [LOW, ANIM]);
   const snap = async name => { await page.screenshot({path: path.join(OUT, name + '.png')}); console.log('saved', path.join(OUT, name + '.png')) };
 
   await page.waitForTimeout(400); await snap('1-title');

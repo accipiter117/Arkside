@@ -1,6 +1,6 @@
 // Frame-rate and draw-call check with every unit on screen.
 //
-//   node tools/perf.mjs              # Lockdown (14 units), classic vs animated, high vs low
+//   node tools/perf.mjs              # Lockdown, all units on screen, High vs Low
 //   node tools/perf.mjs --mission r4
 //
 // Headless Chromium renders with SwiftShader (on the CPU), so absolute frame
@@ -18,7 +18,7 @@ const {url, close} = await serve(ROOT);
 const {browser, newPage} = await launch();
 const rows = [];
 try {
-  for (const units of ['classic', 'animated']) for (const gfx of ['high', 'low']) {
+  for (const units of ['animated']) for (const gfx of ['high', 'low']) {
     const page = await newPage({deviceScaleFactor:2});
     await page.goto(url + 'index.html');
     await page.waitForFunction(()=>window.ARKSIDE, null, {timeout:20000});

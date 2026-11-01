@@ -3,7 +3,7 @@
 // mission with the recruit in the squad. Fails on any console error.
 // Screenshots go to shots/creator-*.png and shots/roster.png.
 //
-//   node tools/creator-smoke.mjs [--animated] [--dark]
+//   node tools/creator-smoke.mjs [--dark]
 import path from 'node:path';
 import fs from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -23,7 +23,7 @@ try {
   page.on('pageerror', e => errors.push(e.message));
   await page.goto(url + 'index.html');
   await page.waitForFunction(() => window.ARKSIDE, null, {timeout: 20000});
-  await page.evaluate(a => { SAVE.settings.sound = false; SAVE.settings.units = a ? 'animated' : 'classic' }, ANIM);
+  await page.evaluate(a => { SAVE.settings.sound = false; SAVE.settings.units = 'animated' }, ANIM);
   const snap = async n => { await page.waitForTimeout(350); await page.screenshot({path: path.join(OUT, n + '.png')}) };
   const count = () => page.evaluate(() => SAVE.roster[CUR.faction].length);
 
@@ -65,7 +65,7 @@ try {
   if (!persisted) throw new Error('recruit not saved'); log('recruit survives a reload');
 
   // Start a mission with the recruit.
-  await page.evaluate(a => { SAVE.settings.sound = false; SAVE.settings.units = a ? 'animated' : 'classic'; SPD = .2; setFaction('resistance'); CUR.mi = 0; const r = SAVE.roster.resistance; PICK = [r.at(-1).id, ...r.slice(0, 3).map(o => o.id)]; viewBrief() }, ANIM);
+  await page.evaluate(a => { SAVE.settings.sound = false; SAVE.settings.units = 'animated'; SPD = .2; setFaction('resistance'); CUR.mi = 0; const r = SAVE.roster.resistance; PICK = [r.at(-1).id, ...r.slice(0, 3).map(o => o.id)]; viewBrief() }, ANIM);
   await page.click('#deploy');
   await page.waitForFunction(() => ARKSIDE.units.length > 0, null, {timeout: 20000});
   const inSquad = await page.evaluate(() => squad().some(u => u.name === 'Testa'));
