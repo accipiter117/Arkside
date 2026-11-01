@@ -24,7 +24,7 @@ python3 tools/build.py      # src/* -> index.html and lab/unit-review.html
 | `src/style.css` | All styling (light and dark tokens, mobile-first) |
 | `src/creator-core.js` | Shared character data and the 2D SVG operative renderer (same as the creator) |
 | `src/model-kit.js` | Palette, seeded RNG, toon material and outline helpers |
-| `src/units.js` | Unit models: procedural operatives, the shared creator head, weapons, and the rigged Toon Shooter pipeline (loading, recolouring, attachments, body types, animation) |
+| `src/units.js` | Unit models: the animated Toon Shooter soldiers (loading, recolouring, attachments, body types, animation), the creator head, procedural weapons and a capsule fallback |
 | `src/lab/unit-review.template.html` | The unit review lab page (built into `lab/unit-review.html`) |
 | `src/engine.js` | Everything else: data, missions, save system, menus, tactics engine, AI, visuals, audio |
 
@@ -36,9 +36,11 @@ Node and Playwright (preinstalled in the Claude Code cloud environment):
 
 ```
 python3 tools/maps/validate.py              # map reachability, prints OK
-node tools/smoke.mjs [--animated] [--low]   # every mission, 3 turns, fails on console errors
-node tools/screens.mjs [--animated]         # phone-size screenshots into shots/
-node tools/perf.mjs                         # frame rate and draw calls, classic vs animated
+node tools/smoke.mjs [--low]                # every mission, 3 turns, fails on console errors
+node tools/ops-smoke.mjs                    # every operation from both campaigns
+node tools/creator-smoke.mjs [--dark]       # recruit, edit, dismiss, deploy a recruit
+node tools/screens.mjs                      # phone-size screenshots into shots/
+node tools/perf.mjs                         # frame rate and draw calls, High vs Low
 ```
 
 Where the three.js CDNs and Google Fonts are blocked (as in the cloud sandbox), the tools serve the same files from npm packages cached in `tools/.cache`. See `tools/browser.mjs`.

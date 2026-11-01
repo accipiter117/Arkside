@@ -7,7 +7,7 @@
 ---
 
 ## Status
-Phase 0 and Phase 1 (1a to 1e) are done: the test tools are in `tools/`, and the animated units are live behind Settings, Units: Animated (preview), waiting for Matthew’s sign-off before they become the default. When they do, remove the procedural walk, recoil and breathing code (kept for Classic units). Next: Phase 2 (optional) or Phase 3.
+Phase 0 and Phase 1 (1a to 1e) are done: the test tools are in `tools/`, and Matthew signed off the animated units on 1 Nov 2026 and they are now the only look (the soldiers pass, in progress). Next: Phase 2 (optional) or Phase 3.
 
 ## Phase 0: Orientation and safety net
 1. Run `python3 tools/build.py` and confirm `index.html` builds identically to what's committed.

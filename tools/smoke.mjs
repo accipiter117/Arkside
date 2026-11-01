@@ -4,7 +4,6 @@
 //
 //   node tools/smoke.mjs            # all 8 missions, 3 turns each, high graphics
 //   node tools/smoke.mjs --low      # same on Low graphics
-//   node tools/smoke.mjs --animated # with the animated (rigged) units
 //   node tools/smoke.mjs --turns 5  # more turns per mission
 //
 // Needs Playwright (preinstalled in the cloud environment; locally: npm i -g playwright).
@@ -39,12 +38,12 @@ async function run([faction, mi]) {
       await page.goto(url + PAGE);
       await page.waitForFunction(()=>window.ARKSIDE, null, {timeout:20000});
       const title = await page.evaluate(async ([faction, mi, low, turns, anim])=>{
-        SAVE.settings.fast = true; SPD = .2; SAVE.settings.sound = false; SAVE.settings.gfx = low ? 'low' : 'high'; SAVE.settings.units = anim ? 'animated' : 'classic';
-        if (anim && !(await RIG.wait(8000))) throw new Error('animated units failed to load');
+        SAVE.settings.fast = true; SPD = .2; SAVE.settings.sound = false; SAVE.settings.gfx = low ? 'low' : 'high'; SAVE.settings.units = 'animated';
+        if (!(await RIG.wait(8000))) throw new Error('soldier models failed to load');
         setFaction(faction); CUR.mi = mi; viewBrief();
         document.querySelector('#deploy').click();
         for (let i = 0; i < 100 && !ARKSIDE.units.length; i++) await new Promise(r=>setTimeout(r, 50));
-        if (anim && !ARKSIDE.units.some(u=>u.rig)) throw new Error('mission started without animated units');
+        if (!ARKSIDE.units.some(u=>u.rig)) throw new Error('mission started without animated soldiers');
         const S0 = ARKSIDE.S; if (!S0 || !ARKSIDE.units.length) throw new Error('mission did not start');
         for (let t = 0; t < turns && !ARKSIDE.S.over; t++) {
           // Simple squad behaviour: shoot the best visible target, otherwise overwatch.
@@ -72,5 +71,5 @@ try {
 }
 
 if (errors.length) { console.error('\nErrors:\n' + errors.join('\n')); failed = true; }
-console.log(failed ? '\nSMOKE FAILED' : `\nSMOKE PASSED (${LOW?'low':'high'} graphics, ${ANIM?'animated':'classic'} units, ${TURNS} turns per mission)`);
+console.log(failed ? '\nSMOKE FAILED' : `\nSMOKE PASSED (${LOW?'low':'high'} graphics, ${TURNS} turns per mission)`);
 process.exit(failed ? 1 : 0);

@@ -61,9 +61,7 @@ XP from missions, kills and objective actions. Levels at 100, 250, 450 and 700 X
 - Audio is synthesised with WebAudio. Settings: graphics high or low, sound, game speed.
 
 ## Current units
-Two pipelines, both in `src/units.js`, chosen by Settings, Units:
-- **Classic** (default for now): procedural models (`buildOperative`) built from creator looks.
-- **Animated (preview)**: the Quaternius Toon Shooter soldiers (Security `soldier_ct`, Resistance `soldier_t`), recoloured from the creator look, with the creator head, armour, class gear and weapon attached to bones, and body types done by bone scaling. Clips: Idle, Duck on overwatch and in crawl vents, Walk or Run (lights) while moving, Jump on climbs and drops, Idle_Shoot per shot, HitReact, Death when downed. Falls back to Classic if the models can't load.
+All operatives and enemies are the animated Quaternius Toon Shooter soldiers (`src/units.js`): Security `soldier_ct`, Resistance `soldier_t`, recoloured from the creator look, with the creator head, armour, class gear and weapon attached to bones, and body types done by bone scaling. Clips: Idle, Duck on overwatch and in crawl vents, Walk or Run (lights) while moving, Jump on climbs and drops, Idle_Shoot per shot, HitReact, Death when downed. If the models can't load, units fall back to a plain capsule soldier (`capsuleSoldier`). The old procedural "Classic" bodies are gone; `settings.units` stays in saves for compatibility but isn't used.
 
 Clothing shapes come from the base models, so tops (tee, tank, hoodie, jacket) don't change the silhouette yet; gloves recolour the hands.
 
