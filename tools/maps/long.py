@@ -72,9 +72,9 @@ L['x1']=dict(h=[
 ],
 stages=[
  dict(name='Breach the gate',objectives=[dict(type='plant',targets=[[5,24]],need=2,clears=[[4,24],[6,24],[7,24]])],spawns=None,addTurns=0,
-      enemies=[['trooper',3,21],['trooper',8,21],['heavy',5,20],['marksman',2,24],['infiltrator',9,22],['turret',7,22]],reinf=[[3,[['trooper',5,18]]]]),
- dict(name='Escort the bot',objectives=[dict(type='escort',path=[[5,z] for z in range(23,12,-1)],hp=180)],spawns=[[4,25],[5,25],[6,25],[7,25]],addTurns=7,
-      enemies=[['trooper',1,16],['marksman',10,16],['trooper',4,15],['medic',7,15],['heavy',6,14],['engineer',9,17]],reinf=[[2,[['trooper',1,14],['trooper',11,15]]],[4,[['infiltrator',6,12]]]]),
+      enemies=[['trooper',3,21],['trooper',8,21],['heavy',5,20],['marksman',2,24],['infiltrator',9,22],['turret',7,22]],reinf=[[3,[['trooper',2,18]]]]),
+ dict(name='Escort the bot',objectives=[dict(type='escort',path=[[5,z] for z in range(23,12,-1)],hp=320)],spawns=[[4,25],[5,25],[6,25],[7,25]],addTurns=8,
+      enemies=[['trooper',1,16],['marksman',10,16],['trooper',2,13],['medic',9,13],['heavy',7,12]],reinf=[[3,[['trooper',11,12]]],[5,[['infiltrator',10,11]]]]),
  dict(name='Take the crane',objectives=[dict(type='repair',targets=[[6,6]],need=3),dict(type='extract')],spawns=[[4,14],[5,14],[6,14],[7,14]],addTurns=6,
       enemies=[['heavy',2,4],['trooper',2,5],['trooper',8,5],['marksman',10,2],['medic',4,7],['infiltrator',11,4],['engineer',7,8]],reinf=[[2,[['trooper',5,1]]],[4,[['heavy',6,1]]]]),
 ],
@@ -82,4 +82,4 @@ secondaries=[
  dict(id='door',type='hack',stage=0,targets=[[1,24]],need=2,label='Hack the side door'),
  dict(id='stairs',type='build',stage=1,targets=[[9,21]],need=2,label='Build the side stairs'),
  dict(id='mg',type='mg',stage=1,targets=[[6,22]],need=2,label='Build an MG nest'),
-],turns=9)
+],turns=10)
