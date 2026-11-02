@@ -23,6 +23,7 @@ const AB={
   surgery:{name:'Field surgery',cd:4,tgt:'self',desc:'Heal every ally within 2 tiles for 25.'},
   barricade:{name:'Barricade',cd:2,tgt:'build',desc:'Put half cover on an empty adjacent tile.'},
   turret:{name:'Turret',cd:5,tgt:'build',desc:'Deploy an auto-turret next to you. It fires at the end of every turn.'},
+  dismantle:{name:'Dismantle',cd:0,tgt:'dismantle',desc:'Take down one of your own turrets, MG nests or barricades next to you. Uses the action.'},
   armourup:{name:'Armour up',cd:3,tgt:'ally',range:1,desc:'You or an adjacent ally gain a 25-point shield.'},
   spot:{name:'Spot',cd:2,tgt:'tile',range:9,desc:'Reveal a 3-tile radius for two turns. Spotted enemies are easier to hit.'},
   disguise:{name:'Disguise',cd:4,tgt:'self',desc:'The enemy ignores you for 2 turns, unless you attack or end next to them.'},
@@ -230,7 +231,7 @@ document.addEventListener('visibilitychange',()=>playMusic(document.body.dataset
 /* ---------- press-and-hold info ---------- */
 const MOVE_TIP={light:'Light: wall-hops two levels (2 moves), climbs one level for 1 move, drops two levels, fits through crawl vents and narrow gaps.',medium:'Medium: climbs one level for 2 moves, drops two levels, fits through narrow gaps but not vents.',heavy:'Heavy: stairs only, drops one level, can’t fit through vents or gaps.'};
 function tipHTML(k){const[a,b]=k.split(':');
-  if(a==='ab'){const A=AB[b],i=Object.values(CLASS_AB).findIndex(l=>l.includes(b)),lv=i>=0?AB_LVL[CLASS_AB[Object.keys(CLASS_AB)[i]].indexOf(b)]:1;return `<b>${A.name}</b>${A.desc}<small>Cooldown ${A.cd} turn${A.cd>1?'s':''}. Unlocks at level ${lv}.</small>`}
+  if(a==='ab'){if(b==='dismantle')return '<b>Dismantle</b>'+AB.dismantle.desc;const A=AB[b],i=Object.values(CLASS_AB).findIndex(l=>l.includes(b)),lv=i>=0?AB_LVL[CLASS_AB[Object.keys(CLASS_AB)[i]].indexOf(b)]:1;return `<b>${A.name}</b>${A.desc}<small>Cooldown ${A.cd} turn${A.cd>1?'s':''}. Unlocks at level ${lv}.</small>`}
   if(a==='cls')return `<b>${b[0].toUpperCase()+b.slice(1)}</b>${CLASS_DESC[b]}<small>Abilities: ${CLASS_AB[b].map((x,i)=>AB[x].name+' (Lv '+AB_LVL[i]+')').join(', ')}</small>`;
   if(a==='wpn'){const w=WPN[b];return `<b>${w.name}</b>${w.dmg} damage${w.burst?` over a ${w.burst}-round burst`:''}, range ${w.range}, accuracy ${w.acc}. Best within ${w.opt} tiles; accuracy drops beyond that.`}
   if(a==='move')return `<b>Move</b>How many tiles this operative can cover in a turn. ${MOVE_TIP[b]||''}`;
@@ -250,7 +251,7 @@ function tipHTML(k){const[a,b]=k.split(':');
 function unitTip(u){if(u.cls==='bot')return `<b>Maintenance bot</b>${u.down?'Disabled. Stand next to it and repair it.':'Moves up to 2 tiles along its route at the end of its side’s turn, as long as its side has someone next to it and the other side doesn’t outnumber them there.'}<small>${u.hp}/${u.maxHp} health.</small>`;if(u.op){return `<b>${esc(u.name)}</b>Lv ${u.lvl} ${u.body} ${u.cls}. ${u.hp}/${u.maxHp} health${u.shield?`, +${u.shield} shield`:''}.<small>${u.weapon.name}: ${u.weapon.dmg} dmg, range ${u.weapon.range}. ${MOVE_TIP[u.body]}</small>${u.down?`<small>Down. Back on their feet in ${Math.max(1,3-(u.downTurns||0))} turn(s) at the drop point, or sooner if a medic revives them.</small>`:''}`}
   if(u.cls==='turret'&&u.team==='p')return `<b>Your turret</b>${u.hp}/${u.maxHp} health. Fires at the end of your turn.`;
   const T=ETYPES[u.type]||{};return `<b>${esc(u.name)}</b>${T.desc||''}<small>${u.hp}/${u.maxHp} health. ${u.weapon.name}: ${u.weapon.dmg} dmg, range ${u.weapon.range}.${u.ow?' On overwatch.':''}${u.stun>0?' Stunned.':''}</small>`}
-function tileTip(t){{const tr=t.trap||t.trapZone,pt=t.point;if(tr&&trapLive(tr)){mechShowArea(tr);const I=TRAP_INFO[tr.type];return `<b>${I[0]}</b>${I[1]}<small>One use. Enemies can set it off too. Danger area shown in red.</small>`}if(pt){const I=PT_INFO[pt.type];return `<b>${I[0]}</b>${I[1]}${pt.used||pt.on===false?'<small>Used.</small>':''}`}}const lv=t.h>=2?'High level':t.h>=1?'Mid level':t.type==='ramp'?'Stairs':'Ground';const bits=[];
+function tileTip(t){{const tr=t.trap||t.trapZone,pt=t.point;if(tr&&trapLive(tr)){mechShowArea(tr);const I=TRAP_INFO[tr.type];return `<b>${I[0]}</b>${I[1]}<small>One use. Enemies can set it off too. Danger area shown in red.</small>`}if(pt){const I=PT_INFO[pt.type];return `<b>${I[0]}</b>${I[1]}${pt.used||pt.on===false?'<small>Used.</small>':''}`}}const lv=t.h>=2?'High level':t.h>=1?'Mid level':t.type==='ramp'?'Stairs':'Ground';const bits=[];if(botRoute().has(key(t.x,t.z)))bits.push('Bot route. Can’t build on the bot’s route.');
   if(t.pass==='light')bits.push('Crawl vent: light bodies only. Half cover.');if(t.pass==='nonheavy')bits.push('Narrow gap: no heavies.');
   if(t.type==='ramp')bits.push('Stairs: the only way up for heavies.');if(t.cp)bits.push(`${t.cp==='health'?'Health':'Supply'} command post (${t.owner==='p'?'yours':t.owner==='e'?'enemy':'unclaimed'}). ${t.cp==='health'?'Heals the holder’s team 10 a turn.':'Speeds up the holder’s cooldowns.'} Stand here to swap class.`);
   if(t.obj==='crate'||t.obj==='pillar')bits.push('Full cover. Blocks sight.');if(t.obj==='wall')bits.push('Barricade: half cover. Grenades destroy it.');if(t.obj==='term')bits.push('Objective.');
@@ -366,6 +367,14 @@ const squad=()=>units.filter(u=>u.team==='p'&&u.op);
 const living=team=>units.filter(u=>u.team===team&&!u.down&&!u.gone);
 const foes=()=>living('e').filter(u=>u.cls!=='turret');
 const unitAt=(x,z,ign)=>units.find(u=>u!==ign&&!u.gone&&u.x===x&&u.z===z&&!(u.down&&u.team==='e'));
+// What stops a unit (or the escort bot) entering a tile: anything standing
+// there except its own side's turrets and MG nests, which it passes through.
+const moveBlocker=(x,z,u)=>{const o=unitAt(x,z,u);return o&&!(o.cls==='turret'&&o.team===u.team)?o:null};
+// Path tiles the escort bot still has to cross: the rest of this stage's
+// route, or all of a later stage's. Nothing may be built on them.
+function botRoute(){const out=new Set();if(!M)return out;const stages=M.stages?M.stages.map(st=>st.objectives||[]):[M.objectives||[]],from=M.stages?S.stage:0;
+  stages.forEach((obs,k)=>{if(k<from)return;for(const o of obs){if(o.type!=='escort'||!o.path)continue;const start=(k===from&&S.bot)?S.bot.step+1:0;for(let i=start;i<o.path.length;i++)out.add(key(o.path[i][0],o.path[i][1]))}});return out}
+function buildBlocked(u){const r=botRoute(),out=[];for(const[dx,dz]of D4){const t=tileAt(u.x+dx,u.z+dz);if(t&&t.type!=='water'&&!t.obj&&!t.cp&&!unitAt(t.x,t.z)&&r.has(key(t.x,t.z)))out.push(t)}return out}
 
 function parseMap(m){const rows=m.map,hs=m.h;NZ=rows.length;NX=rows[0].length;N=Math.max(NX,NZ);G=[];TERMS=[];const spawns=[],zone=[],exits=[];let item=null;const cps=[];
   for(let z=0;z<NZ;z++){G.push([]);for(let x=0;x<NX;x++){const ch=rows[z][x],hd=hs?+hs[z][x]:0,t={x,z,h:hd/2,type:'floor',obj:null};
@@ -378,12 +387,13 @@ function parseMap(m){const rows=m.map,hs=m.h;NZ=rows.length;NX=rows[0].length;N=
   parseFeat(m);
   return{spawns,zone,exits,item,cps}}
 function stepCost(u,a,b){return moveCost(u,a,b)}// movement rules live in mechanics.js
-function reach(u,limit){const lim=limit??u.move,d=new Map([[key(u.x,u.z),0]]),prev=new Map(),climb=new Set(),kind=new Map(),open=[[u.x,u.z]];
+function reach(u,limit){const lim=limit??u.move,d=new Map([[key(u.x,u.z),0]]),prev=new Map(),climb=new Set(),kind=new Map(),thru=new Set(),open=[[u.x,u.z]];
   while(open.length){let bi=0;for(let i=1;i<open.length;i++)if(d.get(key(open[i][0],open[i][1]))<d.get(key(open[bi][0],open[bi][1])))bi=i;
     const[x,z]=open.splice(bi,1)[0],dd=d.get(key(x,z)),a=G[z][x];
-    for(const[dx,dz]of D4){const nx=x+dx,nz=z+dz,b=tileAt(nx,nz);if(!b)continue;const k=key(nx,nz);if(unitAt(nx,nz,u))continue;const c=stepCost(u,a,b);if(!c)continue;const nd=dd+c;if(nd>lim)continue;
+    for(const[dx,dz]of D4){const nx=x+dx,nz=z+dz,b=tileAt(nx,nz);if(!b)continue;const k=key(nx,nz);const bl=unitAt(nx,nz,u);if(bl&&!(bl.cls==='turret'&&bl.team===u.team))continue;if(bl)thru.add(k);const c=stepCost(u,a,b);if(!c)continue;const nd=dd+c;if(nd>lim)continue;
       if(d.has(k)&&d.get(k)<=nd)continue;d.set(k,nd);prev.set(k,key(x,z));kind.delete(k);if(b.h-a.h>.5)climb.add(k);else climb.delete(k);if(!open.some(o=>o[0]===nx&&o[1]===nz))open.push([nx,nz])}
-    for(const[nx,nz,c,kd]of moveLinks(u,x,z)){const k=key(nx,nz);if(unitAt(nx,nz,u))continue;const nd=dd+c;if(nd>lim)continue;if(d.has(k)&&d.get(k)<=nd)continue;d.set(k,nd);prev.set(k,key(x,z));kind.set(k,kd);climb.delete(k);if(!open.some(o=>o[0]===nx&&o[1]===nz))open.push([nx,nz])}}
+    for(const[nx,nz,c,kd]of moveLinks(u,x,z)){const k=key(nx,nz);const bl=unitAt(nx,nz,u);if(bl&&!(bl.cls==='turret'&&bl.team===u.team))continue;if(bl)thru.add(k);const nd=dd+c;if(nd>lim)continue;if(d.has(k)&&d.get(k)<=nd)continue;d.set(k,nd);prev.set(k,key(x,z));kind.set(k,kd);climb.delete(k);if(!open.some(o=>o[0]===nx&&o[1]===nz))open.push([nx,nz])}}
+  for(const k of thru)d.delete(k);// can pass through, can't stop there
   return{d,prev,climb,kind}}
 function pathTo(r,x,z){const out=[];let k=key(x,z);while(r.prev.has(k)){out.unshift(k.split(',').map(Number));k=r.prev.get(k)}return out}
 function los(a,b){const dx=b.x-a.x,dz=b.z-a.z,steps=Math.ceil(Math.hypot(dx,dz)*4),hm=Math.max(a.h,b.h);
@@ -737,12 +747,12 @@ function enterStage(k){S.stage=k;S.stageTurn=1;const st=M.stages[k];if(st.spawns
 async function moveBot(){const b=S.bot,o=curObj();if(!b||!o||o.type!=='escort'||b.down)return;const att=M.defend?living('e').filter(x=>x.cls!=='turret'&&x.cls!=='bot'):squad().filter(p=>!p.down),def=M.defend?squad().filter(p=>!p.down):living('e').filter(x=>x.cls!=='turret');
   const na=att.filter(p=>cheb(p,b)<=1).length,nd=def.filter(e=>cheb(e,b)<=1).length,escorted=na>0,blocked=nd>na;
   if(!escorted){if(!M.defend)log('The bot needs someone next to it to keep moving.');return}if(blocked){log(M.defend?'You outnumber them at the bot, so it’s stuck!':'More enemies than allies at the bot, so it’s stuck.');return}
-  let moved=0;for(let i=0;i<2&&b.step<o.path.length-1;i++){const[nx,nz]=o.path[b.step+1];if(unitAt(nx,nz,b)){if(!moved)log('Something is blocking the bot’s route.');break}await moveAlong(b,[[nx,nz]]);b.step++;moved++}
+  let moved=0;for(let i=0;i<2&&b.step<o.path.length-1;i++){const[nx,nz]=o.path[b.step+1];if(moveBlocker(nx,nz,b)){if(!moved)log('Something is blocking the bot’s route.');break}await moveAlong(b,[[nx,nz]]);b.step++;moved++}
   if(moved){log(`The bot advances (${b.step}/${o.path.length-1}).`);if(b.model&&b.model.userData.tip)b.model.userData.tip.material.color.set(0x7dffb0)}}
 function secNear(u){return S.sec.filter(sc=>!sc.done&&sc.stage<=S.stage&&sc.targets.some(([x,z])=>Math.max(Math.abs(u.x-x),Math.abs(u.z-z))<=1))}
 const DEF_FAST={plant:'engineer',hack:'operative',repair:'engineer'},DEF_VERB={plant:'Defuse',hack:'Reset',repair:'Sabotage'};
 const SEC_FAST={hack:'operative',build:'engineer',mg:'engineer'};
-async function doSecondary(u,sc){clearUndo();S.busy=true;const[x,z]=sc.targets[0],t=G[z][x];await face(u,x,z);const add=SEC_FAST[sc.type]===u.cls?2:1;S.prog['sec:'+sc.id]=Math.min(sc.need,(S.prog['sec:'+sc.id]||0)+add);u.acted=true;S.credit[u.op.id]=(S.credit[u.op.id]||0)+1;
+async function doSecondary(u,sc){if(sc.type==='mg'&&botRoute().has(key(sc.targets[0][0],sc.targets[0][1]))){log('Can’t build on the bot’s route.');return}clearUndo();S.busy=true;const[x,z]=sc.targets[0],t=G[z][x];await face(u,x,z);const add=SEC_FAST[sc.type]===u.cls?2:1;S.prog['sec:'+sc.id]=Math.min(sc.need,(S.prog['sec:'+sc.id]||0)+add);u.acted=true;S.credit[u.op.id]=(S.credit[u.op.id]||0)+1;
   const pr=S.prog['sec:'+sc.id];if(pr<sc.need){popup(u,`${pr}/${sc.need}`,'good');log(`${sc.label}: ${pr}/${sc.need}`)}
   else{sc.done=true;popup(u,'Done','good');
     if(sc.type==='hack'){sfx('good');if(t.objMesh){tileGroup.remove(t.objMesh);t.objMesh=null}t.obj=null;log('Side door open. A new route is clear.')}
@@ -836,7 +846,7 @@ function openSheet(kind){const sh=$('#sheet');S.sheet=kind;if(!kind){sh.hidden=t
 function refresh(){
   hl.clear();$('#hud').querySelectorAll('.tg').forEach(e=>e.remove());const u=S.sel;S.reach=null;selRing.visible=!!u&&!u.down&&S.phase==='player';
   if(u&&S.phase==='player'&&!u.down){
-    if(S.mode){for(const t of abilityTargets(u,S.mode))hlTile(t,0xffc04a,.45)}
+    if(S.mode){for(const t of abilityTargets(u,S.mode))hlTile(t,0xffc04a,.45);if(AB[S.mode].tgt==='build')for(const t of buildBlocked(u))hlTile(t,0x555555,.5)}
     else{if(!u.moved){S.reach=reach(u);const seenE=living('e').filter(e=>e.seen);for(const k of S.reach.d.keys()){const[x,z]=k.split(',').map(Number);if(x===u.x&&z===u.z)continue;const t=G[z][x];let cv=-1;if(seenE.length){cv=2;for(const e of seenE)cv=Math.min(cv,coverOf(t,G[e.z][e.x]))}hlTile(t,cv===2?0x3aa0ff:0x5fc8ff,cv===2?.5:cv===1?.4:.26);if(cv>0)pips(t,cv);if(S.reach.climb.has(k))climbMark(t)}mechArcs(S.reach)}
       if(!u.acted)for(const e of living('e')){if(!e.seen)continue;const c=hitChance(u,e);if(!c)continue;const r=new THREE.Mesh(new THREE.RingGeometry(.36,.46,28),new THREE.MeshBasicMaterial({color:0xff4a3a,side:THREE.DoubleSide}));r.rotation.x=-Math.PI/2;const p=W(e.x,e.z);r.position.set(p.x,topY(G[e.z][e.x])+.04,p.z);r.userData.unit=e;r.userData.pulse=true;hl.add(r);
         const fl=e.cls!=='turret'&&coverOf(G[e.z][e.x],G[u.z][u.x])===0,mm=fl?1.2:1,lo=Math.round(u.weapon.dmg*.85*mm),hi=Math.round(u.weapon.dmg*1.15*mm);const lab=document.createElement('div');lab.className='tg'+(S.aim===e?' aim':'');lab.innerHTML=S.aim===e?`${c}% · ${lo}–${hi} dmg`:`${c}%`;lab._u=e;$('#hud').appendChild(lab)}}}
@@ -853,6 +863,7 @@ function refresh(){
     else if(S.swap){btns=Object.keys(CLASS_AB).filter(c=>c!==u.cls).map(c=>hudBtn('swapto',c,CLS_ICON[c],{c})).join('')+hudBtn('swapcancel','Cancel','cancel')}
     else if(S.mode){btns=hudBtn('modecancel','Cancel','cancel')}
     else{for(const a of abilsOf(u)){const cd=u.cd[a]||0,ok=!u.acted&&!cd&&(AB[a].tgt==='self'||abilityTargets(u,a).length>0);btns+=hudBtn('ab',AB[a].name,AB_ICON[a],{id:a,tip:'ab:'+a,dis:!ok,cd:cd||0})}
+      if(u.cls==='engineer'&&!u.acted&&abilityTargets(u,'dismantle').length)btns+=hudBtn('ab','Dismantle','wrench',{id:'dismantle',tip:'ab:dismantle'});
       const near=objTargetsNear(u);if(near.length&&!u.acted){const o=curObj(),vt=o.type==='escort'?'repair':o.type;btns+=M.defend?hudBtn('obj',`${DEF_VERB[o.type]} −${DEF_FAST[o.type]===u.cls?2:1}`,'flag',{tip:'obj',cls:'obj'}):hudBtn('obj',`${o.type==='escort'?'Repair bot':OBJ_VERB[vt]} +${OBJ_FAST[vt]===u.cls?2:1}`,'flag',{tip:'obj',cls:'obj'})}
       if(!u.acted)for(const sc of secNear(u))btns+=hudBtn('sec',`${sc.label} +${SEC_FAST[sc.type]===u.cls?2:1}`,'key',{id:sc.id,tip:'sec:'+sc.id,cls:'sec'});
       mechActions(u).forEach((a,i)=>{btns+=hudBtn('mech',a.label,a.icon,{id:String(i),cls:a.k==='trap'?'trap':'sec'})});
@@ -868,7 +879,8 @@ function abilityTargets(u,id){const A=AB[id],out=[];
   if(A.tgt==='ally')for(const p of living('p').concat(squad().filter(q=>q.down))){if(p.cls==='turret')continue;if(id==='adrenaline'&&(p===u||!p.moved||p.down))continue;
     if(id==='patch'&&!(p.down||p.hp<p.maxHp))continue;if(id==='resupply'&&p===u)continue;if((A.range===1?cheb(u,p)<=1:dist(u,p)<=A.range))out.push(G[p.z][p.x])}
   if(A.tgt==='enemy')for(const e of living('e'))if(e.seen&&hitChance(u,e)>0)out.push(G[e.z][e.x]);
-  if(A.tgt==='build')for(const[dx,dz]of D4){const t=tileAt(u.x+dx,u.z+dz);if(t&&t.type!=='water'&&!t.obj&&!t.cp&&!unitAt(t.x,t.z))out.push(t)}
+  if(A.tgt==='build'){const r=botRoute();for(const[dx,dz]of D4){const t=tileAt(u.x+dx,u.z+dz);if(t&&t.type!=='water'&&!t.obj&&!t.cp&&!unitAt(t.x,t.z)&&!r.has(key(t.x,t.z)))out.push(t)}}
+  if(A.tgt==='dismantle')for(const[dx,dz]of D4){const t=tileAt(u.x+dx,u.z+dz);if(!t)continue;const o=unitAt(t.x,t.z);if((o&&o.cls==='turret'&&o.team===u.team)||(t.obj==='wall'&&t.built===u.team))out.push(t)}
   return[...new Set(out)]}
 $('#roster').addEventListener('click',e=>{const b=e.target.closest('.ch');if(b)select(squad()[+b.dataset.n])});
 $('#detail').addEventListener('click',async e=>{if(e.target.closest('.who[data-a="info"]')){openSheet(S.sheet==='info'?null:'info');return}
@@ -890,7 +902,7 @@ let endArmed=false;function endTurnTap(){if(S.phase!=='player'||S.busy)return;co
 let retreatArmed=false;$('#retreat').onclick=()=>{if(S.over)return;if(!retreatArmed){retreatArmed=true;$('#retreat').textContent='Sure?';setTimeout(()=>{retreatArmed=false;$('#retreat').textContent='Retreat'},2500);return}retreatArmed=false;$('#retreat').textContent='Retreat';$('#menuSheet').hidden=true;endMission(false,'You pulled the squad out.')};
 
 async function tap(cx,cy){if(S.phase!=='player'||S.busy)return;const h=pickAt(cx,cy),u=S.sel;
-  if(S.mode&&u){const t=h.unit?G[h.unit.z][h.unit.x]:h.tile;if(t&&abilityTargets(u,S.mode).includes(t)){await doAbility(u,S.mode,t);return}S.mode=null;refresh();return}
+  if(S.mode&&u){const t=h.unit?G[h.unit.z][h.unit.x]:h.tile;if(t&&abilityTargets(u,S.mode).includes(t)){await doAbility(u,S.mode,t);return}if(t&&AB[S.mode].tgt==='build'&&buildBlocked(u).includes(t)){log('Can’t build on the bot’s route.');return}S.mode=null;refresh();return}
   {const tt=h.tile&&(h.tile.trap||h.tile.trapZone);if(tt&&u&&TRAP_SHOOT.has(tt.type)&&trapShot(u,tt)){if(S.aim&&S.aim.trap===tt){S.aim=null;await fireAtTrap(u,tt);return}S.aim={trap:tt};mechShowArea(tt);sfx('ui');refresh();return}}
   if(h.unit){const v=h.unit;if(v.team==='p'){if(v.op)select(v);return}
     if(u&&!u.down&&!u.acted&&!v.down&&v.seen){const c=hitChance(u,v);if(c){if(S.aim===v){S.aim=null;clearUndo();S.busy=true;refresh();await shoot(u,v);u.acted=true;u.disg=0;S.busy=false;afterOrder();return}S.aim=v;sfx('ui');refresh();return}}if(v.seen&&!v.down)log(`${v.name}: ${v.hp}/${v.maxHp} health, ${v.weapon.name.toLowerCase()}, range ${v.weapon.range}${u&&!u.acted&&!u.down&&!hitChance(u,v)?'. Out of range or no line of sight':''}`);return}
@@ -981,7 +993,8 @@ async function doAbility(u,id,t){clearUndo();S.busy=true;S.mode=null;hl.clear();
   if(id==='patch'){const p=squad().find(q=>q.x===t.x&&q.z===t.z);if(p){if(p.down){const sg=u.perks.has('surgeon');p.down=false;p.hp=sg?70:40;p.moved=false;p.acted=!sg;p.downTurns=0;p.redeploy=false;p.ringMesh.visible=true;if(p.rig){p.rig.setBase('Idle');await sleep(450)}else await tween(280,k=>{p.lie.rotation.x=-Math.PI/2*(1-k);p.lie.position.y=.08*(1-k)});log(`${p.name} is back up. They can move but not act this turn.`)}else p.hp=Math.min(p.maxHp,p.hp+40);popup(p,'+40','good');updBar(p)}}
   if(id==='adrenaline'){const p=squad().find(q=>q.x===t.x&&q.z===t.z);if(p){p.moved=false;popup(p,'Adrenaline','good');log(`${p.name} can move again`)}}
   if(id==='surgery'){for(const p of squad())if(!p.down&&dist(p,u)<=2){p.hp=Math.min(p.maxHp,p.hp+25);popup(p,'+25','good');updBar(p)}}
-  if(id==='barricade'){sfx('build',W(t.x,t.z));t.obj='wall';t.fort=u.perks.has('fortify');objMesh(t);const m=t.objMesh;m.scale.setScalar(.01);await tween(280,k=>m.scale.setScalar(Math.max(.01,k)));log('Barricade up')}
+  if(id==='dismantle'){const o=unitAt(t.x,t.z);sfx('build',W(t.x,t.z));if(o&&o.cls==='turret'&&o.team===u.team){o.gone=true;o.group.visible=false;if(o.el)o.el.remove();log(`${u.name} dismantles the ${o.name.toLowerCase()}.`)}else if(t.obj==='wall'){t.obj=null;t.fort=false;t.built=null;if(t.objMesh){tileGroup.remove(t.objMesh);t.objMesh=null}log(`${u.name} dismantles the barricade.`)}computeVis();refresh()}
+  if(id==='barricade'){sfx('build',W(t.x,t.z));t.obj='wall';t.built=u.team;t.fort=u.perks.has('fortify');objMesh(t);const m=t.objMesh;m.scale.setScalar(.01);await tween(280,k=>m.scale.setScalar(Math.max(.01,k)));log('Barricade up')}
   if(id==='turret'){sfx('build',W(t.x,t.z));const th=u.perks.has('fortify')?90:60;const tu=newUnit({team:'p',name:'Turret',short:'Turret',cls:'turret',body:'turret',hp:th,maxHp:th,move:0,vis:4,weapon:{...WPN.turret},x:t.x,z:t.z});units.push(tu);makeUnitMesh(tu);tu.group.rotation.y=u.group.rotation.y;log('Turret deployed')}
   if(id==='armourup'){const p=unitAt(t.x,t.z)||u;p.shield=25;updBar(p);popup(p,'+25 shield','good')}
   if(id==='spot'){S.reveals.push({x:t.x,z:t.z,r:3,turns:2});log('Area spotted');const c=new THREE.Mesh(new THREE.RingGeometry(2.8,3,40),new THREE.MeshBasicMaterial({color:0xffd23a,transparent:true,side:THREE.DoubleSide}));c.rotation.x=-Math.PI/2;const p=W(t.x,t.z);c.position.set(p.x,topY(t)+.05,p.z);scene.add(c);tween(900,k=>c.material.opacity=1-k).then(()=>scene.remove(c))}
@@ -1041,7 +1054,7 @@ async function aiAct(e){
   if(e.cls==='medic'){const hurt=living('e').filter(a=>a!==e&&a.cls!=='turret'&&a.hp<a.maxHp*.6).sort((a,b)=>a.hp-b.hp)[0];
     if(hurt){const r=reach(e);let spot=null;for(const k of r.d.keys()){const[x,z]=k.split(',').map(Number);if(Math.max(Math.abs(x-hurt.x),Math.abs(z-hurt.z))<=1){spot=[x,z];break}}
       if(spot){await moveAlong(e,pathTo(r,spot[0],spot[1]));if(e.down)return;await face(e,hurt.x,hurt.z);hurt.hp=Math.min(hurt.maxHp,hurt.hp+35);updBar(hurt);if(hurt.seen)popup(hurt,'+35','good');return}}}
-  if(e.cls==='engineer'&&!e.built){const spots=D4.map(([dx,dz])=>tileAt(e.x+dx,e.z+dz)).filter(t=>t&&t.type!=='water'&&!t.obj&&!t.cp&&!unitAt(t.x,t.z));if(spots.length&&bestShot(e)){const t=spots[0];e.built=true;const tu=spawnEnemy('turret',t.x,t.z,S.R);tu.fresh=false;tu.moved=tu.acted=true;applyFog();if(tu.seen)log('An enemy engineer deployed a turret');return}}
+  if(e.cls==='engineer'&&!e.built){const spots=D4.map(([dx,dz])=>tileAt(e.x+dx,e.z+dz)).filter(t=>t&&t.type!=='water'&&!t.obj&&!t.cp&&!unitAt(t.x,t.z)&&!botRoute().has(key(t.x,t.z)));if(spots.length&&bestShot(e)){const t=spots[0];e.built=true;const tu=spawnEnemy('turret',t.x,t.z,S.R);tu.fresh=false;tu.moved=tu.acted=true;applyFog();if(tu.seen)log('An enemy engineer deployed a turret');return}}
   let b=bestShot(e);const thr=e.type==='marksman'?40:50;
   if(b&&b.c>=thr){await shoot(e,b.t);return}
   const r=reach(e),ps=knownTargets(e);if(!ps.length)return;let pick=null,bs=-1e9;const ox=e.x,oz=e.z;

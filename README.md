@@ -45,6 +45,7 @@ node tools/ops-smoke.mjs                    # every operation from both campaign
 node tools/creator-smoke.mjs [--dark]       # recruit, edit, dismiss, deploy a recruit
 node tools/mech-test.mjs                    # movement rules by body type
 node tools/trap-test.mjs                    # traps and interactive points
+node tools/bot-route-test.mjs               # escort bot vs friendly turrets, route building, dismantle
 node tools/screens.mjs                      # phone-size screenshots into shots/
 node tools/perf.mjs                         # frame rate and draw calls, High vs Low
 ```

@@ -74,4 +74,4 @@ Built in the Claude chat and already playable there. This brings the repo up to 
 - **Mechanics:** ladders, climb steps, vault rails, gap jumps, ziplines by body type; interactive points; eight traps; civilians.
 - **Maps:** Container City retrofit, and Security Tower: Breakout (Resistance attack) and Breakout: Lockdown (Security defence).
 - **Campaign:** operations are the campaign now, unlocking in order; the old missions are skirmishes.
-
+- **Fix:** the escort bot passes through its own side's turrets and MG nests (and friendly units pass through theirs, but can't stop on them). Nothing can be built on the bot's remaining route, for either side; those tiles grey out with "Can’t build on the bot’s route." Engineers get Dismantle for an adjacent friendly turret, MG nest or barricade. An enemy standing on the route still stops the bot.
