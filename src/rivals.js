@@ -71,7 +71,7 @@ async function alliesAct(){for(const a of units.filter(u=>u.ally&&!u.down&&!u.go
 function allyDowned(u){if(!u.ally)return;u.gone=true;u.group.visible=false;if(u.el)u.el.remove();log(`${u.name} is down and out of the fight.`)}
 // ---------- after the operation ----------
 function rivalsEnd(won){if(!S.rivalsOn)return[];const R=rivalsFor(CUR.faction),dep=new Set(S.rivalIds),lines=[],gained={};
-  let depXp=0,depN=0;for(const r of R.members){if(!dep.has(r.id))continue;const e=S.rivalUnits.find(u=>u.rival===r);const xp=(e?e.kills||0:0)*15+(S.rivalDowned.has(r.id)?0:30)+(won?0:40);gained[r.id]=xp;depXp+=xp;depN++}
+  let depXp=0,depN=0;for(const r of R.members){if(!dep.has(r.id))continue;const e=S.rivalUnits.find(u=>u.rival===r);const xp=10+(e?e.kills||0:0)*15+(S.rivalDowned.has(r.id)?0:30)+(won?0:40);gained[r.id]=xp;depXp+=xp;depN++}
   const benchXp=depN?Math.round(depXp/depN/2):0;for(const r of R.members)if(!dep.has(r.id))gained[r.id]=benchXp;
   for(const r of R.members){const before=rivalLvl(r);r.xp+=gained[r.id]||0;r.before=before}
   const avg=R.members.reduce((a,r)=>a+rivalLvl(r),0)/R.members.length;for(const r of R.members){const target=Math.floor(avg)-2;if(rivalLvl(r)<target)r.xp=Math.max(r.xp,LEVELS[target-1]||0)}

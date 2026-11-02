@@ -75,3 +75,12 @@ Built in the Claude chat and already playable there. This brings the repo up to 
 - **Maps:** Container City retrofit, and Security Tower: Breakout (Resistance attack) and Breakout: Lockdown (Security defence).
 - **Campaign:** operations are the campaign now, unlocking in order; the old missions are skirmishes.
 - **Fix:** the escort bot passes through its own side's turrets and MG nests (and friendly units pass through theirs, but can't stop on them). Nothing can be built on the bot's remaining route, for either side; those tiles grey out with "Can’t build on the bot’s route." Engineers get Dismantle for an adjacent friendly turret, MG nest or barricade. An enemy standing on the route still stops the bot.
+
+# Update 9: rival squads and AI allies
+
+- **Rivals:** each campaign now has a named enemy squad of six (for example the Blue Wolves) that persists across operations. Four deploy each time; the rest wait on the bench. They earn XP, level up with the same table as your operatives, get injured when downed and sit out the next operation while a bench member steps in. Rivals who fall behind are pulled up to within two levels of the squad.
+- **Traits:** every rival has one hidden trait (Fireproof, Fortifier, Ghost, Field surgeon, Eagle eye, Steady aim, Thick skin, Quick feet, Hates heights, Vengeful). Down them, Spot near them, or pick up one of the two intel caches in each operation to reveal it.
+- **Allies:** two militia from your faction fight alongside your four in operations. They act on their own after your squad each turn, lean on cover and head for the objective. Lower health and accuracy than your operatives; if they go down they are out.
+- **Balance:** grunts are slightly weaker now that rivals and allies are on the field, and attack operations bring one more trooper.
+- **Screens:** Rivals board on the campaign screen (portrait, class, level, trait or "Trait ?", injured greyed out), two rival lines in the briefing, name tags with a red marker in missions (press and hold for level and trait), and a Rivals section in the debrief.
+- **Test:** `node tools/rivals-test.mjs` plays three operations in a row per faction and checks the roster, traits, injuries, allies, levels and old-save loading.
