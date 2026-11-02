@@ -11,7 +11,7 @@ const ENEMY_OF={resistance:'security',security:'resistance'};
 const EB={light:{hp:80,move:7,vis:7},medium:{hp:110,move:5,vis:6},heavy:{hp:150,move:4,vis:5},turret:{hp:70,move:0,vis:6}};
 const WPN={rifle:{name:'Assault rifle',dmg:30,range:7,acc:78,opt:5},smg:{name:'SMG',dmg:24,range:5,acc:82,opt:3,burst:2},mpistol:{name:'Machine pistol',dmg:20,range:4,acc:84,opt:2,burst:2},
   shotgun:{name:'Shotgun',dmg:46,range:3,acc:84,opt:2},lmg:{name:'LMG',dmg:34,range:7,acc:70,opt:5,burst:2},minigun:{name:'Minigun',dmg:42,range:5,acc:68,opt:3,burst:3},
-  sniper:{name:'Sniper rifle',dmg:46,range:10,acc:80,opt:8},turret:{name:'Auto-gun',dmg:18,range:6,acc:72,opt:6}};
+  sniper:{name:'Sniper rifle',dmg:46,range:10,acc:80,opt:8},dmr:{name:'Battle rifle',dmg:36,range:9,acc:80,opt:6},turret:{name:'Auto-gun',dmg:18,range:6,acc:72,opt:6}};
 const LEVELS=[0,100,250,450,700];
 const lvlOf=xp=>{let l=1;for(let i=1;i<LEVELS.length;i++)if(xp>=LEVELS[i])l=i+1;return l};
 const AB={
@@ -45,7 +45,7 @@ const PERKS={
 const perkPicks=op=>Math.max(0,lvlOf(op.xp)-1-((op.perks||[]).length));
 function perkOptions(op){const own=new Set(op.perks||[]);const ok=Object.entries(PERKS).filter(([id,p])=>!own.has(id)&&(!p.body||p.body===op.body)&&(!p.cls||p.cls===op.cls)&&(!p.wpn||p.wpn===op.weapon)).map(([id])=>id);
   const R=rng([...op.id].reduce((a,c)=>a*31+c.charCodeAt(0),7)+(op.perks||[]).length*101);const out=[];while(out.length<3&&ok.length)out.push(ok.splice(Math.floor(R()*ok.length),1)[0]);return out}
-const BODY_WPN={light:['mpistol','smg'],medium:['smg','rifle','shotgun','sniper'],heavy:['rifle','shotgun','lmg','minigun']};
+const BODY_WPN={light:['mpistol','smg','dmr','sniper'],medium:['smg','rifle','shotgun','dmr','sniper'],heavy:['rifle','shotgun','dmr','lmg','minigun']};
 const CLASS_DESC={soldier:'Frontline fighter. Grenades clear cover, Resupply refreshes an ally, Suppress pins an enemy. Plants charges twice as fast.',medic:'Keeps the squad alive. Heals, revives the downed, and can give an ally a second move. The only way to revive mid-fight.',engineer:'Builds and fortifies. Barricades, auto-turrets and shields. Repairs objectives twice as fast.',operative:'Information and infiltration. Spots areas, disguises as the enemy and EMPs groups. Hacks twice as fast.'};
 const CLASS_AB={soldier:['grenade','resupply','suppress'],medic:['patch','adrenaline','surgery'],engineer:['barricade','turret','armourup'],operative:['spot','disguise','emp']};
 const AB_LVL=[1,2,4];

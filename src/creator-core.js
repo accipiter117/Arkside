@@ -28,7 +28,8 @@ const WEAPONS={
   shotgun:{label:'Shotgun',bodies:['medium','heavy'],fore:1},
   lmg:{label:'LMG',bodies:['heavy'],fore:1},
   minigun:{label:'Minigun',bodies:['heavy'],fore:.75},
-  sniper:{label:'Sniper rifle',bodies:['medium'],fore:1}
+  sniper:{label:'Sniper rifle',bodies:['light','medium'],fore:1},
+  dmr:{label:'Battle rifle',bodies:['light','medium','heavy'],fore:1}
 };
 const OPTS={
   face:[['long','Long'],['square','Square'],['angular','Angular'],['broad','Broad']],

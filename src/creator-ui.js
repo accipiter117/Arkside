@@ -9,7 +9,7 @@ const CRT={look:null,op:null,faction:'resistance',tab:'role',zoom:false,vb:null,
 const CRT_TABS=[['role','Role'],['face','Face'],['hair','Hair'],['gear','Gear']];
 const CRT_HAIRC=['Black','Dark brown','Brown','Copper','Blonde','Grey','White','Red dye','Blue dye'];
 
-// Weapons a body can carry follow the game's own list (sniper rifle for mediums).
+// Weapons a body can carry follow the game's own list (BODY_WPN in engine.js).
 const crtWeapons=body=>(typeof BODY_WPN!=='undefined'&&BODY_WPN[body])||Object.keys(WEAPONS).filter(w=>WEAPONS[w].bodies.includes(body));
 const crtWName=w=>(typeof WPN!=='undefined'&&WPN[w]&&WPN[w].name)||(WEAPONS[w]&&WEAPONS[w].label)||w;
 function crtFix(l){if(!crtWeapons(l.body).includes(l.weapon))l.weapon=crtWeapons(l.body)[0];

@@ -58,3 +58,10 @@ Built in the Claude chat and already playable there. This brings the repo up to 
 - Roster, squad picker, recruit and debrief operative cards keep the 3D renders of each operative's own model.
 - `index.html` is now about 9.2 MB (5.6 MB gzipped).
 
+
+# Update 7: battle rifle, light snipers
+
+- New **Battle rifle** (DMR): single shot, 36 damage, range 9, accuracy 80, best within 6 tiles. It sits between the assault rifle (30, range 7) and the sniper rifle (46, range 10). Available to every body type.
+- **Light** operatives can now take the **sniper rifle** (and the battle rifle).
+- Weapons by body (`BODY_WPN`): light: machine pistol, SMG, battle rifle, sniper rifle. Medium: SMG, assault rifle, shotgun, battle rifle, sniper rifle. Heavy: assault rifle, shotgun, battle rifle, LMG, minigun.
+- The battle rifle is a new procedural model on the soldiers, about 0.8 long in the hand.
