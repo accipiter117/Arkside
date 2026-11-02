@@ -30,9 +30,10 @@ function ensureThree(){
 }
 
 // The game's Google Fonts (Teko, Barlow) from the Fontsource npm packages.
-const FONTS = ['teko', 'barlow'];
-const fontCss = () => FONTS.flatMap(f => [400, 500, 600].map(w =>
-  `@font-face{font-family:'${f[0].toUpperCase() + f.slice(1)}';font-style:normal;font-weight:${w};font-display:swap;src:url(https://fonts.gstatic.com/local/${f}/${f}-latin-${w}-normal.woff2) format('woff2')}`)).join('\n');
+const FONTS = ['teko', 'barlow', 'barlow-condensed'];
+const famName = f => f.split('-').map(x => x[0].toUpperCase() + x.slice(1)).join(' ');
+const fontCss = () => FONTS.flatMap(f => [400, 500, 600, 700].map(w =>
+  `@font-face{font-family:'${famName(f)}';font-style:normal;font-weight:${w};font-display:swap;src:url(https://fonts.gstatic.com/local/${f}/${f}-latin-${w}-normal.woff2) format('woff2')}`)).join('\n');
 
 // Map a CDN URL to a file inside the three@0.128.0 package.
 function localFor(url){
@@ -57,7 +58,7 @@ export async function launch(){
       });
       await page.route(/fonts\.googleapis\.com/, route => route.fulfill({status:200, contentType:'text/css', body:fontCss()}));
       await page.route(/fonts\.gstatic\.com/, route => {
-        const m = route.request().url().match(/\/local\/(\w+)\/([\w-]+\.woff2)$/);
+        const m = route.request().url().match(/\/local\/([\w-]+)\/([\w-]+\.woff2)$/);
         const f = m && path.join(CACHE, 'font-' + m[1], 'package/files', m[2]);
         if (f && fs.existsSync(f)) return route.fulfill({path:f, contentType:'font/woff2'});
         return route.fulfill({status:404, body:''});
