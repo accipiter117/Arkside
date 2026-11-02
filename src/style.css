@@ -399,3 +399,21 @@ body[data-faction="security"] .tape{display:none}
 #miniWrap{max-width:calc(100% - 130px)}#miniWrap small{text-align:center}
 #mini{max-height:calc(100vh - 260px);width:auto!important;height:auto!important;max-width:100%}
 .ub.civ{display:none!important}
+
+/* ===================== Rival squads (src/rivals.js) ===================== */
+.rboard{background:var(--gun);color:var(--ink);padding:12px;margin-top:8px;clip-path:var(--chamfer);box-shadow:inset 0 0 0 1px var(--edge)}
+.rboard .bh{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}.rboard .bh b{font:600 26px/1 Teko,sans-serif;text-transform:uppercase}.rboard .bh small{color:var(--muted);font-size:13px}
+.rboard .bh.sub{margin:12px 0 6px}.rboard .bh.sub b{font-size:20px}
+.rv{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.rv.bench{grid-template-columns:repeat(3,1fr)}
+.rc{position:relative;background:var(--panel);overflow:hidden;clip-path:var(--chs)}
+.rc .pic{aspect-ratio:1/1;position:relative;background:#2a3136}.rc .pic img{width:100%;height:100%;object-fit:cover;display:block}.rc .pic::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 50%,var(--panel))}
+.rc.inj .pic{filter:grayscale(1) brightness(.55)}
+.rc .lv{position:absolute;right:6px;top:6px;z-index:2;background:#2fa8d8;color:#04131b;font:600 18px/1 Teko,sans-serif;padding:3px 7px 1px}
+.rc .st{position:absolute;left:6px;top:6px;z-index:2;font:700 11px 'Barlow Condensed',sans-serif;letter-spacing:1px;text-transform:uppercase;padding:2px 6px;background:var(--bad);color:#fff;display:none}.rc.inj .st{display:block}
+.rc .in{position:relative;padding:0 9px 9px;margin-top:-30px;z-index:2}
+.rc b{font:600 22px/1 Teko,sans-serif;text-transform:uppercase;display:block}.rc .cl{display:block;font:700 11px 'Barlow Condensed',sans-serif;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);text-transform:uppercase}
+.rc .tr{font:700 12px 'Barlow Condensed',sans-serif;letter-spacing:.4px;text-transform:uppercase;padding:3px 7px;background:#ffffff12;border-left:3px solid #777;display:inline-block;margin-top:4px}.rc .tr.known{border-color:var(--bad)}
+.rc.sm b{font-size:17px}.rc.sm .lv{font-size:14px}.rc.sm .tr{font-size:10px;padding:2px 5px}.rc.sm .cl{font-size:9px}
+.brief.rv-brief{background:var(--gun);color:var(--ink);padding:8px 12px;margin:0 0 10px;clip-path:var(--chs);font-size:14px;box-shadow:inset 0 0 0 1px var(--edge)}
+.ub.rival span::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--bad);border:1px solid #fff;margin-right:3px;vertical-align:1px}
+.ub.ally span{color:#d6dbdd}.ub.ally b{background:#8fa0a8}

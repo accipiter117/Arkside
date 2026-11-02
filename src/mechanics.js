@@ -182,7 +182,7 @@ async function trapFire(t,by){if(!trapLive(t))return;t.used=true;if(t.tgt)t.tgt.
   if(t.type==='crane'){banner('Cargo drop!',by&&by.team==='e'?'enemy':'');log(`${who} shoots the hook. The cargo drops!`);const c=t.cargo,y0=c.position.y,yb=.35;await tween(420,k=>{c.position.y=y0-(y0-yb)*k*k});if(t.cable)t.cable.visible=false;shake(.35);
     const ctr=t.area.reduce((a,[x,z])=>[a[0]+x/4,a[1]+z/4],[0,0]);puff(W(ctr[0],ctr[1]),10,0x9a8f80,1.4);hitArea(t.area,45,true);const[cx,cz]=t.crate||t.area[0];const ct=G[cz][cx];
     for(const[x,z]of t.area)G[z][x].trapZone=null;if(!units.some(v=>!v.gone&&v.x===cx&&v.z===cz&&!v.down)){ct.obj='crate';ct.cargoCrate=true}sfx('boom',W(ctr[0],ctr[1]))}
-  else if(t.type==='barrels'){log(`${who} sets off the barrels!`);await explode(G[t.z][t.x],false);if(t.mesh)t.mesh.visible=false;G[t.z][t.x].obj=null;hitArea(trapArea(t),40,false);
+  else if(t.type==='barrels'){log(`${who} sets off the barrels!`);await explode(G[t.z][t.x],false);if(t.mesh)t.mesh.visible=false;G[t.z][t.x].obj=null;S.dmgKind='blast';hitArea(trapArea(t),40,false);S.dmgKind=null;
     for(const o of S.traps)if(o!==t&&o.type==='barrels'&&trapLive(o)&&Math.max(Math.abs(o.x-t.x),Math.abs(o.z-t.z))<=1){await sleep(150);await trapFire(o,by)}}
   else if(t.type==='steam'||t.type==='fuel'){const area=trapArea(t),kind=t.type;log(kind==='steam'?`${who} bursts the steam valve!`:`${who} lights the fuel spill!`);sfx(kind==='steam'?'hit':'boom',W(t.x,t.z));
     const meshes=area.map(([x,z])=>{const m=new THREE.Mesh(new THREE.BoxGeometry(.95,kind==='steam'?1.6:.25,.95),new THREE.MeshBasicMaterial({color:kind==='steam'?0xeef4f6:0xff7a2a,transparent:true,opacity:kind==='steam'?.55:.5,depthWrite:false}));const p=W(x,z);m.position.set(p.x,topY(G[z][x])+(kind==='steam'?.8:.12),p.z);scene.add(m);if(kind==='steam')G[z][x].smoke=true;return m});
@@ -201,7 +201,7 @@ function mechBuildZip(zp){const a=W(zp.x1,zp.z1),b=W(zp.x2,zp.z2);a.y=topY(G[zp.
 
 // End of each side's turn: hazards tick, the searchlight spots and calls.
 function mechTurnTick(team){if(!S.hazards)return;
-  for(const h of S.hazards){if(h.dmg)for(const[x,z]of h.area)for(const v of units)if(!v.gone&&!v.down&&v.team===team&&v.x===x&&v.z===z){damage(v,h.dmg,null);popup(v,h.kind==='steam'?'Scalded':'Burned','hurt')}}
+  for(const h of S.hazards){if(h.dmg)for(const[x,z]of h.area)for(const v of units)if(!v.gone&&!v.down&&v.team===team&&v.x===x&&v.z===z){S.dmgKind='blast';damage(v,h.dmg,null);S.dmgKind=null;popup(v,h.kind==='steam'?'Scalded':'Burned','hurt')}}
   if(team==='e')for(const h of S.hazards){h.turns--;if(h.turns<=0){for(const m of h.meshes)scene.remove(m);for(const[x,z]of h.area){G[z][x].smoke=false;G[z][x].flood=false}}}
   S.hazards=S.hazards.filter(h=>h.turns>0)}
 // Defending (Lockdown), the searchlights are yours: their beams light up attackers.
