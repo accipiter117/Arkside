@@ -347,6 +347,77 @@ body[data-faction="security"] .tape{display:none}
 #tip{border-radius:0;clip-path:var(--chamfer);background:#0b0e10f7;border-top:0;border-left:4px solid var(--acc)}
 #tip b{text-transform:uppercase}
 .steps li small::first-letter,.objline::first-letter{text-transform:uppercase}
+
+/* ===================== Map-first mission HUD (overhaul stage B) =====================
+   Small translucent pieces over the map: objective pill, menu, map and
+   rotate buttons, squad rail, toasts, one row of round action buttons. */
+#v-game{--glass:rgba(12,15,17,.72);--glass2:rgba(12,15,17,.88);--warn:#f3b33d;background:#0b0e10;color:#f1f2ee}
+#stage{flex:1}
+#objPill{position:absolute;left:10px;top:10px;max-width:calc(100% - 70px);display:flex;align-items:center;gap:8px;background:var(--glass);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:0;border-radius:999px;padding:5px 12px 5px 5px;color:#fff;text-align:left;z-index:3}
+#objPill .turns{flex:none;min-width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--acc);color:var(--accInk);font:600 20px/1 Teko,sans-serif;padding:2px 4px 0}
+#objPill .ot{min-width:0}#objPill b{display:block;font:600 18px/1 Teko,sans-serif;letter-spacing:.3px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#objPill small{display:block;font:700 10px 'Barlow Condensed',sans-serif;letter-spacing:1px;text-transform:uppercase;color:#b4bcc0}
+.hb{position:absolute;right:10px;width:40px;height:40px;border:0;border-radius:10px;background:var(--glass);color:#fff;display:grid;place-items:center;z-index:3;padding:0}
+.hb.round{border-radius:50%}.hb svg{width:20px;height:20px}
+#menuBtn{top:10px}#mapBtn{top:58px}#rotR{top:106px}
+.rail{position:absolute;left:8px;top:58px;display:grid;gap:12px;z-index:3}
+.ch{position:relative;width:46px;height:46px;border-radius:50%;border:0;padding:0;background:var(--glass)}
+.ch .ring{position:absolute;inset:-3px;border-radius:50%;background:conic-gradient(var(--c) calc(var(--hp)*1%),#0008 0);-webkit-mask:radial-gradient(circle,transparent 25px,#000 26px);mask:radial-gradient(circle,transparent 25px,#000 26px)}
+.ch .av{position:absolute;inset:3px;border-radius:50%;overflow:hidden;background:#333;display:grid;place-items:center;font:600 18px Teko,sans-serif;color:#fff}
+.ch .av img{width:100%;height:100%;object-fit:cover;display:block}
+.ch.on{box-shadow:0 0 0 3px var(--acc)}.ch.done .av,.ch.dn .av{filter:grayscale(1) brightness(.6)}
+.ch .cls{position:absolute;right:-4px;bottom:-3px;width:18px;height:18px;border-radius:50%;background:var(--glass2);color:#fff;display:grid;place-items:center}.ch .cls svg{width:11px;height:11px}
+.ch .pips{position:absolute;left:50%;transform:translateX(-50%);bottom:-8px;display:flex;gap:2px}.ch .pips i{width:7px;height:3px;background:var(--acc);border-radius:2px}.ch .pips i.u{background:#fff4}
+#toasts{position:absolute;left:50%;transform:translateX(-50%);top:58px;display:grid;gap:4px;justify-items:center;z-index:4;pointer-events:none;width:calc(100% - 130px)}
+.toastm{background:var(--glass2);color:#fff;border-radius:8px;padding:5px 10px;font-size:13px;max-width:100%;text-align:center;animation:tin .25s ease;transition:opacity .4s}
+.toastm.out{opacity:0}@keyframes tin{from{opacity:0;transform:translateY(-6px)}}
+#undoBtn{top:auto;bottom:86px;left:50%;transform:translateX(-50%);border:0;border-radius:999px;background:var(--glass2);color:#fff;font:700 14px 'Barlow Condensed',sans-serif;letter-spacing:.6px;text-transform:uppercase;padding:9px 14px;min-height:40px;box-shadow:none;z-index:4}
+#detail{position:absolute;left:0;right:0;bottom:0;margin:0;min-height:0;z-index:4;pointer-events:none;padding:0 8px 12px}
+#detail>*{pointer-events:auto}
+#detail .bar{display:flex;align-items:flex-end;gap:6px;margin:0}
+#detail .acts{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 16px;scrollbar-width:none;min-width:0}
+#detail .acts::-webkit-scrollbar{display:none}
+#detail .sp{flex:1}
+.who{display:inline-block;max-width:calc(100% - 20px);background:var(--glass);border-radius:8px;padding:4px 9px;margin:0 0 6px;font-size:12px;color:#b4bcc0;text-transform:capitalize;cursor:pointer}
+.who b{font:600 18px/1 Teko,sans-serif;text-transform:uppercase;color:#fff;margin-right:4px}
+.who .hp{display:inline-block;width:54px;height:5px;border-radius:3px;background:#fff3;vertical-align:middle;margin:0 4px}.who .hp i{display:block;height:100%;background:var(--good);border-radius:3px}
+.who em{display:block;font-style:normal;text-transform:none;color:#d6dbdd;margin-top:2px}
+.aimwho{text-transform:none}
+.act.ab{position:relative;flex:none;width:52px;height:52px;border-radius:50%;border:0;background:var(--glass2);color:#fff;display:grid;place-items:center;padding:0;min-height:0;text-transform:none;clip-path:none}
+.act.ab svg{width:23px;height:23px}.act.ab.pri,.act.ab.obj{background:var(--acc);color:var(--accInk)}.act.ab.sec{background:#5a6a7a}.act.ab:disabled{opacity:.4}
+.act.ab .cd{position:absolute;right:-2px;top:-2px;min-width:18px;height:18px;border-radius:9px;background:#000;color:#fff;font:700 11px 'Barlow Condensed',sans-serif;display:grid;place-items:center;padding:0 4px}
+.act.ab .lbl{position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);font:700 9px 'Barlow Condensed',sans-serif;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap;color:#fff;text-shadow:0 1px 2px #000;max-width:64px;overflow:hidden;text-overflow:ellipsis}
+.endturn{flex:none;height:48px;padding:3px 16px 0;margin-bottom:16px;border-radius:24px;border:0;background:var(--acc);color:var(--accInk);font:600 20px/1 Teko,sans-serif;letter-spacing:.6px;text-transform:uppercase;clip-path:none}
+.endturn:disabled{opacity:.45}
+.act.fire{flex:none;height:54px;padding:3px 20px 0;margin-bottom:4px;border-radius:28px;border:0;background:var(--bad);color:#fff;font:600 22px/1 Teko,sans-serif;text-transform:uppercase;letter-spacing:.6px}
+.act.ab.pill{width:auto;padding:0 16px;border-radius:28px;height:54px;margin-bottom:4px}.act.ab.pill .lbl{position:static;transform:none;font-size:16px;margin-left:6px;text-shadow:none}
+.act.ab.pill{display:flex;align-items:center}
+.tg{background:var(--bad);border-radius:4px;font:700 12px 'Barlow Condensed',sans-serif;letter-spacing:.4px;padding:1px 5px}
+.tg.aim{font-size:15px;padding:3px 8px;box-shadow:0 0 0 2px #fff8}
+#sheet{position:absolute;left:0;right:0;bottom:0;z-index:6;max-height:70%;overflow:auto;background:var(--glass2);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:16px 16px 0 0;padding:8px 14px calc(16px + env(safe-area-inset-bottom,0px))}
+.grab{width:40px;height:4px;border-radius:2px;background:#fff5;margin:0 auto 8px;cursor:pointer}
+#sheet h3{margin:0;font:600 26px/1 Teko,sans-serif;text-transform:uppercase}
+#sheet .sub{color:#b4bcc0;font-size:13px;margin:2px 0 8px}
+.kv{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}.kv div{background:#ffffff12;border-radius:8px;padding:5px 7px}.kv small{display:block;font:700 10px 'Barlow Condensed',sans-serif;letter-spacing:.8px;text-transform:uppercase;color:#b4bcc0}.kv b{font:600 20px/1 Teko,sans-serif}
+.ablist div{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-top:1px solid #ffffff14;font-size:13px}.ablist b{display:block;font:600 18px/1 Teko,sans-serif;text-transform:uppercase}.ablist svg{width:22px;height:22px;flex:none;margin-top:2px}
+.olist{list-style:none;margin:6px 0 10px;padding:0}.olist li{padding:6px 10px;margin:4px 0;background:#ffffff10;border-left:3px solid #ffffff30;font-size:13px;color:#b4bcc0}.olist li b{display:block;color:#fff;font:600 17px/1.1 Teko,sans-serif;text-transform:uppercase}
+.olist li.now{border-left-color:var(--acc)}.olist li.ok{opacity:.6}.olist li.ok b::after{content:" ✓";color:var(--good)}
+#menuSheet{position:fixed;inset:0;z-index:20;background:#0008;display:flex;align-items:flex-end}
+.msheet{width:100%;max-height:80%;overflow:auto;background:#0b0e10f5;border-radius:16px 16px 0 0;padding:8px 14px calc(16px + env(safe-area-inset-bottom,0px));color:#fff}
+.msheet>b{display:block;font:600 26px/1 Teko,sans-serif;text-transform:uppercase;margin:2px 0 10px}
+.mrow{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+#logList{margin:6px 0 0;padding-left:18px;font-size:13px;color:#d6dbdd}#logList li{margin:3px 0}
+#miniWrap{position:absolute;right:58px;top:58px;z-index:5;padding:6px;border-radius:10px;background:var(--glass2);display:grid;gap:4px;justify-items:center}
+#miniWrap small{font:700 10px 'Barlow Condensed',sans-serif;letter-spacing:.8px;text-transform:uppercase;color:#b4bcc0}
+#mini{display:block;border-radius:4px;cursor:pointer}
+#banner{font:700 44px/1 Teko,sans-serif;text-transform:uppercase;letter-spacing:3px;color:#fff;background:#0b0e10b0;padding:8px 26px 2px;clip-path:polygon(16px 0,100% 0,calc(100% - 16px) 100%,0 100%);border-top:3px solid var(--acc);text-shadow:none}
+#banner.enemy{border-top-color:var(--bad);color:#ffd9d0}
+#objMark{z-index:2}
+#roster.rail{grid-template-columns:none;grid-auto-flow:row}
+#menuSheet .btn{font:700 15px 'Barlow Condensed',sans-serif;letter-spacing:.8px}
+.olist .od{display:block}.olist .od::first-letter{text-transform:uppercase}
+#miniWrap{max-width:calc(100% - 130px)}#miniWrap small{text-align:center}
+#mini{max-height:calc(100vh - 260px);width:auto!important;height:auto!important;max-width:100%}
 </style>
 </head>
 <body data-view="title" data-faction="resistance">
@@ -357,11 +428,23 @@ body[data-faction="security"] .tape{display:none}
 <section id="v-debrief" class="page" hidden></section>
 <section id="v-creator" class="page" hidden></section>
 <section id="v-game" hidden>
-  <header id="top"><button type="button" id="retreat">Retreat</button><div class="mission"><b id="mtitle"></b><span id="obj"></span></div><span id="turn"></span><button type="button" id="endTurn">End turn</button></header>
   <div id="stage"><div id="hud"></div>
-    <div class="camctl"><button type="button" id="rotL" aria-label="Rotate left">⟲</button><button type="button" id="rotR" aria-label="Rotate right">⟳</button><button type="button" id="zin" aria-label="Zoom in">+</button><button type="button" id="zout" aria-label="Zoom out">−</button><button type="button" id="spd" aria-label="Game speed">1×</button><button type="button" id="snd" aria-label="Sound on or off">🔊</button></div>
-    <div id="objMark" hidden><i></i><span></span></div><button type="button" id="undoBtn" data-tip="undo" hidden>↶ Undo move</button><div id="banner"></div><div id="log" role="status" aria-live="polite"></div></div>
-  <footer id="panel"><div id="roster"></div><div id="detail"></div></footer>
+    <div id="objMark" hidden><i></i><span></span></div>
+    <button type="button" id="objPill" class="glass" aria-label="Objectives"><span class="turns" id="turn"></span><span class="ot"><small id="objStage"></small><b id="obj"></b></span></button>
+    <button type="button" id="menuBtn" class="hb round" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg></button>
+    <button type="button" id="mapBtn" class="hb" aria-label="Minimap" data-tip="mini"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m15 5-6-2-6 2v16l6-2 6 2 6-2V3l-6 2Zm-1 13.7-4-1.3V5.3l4 1.3v12.1Z"/></svg></button>
+    <button type="button" id="rotR" class="hb round" aria-label="Rotate camera"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7Z"/></svg></button>
+    <div id="roster" class="rail"></div>
+    <div id="toasts" role="status" aria-live="polite"></div>
+    <button type="button" id="undoBtn" class="glass" data-tip="undo" hidden>↶ Undo move</button>
+    <div id="banner"></div>
+    <div id="miniWrap" class="glass" hidden><canvas id="mini" aria-label="Minimap"></canvas><small>Tap the map to look there</small></div>
+    <div id="detail"></div>
+    <div id="sheet" hidden></div>
+  </div>
+  <div id="menuSheet" hidden><div class="msheet"><div class="grab"></div><small class="kick">Mission</small><b id="mtitle"></b>
+    <div class="mrow"><button type="button" class="btn pri" id="menuClose">Resume</button><button type="button" class="btn" id="spd">Speed</button><button type="button" class="btn" id="snd">Sound</button><button type="button" class="btn warn" id="retreat">Retreat</button></div>
+    <small class="kick">Messages</small><ol id="logList"></ol></div></div>
 </section>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="tip" role="tooltip" hidden></div>
@@ -1640,7 +1723,7 @@ function spawnEnemy(type,x,z,R){const T=ETYPES[type],ef=ENEMY_OF[CUR.faction],B=
 function startMission(m,ops){
   if(!initRenderer()){$('#hud').innerHTML='<div class="fail">This game needs WebGL and the 3D engine, which couldn’t load here. Check your connection and reload.</div>';return}
   M=m;units=[];$('#hud').innerHTML='';
-  S={undo:null,undoStack:[],reacted:false,phase:'player',sel:null,mode:null,turn:1,objIdx:0,prog:{},carrier:null,hold:0,vis:new Set(),explored:new Set(),alerted:!!m.alerted,reveals:[],credit:{},busy:false,reach:null,over:false,item:null,stats:{shots:0,hits:0,downs:0}};
+  S={undo:null,undoStack:[],aim:null,sheet:null,logHist:[],reacted:false,phase:'player',sel:null,mode:null,turn:1,objIdx:0,prog:{},carrier:null,hold:0,vis:new Set(),explored:new Set(),alerted:!!m.alerted,reveals:[],credit:{},busy:false,reach:null,over:false,item:null,stats:{shots:0,hits:0,downs:0}};
   if(m.stages){m.objectives=m.stages.flatMap((st,i)=>st.objectives.map(o=>({...o,stage:i})));m.enemies=m.stages[0].enemies;m.reinf=m.stages[0].reinf}
   S.stage=0;S.stageTurn=1;S.turnsLeft=m.turns||null;S.poolIdx=0;if(m.defend){m.enemies=[];m.reinf=[];S.alerted=true}S.sec=(m.secondaries||[]).map(sc=>({...sc,done:false}));S.bot=null;
   const info=parseMap(m);S.info=info;S.item=info.item;
@@ -1651,7 +1734,7 @@ function startMission(m,ops){
     const u=newUnit({op,team:'p',name:op.name,short:op.name,cls:op.cls,body:op.body,lvl:l,hp:st.hp+DF().php,maxHp:st.hp+DF().php,move:st.move,vis:B.vis+(P.has('eagle')?1:0),weapon:wp,x:sp.x,z:sp.z,look:op.look,wkey:op.weapon,perks:P});units.push(u);makeUnitMesh(u)});
   const R=rng(m.id.length*97+Math.max(0,CUR.mi)*13+7);for(const[t,x,z]of m.enemies)spawnEnemy(t,x,z,R);S.R=R;if(m.defend)topUpAttackers(99);
   const sp=info.spawns[0],p=W(sp.x,sp.z);camState.target.set(p.x*.5,0,p.z*.5);camState.zoom=1;camState.angle=Math.PI/4;fit();
-  $('#mtitle').textContent=m.title;S.sel=squad()[0];computeVis();refresh();banner('Your turn');
+  $('#mtitle').textContent=m.title;$('#sheet').hidden=true;$('#menuSheet').hidden=true;$('#miniWrap').hidden=true;$('#toasts').innerHTML='';S.sel=squad()[0];computeVis();refresh();banner('Your turn');
   if(!S.alerted)setTimeout(()=>log('You haven’t been spotted. Shots on unaware enemies get +20 accuracy.'),1500);setTimeout(()=>log('Tip: press and hold anything for details. Swipe the bottom panel to switch operative.'),5200)}
 
 /* ---------- fog ---------- */
@@ -1727,54 +1810,104 @@ function objPoint(){const o=curObj();if(!o||S.over)return null;let t=null,label=
   else if(o.targets){const tg=o.targets.find(([x,z])=>(S.prog[key(x,z)]||0)<o.need);if(tg){t=G[tg[1]][tg[0]];label=M.defend?'Defend':o.label||OBJ_VERB[o.type]||'Objective'}}
   if(!t)return null;const p=W(t.x,t.z);p.y=topY(t)+1;return{v:p,label}}
 const _ov=new THREE.Vector3();
+let miniT=0;
+function drawMini(){const c=$('#mini');if(!c||!G.length||$('#miniWrap').hidden)return;const sc=Math.max(3,Math.floor(Math.min(150/NX,220/NZ)));c.width=NX*sc;c.height=NZ*sc;c.style.width=NX*sc+'px';c.style.height=NZ*sc+'px';const x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);
+  for(const row of G)for(const t of row){const k=key(t.x,t.z);if(!S.explored.has(k)&&!S.over){x.fillStyle='rgba(0,0,0,.55)';x.fillRect(t.x*sc,t.z*sc,sc,sc);continue}
+    x.fillStyle=t.type==='water'?'#1d5a78':t.obj?'#24272a':t.pass?'#38a0c8':t.h>=2?'#b9b3a6':t.h>=1?'#8f897e':'#5e5a54';if(t.zone)x.fillStyle='#b8963c';if(t.exit)x.fillStyle='#3f9a5c';x.fillRect(t.x*sc,t.z*sc,sc,sc);
+    if(!S.vis.has(k)&&!S.over){x.fillStyle='rgba(0,0,0,.35)';x.fillRect(t.x*sc,t.z*sc,sc,sc)}}
+  const dot=(u,col,r)=>{x.fillStyle=col;x.beginPath();x.arc(u.x*sc+sc/2,u.z*sc+sc/2,r,0,7);x.fill()};
+  const op=objPoint();if(op){const o=curObj();let tx,tz;if(o.type==='escort'&&S.bot){tx=S.bot.x;tz=S.bot.z}else{const p=op.v;tx=p.x+(NX-1)/2;tz=p.z+(NZ-1)/2}x.strokeStyle='#ffc04a';x.lineWidth=2;x.strokeRect(tx*sc-1,tz*sc-1,sc+2,sc+2)}
+  for(const u of units){if(u.gone)continue;if(u.team==='e'){if(u.seen&&!u.down)dot(u,'#ff4a3a',Math.max(1.6,sc*.38))}else if(u.cls==='bot')dot(u,'#ffd23a',sc*.45);else if(u.op)dot(u,u.down?'#777':FACTIONS[CUR.faction].accent,Math.max(1.8,sc*.42))}
+  const ct=camState.target;x.strokeStyle='rgba(255,255,255,.8)';x.lineWidth=1;const cx=(ct.x+(NX-1)/2)*sc+sc/2,cz=(ct.z+(NZ-1)/2)*sc+sc/2;x.strokeRect(cx-sc*2.5,cz-sc*2.5,sc*5,sc*5)}
+document.addEventListener('pointerdown',e=>{const c=e.target.closest&&e.target.closest('#mini');if(!c)return;const r=c.getBoundingClientRect(),sc=c.width/NX,tx=(e.clientX-r.left)/sc,tz=(e.clientY-r.top)/sc;camState.follow=W(tx,tz)});
 function updObjMark(){const el=$('#objMark');if(!el)return;const op=document.body.dataset.view==='game'?objPoint():null;if(!op){el.hidden=true;return}
   _ov.copy(op.v).project(cam);const w=stage.clientWidth,h=stage.clientHeight;let x=(_ov.x+1)/2*w,y=(1-_ov.y)/2*h;const m=34,inside=x>m&&x<w-m&&y>m+40&&y<h-m&&_ov.z<1;
   el.hidden=false;el.classList.toggle('edge',!inside);el.querySelector('span').textContent=op.label;
   if(inside){el.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%)`;el.querySelector('i').style.rotate='0deg'}
   else{const cx=w/2,cy=h/2,dx=x-cx,dy=y-cy,k=Math.min((w/2-m)/Math.abs(dx||1e-6),(h/2-m)/Math.abs(dy||1e-6));const ex=cx+dx*k,ey=cy+dy*k;el.style.transform=`translate(${ex}px,${ey}px) translate(-50%,-50%)`;el.querySelector('i').style.rotate=Math.atan2(dy,dx)+'rad'}}
-{let sx=null,sy=null;const pn=$('#panel');pn.addEventListener('touchstart',e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY},{passive:true});
-  pn.addEventListener('touchend',e=>{if(sx==null)return;const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;sx=null;if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*.6||S.phase!=='player'||S.busy)return;
+{let sx=null,sy=null;const pn=$('#detail');pn.addEventListener('touchstart',e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY},{passive:true});
+  pn.addEventListener('touchend',e=>{if(sx==null)return;const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;sx=null;if(dy<-40&&Math.abs(dy)>Math.abs(dx)&&S.sel){openSheet('info');return}if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*.6||S.phase!=='player'||S.busy)return;
     const sq=squad().filter(p=>!p.down||true);if(!sq.length)return;let i=sq.indexOf(S.sel);i=(i+(dx<0?1:-1)+sq.length)%sq.length;select(sq[i])},{passive:true})}
 
 /* ---------- UI ---------- */
-function log(t){const l=$('#log');l.textContent=t;l.classList.remove('show');void l.offsetWidth;l.classList.add('show')}
+function log(t){if(S){(S.logHist=S.logHist||[]).push(t);if(S.logHist.length>60)S.logHist.shift()}const box=$('#toasts');if(!box)return;const d=document.createElement('div');d.className='toastm';d.textContent=t;box.appendChild(d);
+  while(box.children.length>2)box.firstChild.remove();setTimeout(()=>{d.classList.add('out');setTimeout(()=>d.remove(),400)},3200)}
 function banner(t,cls){const b=$('#banner');b.textContent=t;b.className=cls||'';void b.offsetWidth;b.classList.add('show')}
 function popup(u,text,cls){if(cls==='good')sfx('good');const p=document.createElement('div');p.className='pop '+(cls||'');p.textContent=text;$('#hud').appendChild(p);const v=u.group.position.clone();v.y+=1.05;const q=v.project(cam);
   p.style.left=(q.x+1)/2*stage.clientWidth+'px';p.style.top=(1-q.y)/2*stage.clientHeight+'px';setTimeout(()=>p.remove(),1100)}
 const isDone=u=>u.down||(u.moved&&u.acted);
 function focus(u){if(!u)return;camState.follow=u}
-function select(u){if(S.phase!=='player'||S.busy)return;if(u&&u!==S.sel)sfx('ui');S.sel=u;S.mode=null;S.swap=false;if(u)focus(u);refresh()}
+function select(u){if(S.phase!=='player'||S.busy)return;if(u&&u!==S.sel)sfx('ui');S.sel=u;S.mode=null;S.swap=false;S.aim=null;if(S.sheet==='info'&&!u)openSheet(null);if(u)focus(u);refresh()}
 function abilsOf(u){if(!u.op)return[];return CLASS_AB[u.cls].filter((a,i)=>u.lvl>=AB_LVL[i])}
 const pipGeo=new THREE.BoxGeometry(.12,.06,.12),pipMat=new THREE.MeshBasicMaterial({color:0xffffff});
 function pips(t,n){const p=W(t.x,t.z);for(let i=0;i<n;i++){const m=new THREE.Mesh(pipGeo,pipMat);m.position.set(p.x-.3+i*.17,topY(t)+.06,p.z-.3);m.userData.tile=t;hl.add(m)}}
 const climbGeo=new THREE.ConeGeometry(.09,.18,4),climbMat=new THREE.MeshBasicMaterial({color:0xffb347});
 function climbMark(t){const p=W(t.x,t.z),m=new THREE.Mesh(climbGeo,climbMat);m.position.set(p.x+.3,topY(t)+.14,p.z+.3);m.userData.tile=t;hl.add(m)}
 function hlTile(t,col,op){const m=new THREE.Mesh(new THREE.PlaneGeometry(.9,.9),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false}));m.rotation.x=-Math.PI/2;const p=W(t.x,t.z);m.position.set(p.x,topY(t)+.03,p.z);m.userData.tile=t;hl.add(m)}
+/* ---------- map-first HUD (overhaul stage B) ----------
+   Everything floats over the map in small translucent pieces: an
+   objective pill, a menu button, a squad rail, one row of round action
+   buttons, toasts. Icons are simple shapes drawn for Arkside. */
+const ICON={shield:'M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Z',wrench:'M22 19 13 10l.9-3.2-3.7-3.7L7 4l2.6 2.6-1 2.4L6 8.9 3 6.3 2 9.5l3.7 3.7 3.2-.9L18 21l4-2Z',
+  eye:'M12 5c5 0 9 4.5 10 7-1 2.5-5 7-10 7S3 14.5 2 12c1-2.5 5-7 10-7Zm0 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z',cross:'M9 2h6v7h7v6h-7v7H9v-7H2V9h7V2Z',
+  grenade:'M14 3h4v2h-2v2.1A7 7 0 1 1 9 7.1V5h5V3Zm-2 6a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z',resupply:'M12 2 2 7l10 5 10-5-10-5Zm-8 9 8 4 8-4v6l-8 4-8-4v-6Z',
+  suppress:'M2 11h9v2H2zm11 0h9v2h-9zM11 2h2v9h-2zm0 11h2v9h-2zM5 4l3 3-1.4 1.4-3-3zm14 0 1.4 1.4-3 3L16 7z',patch:'M9 2h6v7h7v6h-7v7H9v-7H2V9h7V2Z',
+  adrenaline:'M13 2 4 14h6l-1 8 9-12h-6l1-8Z',surgery:'M12 21 3.5 12.6A5 5 0 0 1 12 6a5 5 0 0 1 8.5 6.6L12 21Zm-1-11v3H8v2h3v3h2v-3h3v-2h-3v-3h-2Z',
+  barricade:'M2 8h20v4H2zm0 6h20v4H2zM4 4h3v4H4zm13 0h3v4h-3zM4 18h3v3H4zm13 0h3v3h-3z',turret:'M8 4h8v6H8zm8 2h6v2h-6zM11 10h2v4h-2zm-4 10 4-6h2l4 6h-2l-3-4-3 4z',
+  armourup:'M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Zm-1 6h2v3h3v2h-3v3h-2v-3H8v-2h3V8Z',spot:'M11 2h2v4h-2zm0 16h2v4h-2zM2 11h4v2H2zm16 0h4v2h-4zM12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z',
+  disguise:'M3 8c3-2 6-2 9 0 3-2 6-2 9 0v3c0 3-2 5-5 5-2 0-3-1-4-3-1 2-2 3-4 3-3 0-5-2-5-5V8Zm4 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm10 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z',
+  emp:'M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm1 3-6 9h4l-1 5 6-9h-4l1-5Z',done:'m9 16.2-3.5-3.5L4 14.2l5 5 11-11-1.5-1.5L9 16.2Z',
+  swap:'M7 7h11l-3-3 1.4-1.4L22 8l-5.6 5.4L15 12l3-3H7V7Zm10 10H6l3 3-1.4 1.4L2 16l5.6-5.4L9 12l-3 3h11v2Z',flag:'M5 2h2v20H5zm3 1h11l-3 4 3 4H8z',
+  key:'M7 9a5 5 0 1 1 4.9 6H11v2H9v2H7v2H3v-4l4.1-4.1A5 5 0 0 1 7 9Zm5-1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z',redeploy:'M11 2h2v10l3-3 1.4 1.4L12 15.8 6.6 10.4 8 9l3 3V2ZM4 17h16v4H4z',
+  cancel:'M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4z',fire:'M11 2h2v5h-2zm0 15h2v5h-2zM2 11h5v2H2zm15 0h5v2h-5zM12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z',
+  dot:'M12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z'};
+const AB_ICON={grenade:'grenade',resupply:'resupply',suppress:'suppress',patch:'patch',adrenaline:'adrenaline',surgery:'surgery',barricade:'barricade',turret:'turret',armourup:'armourup',spot:'spot',disguise:'disguise',emp:'emp'};
+const CLS_ICON={soldier:'shield',engineer:'wrench',operative:'eye',medic:'cross'};
+const ico=k=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="${ICON[k]||ICON.dot}"/></svg>`;
+const hudBtn=(a,label,icon,o={})=>`<button type="button" class="act ab${o.cls?' '+o.cls:''}" data-a="${a}"${o.id?` data-id="${o.id}"`:''}${o.c?` data-c="${o.c}"`:''}${o.tip?` data-tip="${o.tip}"`:''}${o.dis?' disabled':''}>${ico(icon)}${o.cd?`<span class="cd">${o.cd}</span>`:''}<span class="lbl">${label}</span></button>`;
+const endBtn=(small)=>`<button type="button" class="endturn act" data-a="end" id="endTurn"${S.busy?' disabled':''}>${small?'End ›':'End turn ›'}</button>`;
+function railHTML(u){return squad().map((p,i)=>{const pct=Math.round(Math.max(0,p.hp)/p.maxHp*100),col=p.down?'#777':pct<50?'var(--warn)':'var(--good)';
+  return `<button type="button" class="ch${p===u?' on':''}${isDone(p)?' done':''}${p.down?' dn':''}" data-n="${i}" style="--hp:${pct};--c:${col}" aria-label="${esc(p.name)}, ${p.down?'down':pct+'% health'}"><span class="ring"></span><span class="av">${p.op&&p.op.look?opPortrait(p.op):esc(p.name[0])}</span><span class="cls">${ico(CLS_ICON[p.cls]||'dot')}</span><span class="pips"><i class="${p.moved?'u':''}"></i><i class="${p.acted?'u':''}"></i></span></button>`}).join('')}
+function whoHTML(u,extra=''){const pct=Math.round(Math.max(0,u.hp)/u.maxHp*100);return `<div class="who" data-a="info" role="button" tabindex="0" aria-label="Details for ${esc(u.name)}"><b>${esc(u.name)}</b>${u.cls}<span class="hp"><i style="width:${pct}%"></i></span>${u.down?'Down':u.hp}${u.shield?` +${u.shield}`:''}${extra}</div>`}
+function detailSheet(u){const s=u.op?opStats(u.op):null,perks=u.perks&&u.perks.size?[...u.perks].map(k=>(typeof PERKS!=='undefined'&&PERKS[k]&&PERKS[k].name)||k).join(', '):'none';
+  return `<div class="grab"></div><h3>${esc(u.name)}</h3><p class="sub">Lv ${u.lvl||1} ${u.body} ${u.cls} · ${u.weapon.name.toLowerCase()}, ${u.weapon.dmg} dmg, range ${u.weapon.range} · perks: ${perks}</p>
+  <div class="kv"><div><small>Health</small><b>${u.down?'Down':`${u.hp}/${u.maxHp}`}</b></div><div><small>Move</small><b>${u.moved?'Used':u.move}</b></div><div><small>Accuracy</small><b>${u.weapon.acc}</b></div><div><small>Action</small><b>${u.acted?'Used':'Ready'}</b></div></div>
+  <p class="sub">${MOVE_TIP[u.body]||''}</p>
+  <div class="ablist">${abilsOf(u).map(a=>`<div>${ico(AB_ICON[a])}<span><b>${AB[a].name}</b>${AB[a].desc}${u.cd[a]?` Ready in ${u.cd[a]} turn${u.cd[a]>1?'s':''}.`:` Cooldown ${AB[a].cd}.`}</span></div>`).join('')}</div>`}
+function objSheet(){const o=curObj();let h=`<div class="grab"></div><h3>${M.title}</h3><p class="sub">${S.turnsLeft!=null?`${S.turnsLeft} turns left`:`Turn ${S.turn}`}${M.stages?` · stage ${S.stage+1} of ${M.stages.length}`:''}</p>`;
+  if(M.stages)h+=`<ol class="olist">${M.stages.map((st,i)=>`<li class="${i<S.stage?'ok':i===S.stage?'now':''}"><b>${st.name}</b><span class="od">${i===S.stage&&o?objLabel(o,S):(st.objectives||[]).map(x=>objLabel(x,null)).join(', then ')}</span></li>`).join('')}</ol>`;
+  else h+=`<ol class="olist">${M.objectives.map((x,i)=>`<li class="${i<S.objIdx?'ok':i===S.objIdx?'now':''}"><b>${i===S.objIdx?objLabel(x,S):objLabel(x,null)}</b></li>`).join('')}</ol>`;
+  if(S.sec&&S.sec.length)h+=`<small class="kick">Optional</small><ol class="olist">${S.sec.map(sc=>`<li class="${sc.done?'ok':''}"><b>${sc.label}</b>${sc.done?'Done':''}</li>`).join('')}</ol>`;
+  return h}
+function openSheet(kind){const sh=$('#sheet');S.sheet=kind;if(!kind){sh.hidden=true;return}const u=S.sel;
+  if(kind==='info'&&!u){S.sheet=null;sh.hidden=true;return}sh.className='sheet';sh.innerHTML=kind==='info'?detailSheet(u):objSheet();sh.hidden=false}
 function refresh(){
   hl.clear();$('#hud').querySelectorAll('.tg').forEach(e=>e.remove());const u=S.sel;S.reach=null;selRing.visible=!!u&&!u.down&&S.phase==='player';
   if(u&&S.phase==='player'&&!u.down){
     if(S.mode){for(const t of abilityTargets(u,S.mode))hlTile(t,0xffc04a,.45)}
     else{if(!u.moved){S.reach=reach(u);const seenE=living('e').filter(e=>e.seen);for(const k of S.reach.d.keys()){const[x,z]=k.split(',').map(Number);if(x===u.x&&z===u.z)continue;const t=G[z][x];let cv=-1;if(seenE.length){cv=2;for(const e of seenE)cv=Math.min(cv,coverOf(t,G[e.z][e.x]))}hlTile(t,cv===2?0x3aa0ff:0x5fc8ff,cv===2?.5:cv===1?.4:.26);if(cv>0)pips(t,cv);if(S.reach.climb.has(k))climbMark(t)}}
       if(!u.acted)for(const e of living('e')){if(!e.seen)continue;const c=hitChance(u,e);if(!c)continue;const r=new THREE.Mesh(new THREE.RingGeometry(.36,.46,28),new THREE.MeshBasicMaterial({color:0xff4a3a,side:THREE.DoubleSide}));r.rotation.x=-Math.PI/2;const p=W(e.x,e.z);r.position.set(p.x,topY(G[e.z][e.x])+.04,p.z);r.userData.unit=e;r.userData.pulse=true;hl.add(r);
-        const fl=e.cls!=='turret'&&coverOf(G[e.z][e.x],G[u.z][u.x])===0,mm=fl?1.2:1,lo=Math.round(u.weapon.dmg*.85*mm),hi=Math.round(u.weapon.dmg*1.15*mm);const lab=document.createElement('div');lab.className='tg';lab.innerHTML=`${c}%<small>${lo}–${hi} dmg${fl?', flanked':!S.alerted?', unaware':''}</small>`;lab._u=e;$('#hud').appendChild(lab)}}}
-  $('#roster').innerHTML=squad().map(p=>`<button type="button" class="ro${p===u?' on':''}${isDone(p)?' done':''}${p.down?' dn':''}" data-n="${squad().indexOf(p)}"><b>${esc(p.name)}</b><i><s style="width:${p.hp/p.maxHp*100}%"></s></i></button>`).join('');
-  const det=$('#detail');
-  if(S.phase!=='player'){det.innerHTML=`<p class="hint">${S.over?'':'The enemy is moving…'}</p>`}
-  else if(!u){det.innerHTML='<p class="hint">Tap one of your squad to give orders.</p>'}
+        const fl=e.cls!=='turret'&&coverOf(G[e.z][e.x],G[u.z][u.x])===0,mm=fl?1.2:1,lo=Math.round(u.weapon.dmg*.85*mm),hi=Math.round(u.weapon.dmg*1.15*mm);const lab=document.createElement('div');lab.className='tg'+(S.aim===e?' aim':'');lab.innerHTML=S.aim===e?`${c}% · ${lo}–${hi} dmg`:`${c}%`;lab._u=e;$('#hud').appendChild(lab)}}}
+  $('#roster').innerHTML=railHTML(u);
+  const det=$('#detail');if(S.aim&&(!u||u.acted||u.down||S.aim.down||!S.aim.seen||!hitChance(u,S.aim)))S.aim=null;
+  if(S.phase!=='player'){det.innerHTML=''}
+  else if(!u){det.innerHTML=`<div class="bar"><span class="sp"></span>${endBtn()}</div>`}
+  else if(S.aim){const v=S.aim,c=hitChance(u,v),cv=coverOf(G[v.z][v.x],G[u.z][u.x]),fl=v.cls!=='turret'&&cv===0;
+    det.innerHTML=`<div class="who aimwho"><b>${esc(v.name)}</b>${cv===2?'Full cover':cv===1?'Half cover':'No cover'}${fl?' · flanked +20% dmg':''}${!S.alerted?' · unaware +20':''}</div><div class="bar">${hudBtn('aimcancel','Cancel','cancel',{cls:'pill ghost'})}<span class="sp"></span><button type="button" class="act fire" data-a="fire">Fire ${c}%</button></div>`}
   else{let btns='';const t=G[u.z][u.x];
-    if(u.down){btns+=`<button type="button" class="act${u.redeploy?' on':''}" data-a="redeploy" data-tip="redeploy">${u.redeploy?'Cancel redeploy':'Redeploy next turn'}</button>`}
-    if(!u.down){
-      if(S.swap){btns=Object.keys(CLASS_AB).filter(c=>c!==u.cls).map(c=>`<button type="button" class="act" data-a="swapto" data-c="${c}">${c}</button>`).join('')+`<button type="button" class="act ghost" data-a="swapcancel">Cancel</button>`}
-      else{for(const a of abilsOf(u)){const cd=u.cd[a]||0,ok=!u.acted&&!cd&&(AB[a].tgt==='self'||abilityTargets(u,a).length>0);btns+=`<button type="button" class="act${S.mode===a?' on':''}" data-a="ab" data-id="${a}" data-tip="ab:${a}" ${ok?'':'disabled'}>${AB[a].name}${cd?` (${cd})`:''}</button>`}
-        const near=objTargetsNear(u);if(near.length&&!u.acted){const o=curObj(),vt=o.type==='escort'?'repair':o.type;btns+=M.defend?`<button type="button" class="act obj" data-a="obj" data-tip="obj">${DEF_VERB[o.type]} −${DEF_FAST[o.type]===u.cls?2:1}</button>`:`<button type="button" class="act obj" data-a="obj" data-tip="obj">${o.type==='escort'?'Repair bot':OBJ_VERB[vt]} +${OBJ_FAST[vt]===u.cls?2:1}</button>`}
-        if(!u.acted)for(const sc of secNear(u))btns+=`<button type="button" class="act sec" data-a="sec" data-id="${sc.id}" data-tip="sec:${sc.id}">${sc.label} +${SEC_FAST[sc.type]===u.cls?2:1}</button>`;
-        if(!u.acted)btns+=`<button type="button" class="act ghost" data-a="ow" data-tip="ow">Overwatch</button>`;
-        if(t.cp&&t.owner==='p'&&!u.acted)btns+=`<button type="button" class="act ghost" data-a="swap" data-tip="swap">Swap class</button>`;
-        btns+=`<button type="button" class="act ghost" data-a="wait" data-tip="wait" ${isDone(u)?'disabled':''}>Done</button>`}}
-    det.innerHTML=`<div class="dtop"><b>${esc(u.name)}</b><span>Lv ${u.lvl} ${u.body} ${u.cls}, ${u.weapon.name.toLowerCase()} (${u.weapon.dmg} dmg, range ${u.weapon.range})</span></div>
-      <div class="dstat"><span>${u.down?'Down':`${u.hp}/${u.maxHp}`}${u.shield?` +${u.shield}`:''}</span><span class="${u.moved?'used':''}" data-tip="move:${u.body}">Move ${u.move}</span><span class="${u.acted?'used':''}" data-tip="action">Action</span><span data-tip="unit:me">ⓘ</span>${u.disg>0?'<span>Disguised</span>':''}${u.ow?'<span>Overwatch</span>':''}</div>
-      <p class="hint">${u.down?'Down. A medic can revive them here, or redeploy them at the drop point.':S.mode?AB[S.mode].info||AB[S.mode].desc:S.swap?'Pick a new class. Their weapon stays the same.':(!u.moved?'Blue: move. ':'')+(!u.acted?'Red: shoot. Or use an ability.':isDone(u)?'All orders used.':'')}</p><div class="btns">${btns}</div>`}
-  $('#undoBtn').hidden=!(S.undo&&S.phase==='player'&&!S.busy);$('#obj').textContent=curObj()?(M.stages?`${S.stage+1}/${M.stages.length}: `:'')+objLabel(curObj(),S):'';$('#turn').textContent=S.turnsLeft!=null?`${S.turnsLeft} left`:`Turn ${S.turn}`;$('#endTurn').disabled=S.phase!=='player'||S.busy}
+    if(u.down){btns+=hudBtn('redeploy',u.redeploy?'Cancel':'Redeploy','redeploy',{tip:'redeploy',cls:u.redeploy?'pri':''})}
+    else if(S.swap){btns=Object.keys(CLASS_AB).filter(c=>c!==u.cls).map(c=>hudBtn('swapto',c,CLS_ICON[c],{c})).join('')+hudBtn('swapcancel','Cancel','cancel')}
+    else if(S.mode){btns=hudBtn('modecancel','Cancel','cancel')}
+    else{for(const a of abilsOf(u)){const cd=u.cd[a]||0,ok=!u.acted&&!cd&&(AB[a].tgt==='self'||abilityTargets(u,a).length>0);btns+=hudBtn('ab',AB[a].name,AB_ICON[a],{id:a,tip:'ab:'+a,dis:!ok,cd:cd||0})}
+      const near=objTargetsNear(u);if(near.length&&!u.acted){const o=curObj(),vt=o.type==='escort'?'repair':o.type;btns+=M.defend?hudBtn('obj',`${DEF_VERB[o.type]} −${DEF_FAST[o.type]===u.cls?2:1}`,'flag',{tip:'obj',cls:'obj'}):hudBtn('obj',`${o.type==='escort'?'Repair bot':OBJ_VERB[vt]} +${OBJ_FAST[vt]===u.cls?2:1}`,'flag',{tip:'obj',cls:'obj'})}
+      if(!u.acted)for(const sc of secNear(u))btns+=hudBtn('sec',`${sc.label} +${SEC_FAST[sc.type]===u.cls?2:1}`,'key',{id:sc.id,tip:'sec:'+sc.id,cls:'sec'});
+      if(!u.acted)btns+=hudBtn('ow','Overwatch','eye',{tip:'ow'});
+      if(t.cp&&t.owner==='p'&&!u.acted)btns+=hudBtn('swap','Swap class','swap',{tip:'swap'});
+      btns+=hudBtn('wait','Done','done',{tip:'wait',dis:isDone(u)})}
+    const hint=u.down?'Down. A medic can revive them, or redeploy them.':S.mode?(AB[S.mode].info||AB[S.mode].desc):S.swap?'Pick a new class. Their weapon stays the same.':'';
+    det.innerHTML=`${whoHTML(u,hint?`<em>${hint}</em>`:'')}<div class="bar"><div class="acts">${btns}</div><span class="sp"></span>${S.mode||S.swap?'':endBtn(true)}</div>`}
+  if(S.sheet==='info'&&u)$('#sheet').innerHTML=detailSheet(u);if(S.sheet==='obj')$('#sheet').innerHTML=objSheet();
+  $('#undoBtn').hidden=!(S.undo&&S.phase==='player'&&!S.busy);const o=curObj();$('#obj').textContent=o?objLabel(o,S):'';$('#objStage').textContent=(M.stages?`Stage ${S.stage+1} of ${M.stages.length} · `:'')+(S.turnsLeft!=null?'turns left':'turn');$('#turn').textContent=S.turnsLeft!=null?S.turnsLeft:S.turn}
 function abilityTargets(u,id){const A=AB[id],out=[];
   if(A.tgt==='tile')for(const row of G)for(const t of row){if(t.type!=='water'&&dist(u,t)<=A.range&&!(t.x===u.x&&t.z===u.z))out.push(t)}
   if(A.tgt==='ally')for(const p of living('p').concat(squad().filter(q=>q.down))){if(p.cls==='turret')continue;if(id==='adrenaline'&&(p===u||!p.moved||p.down))continue;
@@ -1782,8 +1915,12 @@ function abilityTargets(u,id){const A=AB[id],out=[];
   if(A.tgt==='enemy')for(const e of living('e'))if(e.seen&&hitChance(u,e)>0)out.push(G[e.z][e.x]);
   if(A.tgt==='build')for(const[dx,dz]of D4){const t=tileAt(u.x+dx,u.z+dz);if(t&&t.type!=='water'&&!t.obj&&!t.cp&&!unitAt(t.x,t.z))out.push(t)}
   return[...new Set(out)]}
-$('#roster').addEventListener('click',e=>{const b=e.target.closest('.ro');if(b)select(squad()[+b.dataset.n])});
-$('#detail').addEventListener('click',async e=>{const b=e.target.closest('.act');if(!b||b.disabled||S.busy||S.phase!=='player')return;const u=S.sel,a=b.dataset.a;
+$('#roster').addEventListener('click',e=>{const b=e.target.closest('.ch');if(b)select(squad()[+b.dataset.n])});
+$('#detail').addEventListener('click',async e=>{if(e.target.closest('.who[data-a="info"]')){openSheet(S.sheet==='info'?null:'info');return}
+  const b=e.target.closest('.act');if(!b||b.disabled||S.busy||S.phase!=='player')return;const u=S.sel,a=b.dataset.a;
+  if(a==='end'){endTurnTap();return}
+  if(a==='aimcancel'){S.aim=null;refresh();return}if(a==='modecancel'){S.mode=null;refresh();return}
+  if(a==='fire'){const v=S.aim;S.aim=null;if(!v||!u)return;clearUndo();S.busy=true;refresh();await shoot(u,v);u.acted=true;u.disg=0;S.busy=false;afterOrder();return}
   if(a==='redeploy'){u.redeploy=!u.redeploy;log(u.redeploy?`${u.name} will redeploy at the drop point at the start of your next turn.`:`${u.name} will wait for a medic.`);refresh();return}
   if(a==='wait'){clearUndo();u.moved=u.acted=true;S.mode=null;afterOrder();return}
   if(a==='ow'){sfx('ready',u.group.position);clearUndo();u.ow=true;u.acted=true;u.moved=true;updBar(u);log(`${u.name} is on overwatch`);afterOrder();return}
@@ -1792,13 +1929,13 @@ $('#detail').addEventListener('click',async e=>{const b=e.target.closest('.act')
   if(a==='obj'){await doObjective(u);return}
   if(a==='sec'){const sc=S.sec.find(x=>x.id===b.dataset.id);if(sc)await doSecondary(u,sc);return}
   if(a==='ab'){const id=b.dataset.id;if(AB[id].tgt==='self'){await doAbility(u,id,G[u.z][u.x]);return}S.mode=S.mode===id?null:id;refresh()}});
-let endArmed=false;$('#endTurn').onclick=()=>{if(S.phase!=='player'||S.busy)return;if(!endArmed&&squad().some(p=>!isDone(p))){endArmed=true;$('#endTurn').textContent='Confirm';log('Some of your squad still have orders. Tap again to end the turn.');setTimeout(()=>{endArmed=false;$('#endTurn').textContent='End turn'},2600);return}endArmed=false;$('#endTurn').textContent='End turn';sfx('ui');endPlayerTurn()};
-let retreatArmed=false;$('#retreat').onclick=()=>{if(S.over)return;if(!retreatArmed){retreatArmed=true;$('#retreat').textContent='Sure?';setTimeout(()=>{retreatArmed=false;$('#retreat').textContent='Retreat'},2500);return}retreatArmed=false;$('#retreat').textContent='Retreat';endMission(false,'You pulled the squad out.')};
+let endArmed=false;function endTurnTap(){if(S.phase!=='player'||S.busy)return;const eb=$('#endTurn');if(!endArmed&&squad().some(p=>!isDone(p))){endArmed=true;if(eb)eb.textContent='Confirm';log('Some of your squad still have orders. Tap again to end the turn.');setTimeout(()=>{endArmed=false;const b=$('#endTurn');if(b)b.textContent=b.closest('.acts')||S.sel?'End ›':'End turn ›'},2600);return}endArmed=false;sfx('ui');S.aim=null;openSheet(null);endPlayerTurn()}
+let retreatArmed=false;$('#retreat').onclick=()=>{if(S.over)return;if(!retreatArmed){retreatArmed=true;$('#retreat').textContent='Sure?';setTimeout(()=>{retreatArmed=false;$('#retreat').textContent='Retreat'},2500);return}retreatArmed=false;$('#retreat').textContent='Retreat';$('#menuSheet').hidden=true;endMission(false,'You pulled the squad out.')};
 
 async function tap(cx,cy){if(S.phase!=='player'||S.busy)return;const h=pickAt(cx,cy),u=S.sel;
   if(S.mode&&u){const t=h.unit?G[h.unit.z][h.unit.x]:h.tile;if(t&&abilityTargets(u,S.mode).includes(t)){await doAbility(u,S.mode,t);return}S.mode=null;refresh();return}
   if(h.unit){const v=h.unit;if(v.team==='p'){if(v.op)select(v);return}
-    if(u&&!u.down&&!u.acted&&!v.down&&v.seen){const c=hitChance(u,v);if(c){clearUndo();S.busy=true;refresh();await shoot(u,v);u.acted=true;u.disg=0;S.busy=false;afterOrder();return}}if(v.seen&&!v.down)log(`${v.name}: ${v.hp}/${v.maxHp} health, ${v.weapon.name.toLowerCase()}, range ${v.weapon.range}${u&&!u.acted&&!u.down&&!hitChance(u,v)?'. Out of range or no line of sight':''}`);return}
+    if(u&&!u.down&&!u.acted&&!v.down&&v.seen){const c=hitChance(u,v);if(c){if(S.aim===v){S.aim=null;clearUndo();S.busy=true;refresh();await shoot(u,v);u.acted=true;u.disg=0;S.busy=false;afterOrder();return}S.aim=v;sfx('ui');refresh();return}}if(v.seen&&!v.down)log(`${v.name}: ${v.hp}/${v.maxHp} health, ${v.weapon.name.toLowerCase()}, range ${v.weapon.range}${u&&!u.acted&&!u.down&&!hitChance(u,v)?'. Out of range or no line of sight':''}`);return}
   if(h.tile&&u&&S.reach&&S.reach.d.has(key(h.tile.x,h.tile.z))&&!(h.tile.x===u.x&&h.tile.z===u.z)){S.busy=true;hl.clear();$('#hud').querySelectorAll('.tg').forEach(e=>e.remove());
     const snap=undoSnap(u);S.reacted=false;
     await moveAlong(u,pathTo(S.reach,h.tile.x,h.tile.z));u.moved=true;
@@ -1989,15 +2126,20 @@ function pickAt(cx,cy){const r=renderer.domElement.getBoundingClientRect();mv.se
   let first=null;for(const h of ray.intersectObjects(scene.children,true)){const ud=h.object.userData;if(!h.object.visible)continue;if(ud.unit&&!ud.unit.gone&&(ud.unit.team==='p'||ud.unit.seen))return{unit:ud.unit};if(ud.tile&&h.object.parent===hl)return{tile:ud.tile};if(ud.tile&&!first)first=ud.tile}return first?{tile:first}:{}}
 function zoomCam(f){camState.zoom=Math.max(.55,Math.min(2.4,camState.zoom*f))}
 function rotateCam(d){const from=camState.angle,to=from+d*Math.PI/2;tween(320,k=>camState.angle=from+(to-from)*ease(k))}
-const setCtl=()=>{$('#spd').textContent=SAVE.settings.fast?'2×':'1×';$('#snd').textContent=SAVE.settings.sound?'🔊':'🔇'};
+const setCtl=()=>{$('#spd').textContent='Speed: '+(SAVE.settings.fast?'Fast':'Normal');$('#snd').textContent='Sound: '+(SAVE.settings.sound?'On':'Off')};
 $('#spd').onclick=()=>{SAVE.settings.fast=!SAVE.settings.fast;SPD=SAVE.settings.fast?.55:1;persist();setCtl()};
 $('#snd').onclick=()=>{SAVE.settings.sound=!SAVE.settings.sound;persist();setCtl();sfx('ui');playMusic(CUR.faction)};setCtl();
-$('#rotL').onclick=()=>rotateCam(-1);$('#rotR').onclick=()=>rotateCam(1);$('#zin').onclick=()=>zoomCam(1.2);$('#zout').onclick=()=>zoomCam(1/1.2);
+$('#rotR').onclick=()=>rotateCam(1);
+$('#menuBtn').onclick=()=>{$('#menuSheet').hidden=false;$('#logList').innerHTML=(S.logHist||[]).slice().reverse().map(t=>`<li>${esc(t)}</li>`).join('')||'<li>No messages yet.</li>'};
+$('#menuClose').onclick=()=>$('#menuSheet').hidden=true;$('#menuSheet').addEventListener('click',e=>{if(e.target.id==='menuSheet')$('#menuSheet').hidden=true});
+$('#objPill').onclick=()=>openSheet(S.sheet==='obj'?null:'obj');
+$('#mapBtn').onclick=()=>{const w=$('#miniWrap');w.hidden=!w.hidden;if(!w.hidden)drawMini()};
+{let sy=null;const sh=$('#sheet');sh.addEventListener('touchstart',e=>{sy=e.touches[0].clientY},{passive:true});sh.addEventListener('touchend',e=>{if(sy!=null&&e.changedTouches[0].clientY-sy>40)openSheet(null);sy=null},{passive:true});sh.addEventListener('click',e=>{if(e.target.closest('.grab'))openSheet(null)})}
 function bindInput(){const cv=renderer.domElement,ptrs=new Map();let drag=null,pinch=null;
   let hold=null;cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size===1){drag={x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,moved:false};clearTimeout(hold);const hx=e.clientX,hy=e.clientY;hold=setTimeout(()=>{if(!drag||drag.moved||ptrs.size!==1)return;const h=pickAt(hx,hy);const html=h.unit?unitTip(h.unit):h.tile?tileTip(h.tile):'';if(html){drag.held=true;showTip(html,hx,hy-10)}},450)}else clearTimeout(hold);
-    if(ptrs.size===2){const[a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),z:camState.zoom};drag=null}});
+    if(ptrs.size===2){const[a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),z:camState.zoom,a:Math.atan2(b.y-a.y,b.x-a.x),ca:camState.angle};drag=null}});
   cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(pinch&&ptrs.size===2){const[a,b]=[...ptrs.values()];camState.zoom=Math.max(.55,Math.min(2.4,pinch.z*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d));return}
+    if(pinch&&ptrs.size===2){const[a,b]=[...ptrs.values()];camState.zoom=Math.max(.55,Math.min(2.4,pinch.z*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d));let da=Math.atan2(b.y-a.y,b.x-a.x)-pinch.a;da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.abs(da)>.06)camState.angle=pinch.ca-da;return}
     if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)>8){drag.moved=true;clearTimeout(hold)}
       if(drag.moved){camState.follow=null;const s=(cam.top-cam.bottom)/camState.zoom/stage.clientHeight,a=camState.angle,limx=NX/2+2,lim=NZ/2+2;camState.target.x-=(dx*Math.cos(a)+dy*Math.sin(a)*1.4)*s;camState.target.z-=(-dx*Math.sin(a)+dy*Math.cos(a)*1.4)*s;
         camState.target.x=Math.max(-limx,Math.min(limx,camState.target.x));camState.target.z=Math.max(-lim,Math.min(lim,camState.target.z))}drag.x=e.clientX;drag.y=e.clientY}});
@@ -2013,7 +2155,7 @@ function frame(now){requestAnimationFrame(frame);const fdt=Math.min(.1,(now-last
     if(u.ow&&!u.down&&!u.owRing){const r=new THREE.Mesh(new THREE.RingGeometry(u.weapon.range-.07,u.weapon.range,80),new THREE.MeshBasicMaterial({color:u.team==='p'?0xffc04a:0xff5a4a,transparent:true,opacity:.4,side:THREE.DoubleSide,depthWrite:false}));r.rotation.x=-Math.PI/2;scene.add(r);u.owRing=r}
     if(u.owRing){if(!u.ow||u.down){scene.remove(u.owRing);u.owRing=null}else{u.owRing.position.set(u.group.position.x,u.group.position.y+.06,u.group.position.z);u.owRing.visible=u.team==='p'||u.seen;u.owRing.material.opacity=.3+.12*Math.sin(t*4)}}}
   for(const u of units){if(u.gone)continue;const hide=u.team==='e'&&(!u.seen||u.down);u.el.style.display=hide?'none':'';if(!hide)overlayPos(u.el,u,u.down?.35:u.cls==='turret'?.85:u.body==='heavy'?1.2:1.16)}
-  $('#hud').querySelectorAll('.tg').forEach(l=>overlayPos(l,l._u,1.35));updObjMark();
+  $('#hud').querySelectorAll('.tg').forEach(l=>overlayPos(l,l._u,1.35));updObjMark();if(now-miniT>250){miniT=now;drawMini()}
   for(const u of units){if(!u.gh)continue;const on=!S.over&&!u.seen&&u.last&&!u.down&&!u.gone;u.gh.style.display=on?'':'none';if(on){const p=W(u.last[0],u.last[1]);tmpV.set(p.x,topY(G[u.last[1]][u.last[0]])+.5,p.z).project(cam);u.gh.style.transform=`translate(${(tmpV.x+1)/2*stage.clientWidth}px,${(1-tmpV.y)/2*stage.clientHeight}px) translate(-50%,-50%)`}}
   if(S.sel&&selRing.visible){selRing.position.copy(S.sel.group.position);selRing.position.y+=.025;selRing.scale.setScalar(1+.06*Math.sin(t*5))}
   for(const m of hl.children)if(m.userData.pulse)m.scale.setScalar(1+.08*Math.sin(t*6));

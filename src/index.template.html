@@ -28,11 +28,23 @@
 <section id="v-debrief" class="page" hidden></section>
 <section id="v-creator" class="page" hidden></section>
 <section id="v-game" hidden>
-  <header id="top"><button type="button" id="retreat">Retreat</button><div class="mission"><b id="mtitle"></b><span id="obj"></span></div><span id="turn"></span><button type="button" id="endTurn">End turn</button></header>
   <div id="stage"><div id="hud"></div>
-    <div class="camctl"><button type="button" id="rotL" aria-label="Rotate left">⟲</button><button type="button" id="rotR" aria-label="Rotate right">⟳</button><button type="button" id="zin" aria-label="Zoom in">+</button><button type="button" id="zout" aria-label="Zoom out">−</button><button type="button" id="spd" aria-label="Game speed">1×</button><button type="button" id="snd" aria-label="Sound on or off">🔊</button></div>
-    <div id="objMark" hidden><i></i><span></span></div><button type="button" id="undoBtn" data-tip="undo" hidden>↶ Undo move</button><div id="banner"></div><div id="log" role="status" aria-live="polite"></div></div>
-  <footer id="panel"><div id="roster"></div><div id="detail"></div></footer>
+    <div id="objMark" hidden><i></i><span></span></div>
+    <button type="button" id="objPill" class="glass" aria-label="Objectives"><span class="turns" id="turn"></span><span class="ot"><small id="objStage"></small><b id="obj"></b></span></button>
+    <button type="button" id="menuBtn" class="hb round" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg></button>
+    <button type="button" id="mapBtn" class="hb" aria-label="Minimap" data-tip="mini"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m15 5-6-2-6 2v16l6-2 6 2 6-2V3l-6 2Zm-1 13.7-4-1.3V5.3l4 1.3v12.1Z"/></svg></button>
+    <button type="button" id="rotR" class="hb round" aria-label="Rotate camera"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7Z"/></svg></button>
+    <div id="roster" class="rail"></div>
+    <div id="toasts" role="status" aria-live="polite"></div>
+    <button type="button" id="undoBtn" class="glass" data-tip="undo" hidden>↶ Undo move</button>
+    <div id="banner"></div>
+    <div id="miniWrap" class="glass" hidden><canvas id="mini" aria-label="Minimap"></canvas><small>Tap the map to look there</small></div>
+    <div id="detail"></div>
+    <div id="sheet" hidden></div>
+  </div>
+  <div id="menuSheet" hidden><div class="msheet"><div class="grab"></div><small class="kick">Mission</small><b id="mtitle"></b>
+    <div class="mrow"><button type="button" class="btn pri" id="menuClose">Resume</button><button type="button" class="btn" id="spd">Speed</button><button type="button" class="btn" id="snd">Sound</button><button type="button" class="btn warn" id="retreat">Retreat</button></div>
+    <small class="kick">Messages</small><ol id="logList"></ol></div></div>
 </section>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="tip" role="tooltip" hidden></div>
