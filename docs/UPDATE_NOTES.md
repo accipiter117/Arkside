@@ -84,3 +84,10 @@ Built in the Claude chat and already playable there. This brings the repo up to 
 - **Balance:** grunts are slightly weaker now that rivals and allies are on the field, and attack operations bring one more trooper.
 - **Screens:** Rivals board on the campaign screen (portrait, class, level, trait or "Trait ?", injured greyed out), two rival lines in the briefing, name tags with a red marker in missions (press and hold for level and trait), and a Rivals section in the debrief.
 - **Test:** `node tools/rivals-test.mjs` plays three operations in a row per faction and checks the roster, traits, injuries, allies, levels and old-save loading.
+
+# Update 10: civilians in the crossfire, revivable militia
+
+- **Civilians stream across the map.** They come in at the enemy's end and hurry towards their own faction's edge (refugees to the Resistance side, citizens to the Security side), keeping clear of fighters once the shooting starts, and leave when they reach the far end. New ones arrive while the count is under the cap (about 6 to 10 in shanty areas, 2 to 4 in Security districts, halved on Low).
+- **Walk through them.** Units pass through civilians but can't stop on them. Stray shots, blasts and traps still hit them.
+- **Your own people count.** Downing a civilian of your own faction (by your fire, including strays) costs 5 XP per operative and gets a line in the debrief. Enemy-faction civilians cost nothing.
+- **Militia can be revived.** Downed militia allies lie where they fall; a medic's Patch up gets them back up. They still don't redeploy.

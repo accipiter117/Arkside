@@ -68,7 +68,7 @@ async function allyAct(a){if(a.down||a.gone||a.stun>0)return;const foesSeen=livi
     if(pick&&!(pick[0]===a.x&&pick[1]===a.z)){await moveAlong(a,pathTo(r,pick[0],pick[1]));if(a.down)return;best=allyShotFrom(a,a.x,a.z,foesSeen)}}
   if(best&&(S.alerted||best.c>=70))await shoot(a,best.e);a.moved=a.acted=true}
 async function alliesAct(){for(const a of units.filter(u=>u.ally&&!u.down&&!u.gone)){if(S.over)return;await allyAct(a);updBar(a)}}
-function allyDowned(u){if(!u.ally)return;u.gone=true;u.group.visible=false;if(u.el)u.el.remove();log(`${u.name} is down and out of the fight.`)}
+function allyDowned(u){if(!u.ally)return;log(`${u.name} is down. A medic can get them back up.`)}
 // ---------- after the operation ----------
 function rivalsEnd(won){if(!S.rivalsOn)return[];const R=rivalsFor(CUR.faction),dep=new Set(S.rivalIds),lines=[],gained={};
   let depXp=0,depN=0;for(const r of R.members){if(!dep.has(r.id))continue;const e=S.rivalUnits.find(u=>u.rival===r);const xp=10+(e?e.kills||0:0)*15+(S.rivalDowned.has(r.id)?0:30)+(won?0:40);gained[r.id]=xp;depXp+=xp;depN++}

@@ -1450,34 +1450,53 @@ function mechShowArea(t){if(!hl)return;for(const[x,z]of trapArea(t)){const tl=ti
 /* ===================== Civilians =====================
    Unarmed people on the soldier rig in muted clothes and no weapon:
    refugees in shanty areas, workers and technicians in Security areas.
-   They wander until the first shot or the alarm, then run for the map edge
-   or hide behind cover. Missed shots whose line passes one may hit them,
+   They stream across the map from the far side towards their own faction's
+   edge (refugees to the Resistance end, citizens to the Security end), new
+   ones arriving at the start while the count is under the cap, and leave
+   when they reach the far end. Once shooting starts they keep clear of
+   fighters. Missed shots whose line passes one may hit them,
    and blasts and traps do. Hit civilians go down and stay down, with no
-   penalty to the player. They block movement. Counts: about 6 to 10 in
+   penalty unless they are your own faction's people (small XP cut). Units
+   walk through them but can't stop on them. Cap: about 6 to 10 in
    shanty areas, 2 to 4 in Security areas, in between on the industrial
    decks, halved on Low graphics. A mission can set civ:n. */
 function civCount(){const th=THEME_OF[M.id]||'container',R=S.R||Math.random;let n=M.civ!=null?M.civ:th==='container'?6+Math.floor(R()*5):th==='founders'?2+Math.floor(R()*3):4+Math.floor(R()*3);return HI()?n:Math.ceil(n/2)}
-function spawnCivilians(info){const n=civCount();if(!n)return;const th=THEME_OF[M.id]||'container',R=rng((M.id||'c').charCodeAt(1)*53+NX),sec=th==='founders';
-  const spawns=info.spawns||[],cand=[];for(const row of G)for(const t of row){if(t.type!=='floor'||t.obj||t.flood||t.cp||t.trap||t.point||t.zone||t.exit)continue;if(spawns.some(s=>Math.max(Math.abs(s.x-t.x),Math.abs(s.z-t.z))<4))continue;if(unitAt(t.x,t.z))continue;cand.push(t)}
-  for(let i=0;i<n&&cand.length;i++){const t=cand.splice(Math.floor(R()*cand.length),1)[0];const fac=sec?'security':'resistance';
-    const look=LOOK({faction:fac,body:R()<.2?'light':'medium',cls:'soldier',weapon:'rifle',skin:Math.floor(R()*6),hairCol:Math.floor(R()*7),face:['long','square','angular','broad'][Math.floor(R()*4)],facial:['none','stubble','beard','none'][Math.floor(R()*4)],hair:['buzz','crop','shaved','slick','dreads','topknot'][Math.floor(R()*6)],
-      headgear:sec?['none','cap','headset'][Math.floor(R()*3)]:['none','beanie','bandana','none'][Math.floor(R()*4)],facegear:sec?'none':['none','mask','none'][Math.floor(R()*3)],armour:'none',top:['tee','long','hoodie','jacket'][Math.floor(R()*4)],primary:sec?[2,5,1][Math.floor(R()*3)]:[1,3,5][Math.floor(R()*3)],secondary:sec?[5,1][Math.floor(R()*2)]:[3,5,1][Math.floor(R()*3)],gloves:'none'});
-    const c=newUnit({team:'c',cls:'civ',type:'civ',name:sec?['Technician','Worker','Clerk'][i%3]:['Refugee','Dock worker','Trader'][i%3],short:'Civilian',body:look.body,hp:30,maxHp:30,move:3,vis:0,weapon:{name:'none',dmg:0,range:0,acc:0,opt:0},x:t.x,z:t.z,look,wkey:'rifle'});
-    units.push(c);makeUnitMesh(c);if(c.rig&&c.rig.gun)c.rig.gun.visible=false;if(c.el)c.el.classList.add('civ');if(c.ringMesh)c.ringMesh.visible=false;c.group.rotation.y=R()*6.28}}
-// Their turn: wander while it's quiet, flee or hide once the shooting starts.
-async function civTurn(){const cs=units.filter(u=>u.cls==='civ'&&!u.down&&!u.gone);if(!cs.length)return;const fighters=units.filter(u=>!u.gone&&!u.down&&(u.team==='p'||u.team==='e')&&u.cls!=='bot');
-  for(const c of cs){const r=reach(c,S.alerted?4:2);let best=null,bs=-1e9;
+function civFaction(){return (THEME_OF[M.id]||'container')==='founders'?'security':'resistance'}
+function civLook(i,R){const sec=civFaction()==='security';const look=LOOK({faction:civFaction(),body:R()<.2?'light':'medium',cls:'soldier',weapon:'rifle',skin:Math.floor(R()*6),hairCol:Math.floor(R()*7),face:['long','square','angular','broad'][Math.floor(R()*4)],facial:['none','stubble','beard','none'][Math.floor(R()*4)],hair:['buzz','crop','shaved','slick','dreads','topknot'][Math.floor(R()*6)],
+    headgear:sec?['none','cap','headset'][Math.floor(R()*3)]:['none','beanie','bandana','none'][Math.floor(R()*4)],facegear:sec?'none':['none','mask','none'][Math.floor(R()*3)],armour:'none',top:['tee','long','hoodie','jacket'][Math.floor(R()*4)],primary:sec?[2,5,1][Math.floor(R()*3)]:[1,3,5][Math.floor(R()*3)],secondary:sec?[5,1][Math.floor(R()*2)]:[3,5,1][Math.floor(R()*3)],gloves:'none'});
+  return{look,name:sec?['Technician','Worker','Clerk'][i%3]:['Refugee','Dock worker','Trader'][i%3]}}
+function civSpawnAt(t,R){const i=S.civN=(S.civN||0)+1,{look,name}=civLook(i,R);
+  const c=newUnit({team:'c',cls:'civ',type:'civ',name,short:'Civilian',body:look.body,hp:30,maxHp:30,move:4,vis:0,weapon:{name:'none',dmg:0,range:0,acc:0,opt:0},x:t.x,z:t.z,look,wkey:'rifle'});
+  units.push(c);makeUnitMesh(c);if(c.rig&&c.rig.gun)c.rig.gun.visible=false;if(c.el)c.el.classList.add('civ');if(c.ringMesh)c.ringMesh.visible=false;c.group.rotation.y=R()*6.28;c.stuck=0;return c}
+// The stream runs from the enemy of the civilians' faction towards their own side. Projection along that axis, 0 at the start.
+function civAxis(info){const mean=a=>a.length?[a.reduce((s,t)=>s+t[0],0)/a.length,a.reduce((s,t)=>s+t[1],0)/a.length]:[NX/2,NZ/2];
+  const pl=mean((info.spawns||[]).map(t=>[t.x,t.z]));let en;if(S.espawns)en=mean(S.espawns);else if(M.stages&&M.stages[M.stages.length-1].spawns)en=mean(M.stages[M.stages.length-1].spawns);else en=mean((M.enemies||[]).map(e=>[e[1],e[2]]));
+  const own=civFaction()===CUR.faction,from=own?en:pl,to=own?pl:en;let dx=to[0]-from[0],dz=to[1]-from[1];const L=Math.hypot(dx,dz)||1;dx/=L;dz/=L;
+  let lo=1e9,hi=-1e9;for(const row of G)for(const t of row){if(t.type!=='floor')continue;const p=(t.x-from[0])*dx+(t.z-from[1])*dz;lo=Math.min(lo,p);hi=Math.max(hi,p)}
+  S.civAxis={from,dx,dz,lo,hi,p:t=>(t.x-from[0])*dx+(t.z-from[1])*dz}}
+function civCap(){const n=civCount();return n}
+function civEntryTiles(){const A=S.civAxis,spawns=(S.info.spawns||[]).concat((S.espawns||[]).map(([x,z])=>G[z][x])),out=[];
+  for(const row of G)for(const t of row){if(t.type!=='floor'||t.obj||t.flood||t.cp||t.trap||t.point||t.zone||t.exit)continue;if(A.p(t)>A.lo+(A.hi-A.lo)*.15)continue;if(spawns.some(s=>Math.max(Math.abs(s.x-t.x),Math.abs(s.z-t.z))<3))continue;if(unitAt(t.x,t.z))continue;out.push(t)}return out}
+function spawnCivilians(info){const n=civCount();if(!n)return;const R=rng((M.id||'c').charCodeAt(1)*53+NX);civAxis(info);S.civN=0;
+  const spawns=info.spawns||[],cand=[];for(const row of G)for(const t of row){if(t.type!=='floor'||t.obj||t.flood||t.cp||t.trap||t.point||t.zone||t.exit)continue;if(spawns.some(s=>Math.max(Math.abs(s.x-t.x),Math.abs(s.z-t.z))<4))continue;if(unitAt(t.x,t.z))continue;if(S.civAxis.p(t)>S.civAxis.hi-(S.civAxis.hi-S.civAxis.lo)*.2)continue;cand.push(t)}
+  for(let i=0;i<Math.ceil(n/2)&&cand.length;i++){const t=cand.splice(Math.floor(R()*cand.length),1)[0];civSpawnAt(t,R)}}
+// Their turn: hurry along the stream towards their own side, keeping clear of fighters once the shooting starts,
+// leave the map at the far end, and new ones arrive at the start while the count is under the cap.
+async function civTurn(){const cap=civCount();if(!cap||!S.civAxis)return;const A=S.civAxis,R=S.R||Math.random;
+  const cs=units.filter(u=>u.cls==='civ'&&!u.down&&!u.gone),fighters=units.filter(u=>!u.gone&&!u.down&&(u.team==='p'||u.team==='e')&&u.cls!=='bot');
+  for(const c of cs){const r=reach(c,S.alerted?5:4),p0=A.p(c);let best=null,bs=-1e9;
     for(const k of r.d.keys()){const[x,z]=k.split(',').map(Number);const t=G[z][x];if(t.flood||t.trapZone)continue;
-      if(!S.alerted){const s=Math.random();if(s>bs){bs=s;best=[x,z]}continue}
-      let near=99;for(const f of fighters)near=Math.min(near,Math.hypot(f.x-x,f.z-z));const edge=Math.min(x,z,NX-1-x,NZ-1-z);let cover=0;for(const f of fighters)cover+=coverOf(t,G[f.z][f.x]);
-      const s=near*1.2+cover*.6-edge*.8;if(s>bs){bs=s;best=[x,z]}}
-    if(!best||(best[0]===c.x&&best[1]===c.z))continue;const path=pathTo(r,best[0],best[1]);if(!path.length)continue;
-    if(c.group.visible&&S.vis.has(key(best[0],best[1])))await moveAlong(c,path);else{c.x=best[0];c.z=best[1];place(c)}
-    if(S.alerted&&Math.min(c.x,c.z,NX-1-c.x,NZ-1-c.z)===0){c.gone=true;c.group.visible=false;if(c.el)c.el.remove()}}
+      let s=(A.p(t)-p0)*1.2+R()*.8;if(S.alerted){for(const f of fighters){const d=Math.hypot(f.x-x,f.z-z);if(d<2.5)s-=(2.5-d)*1.5}}
+      if(s>bs){bs=s;best=[x,z]}}
+    if(best&&!(best[0]===c.x&&best[1]===c.z)){const path=pathTo(r,best[0],best[1]);if(path.length){if(c.group.visible&&S.vis.has(key(best[0],best[1])))await moveAlong(c,path);else{c.x=best[0];c.z=best[1];place(c)}}}
+    if(A.p(c)<=p0+.5)c.stuck=(c.stuck||0)+1;else c.stuck=0;
+    if(A.p(c)>=A.hi-(A.hi-A.lo)*.1||c.stuck>=3){c.gone=true;c.group.visible=false;if(c.el)c.el.remove()}}
+  const alive=units.filter(u=>u.cls==='civ'&&!u.down&&!u.gone).length,want=Math.min(cap-alive,alive<cap/2?2:1);
+  if(want>0){const ent=civEntryTiles();for(let i=0;i<want&&ent.length;i++){const t=ent.splice(Math.floor(R()*ent.length),1)[0];civSpawnAt(t,R)}}
   applyFog()}
 // A missed shot may hit a civilian standing on the line of fire.
 function civStray(a,b){const cs=units.filter(u=>u.cls==='civ'&&!u.down&&!u.gone);if(!cs.length)return;const dx=b.x-a.x,dz=b.z-a.z,steps=Math.ceil(Math.hypot(dx,dz)*3);
-  for(let i=1;i<steps;i++){const t=i/steps,x=Math.round(a.x+dx*t),z=Math.round(a.z+dz*t);const c=cs.find(u=>u.x===x&&u.z===z);if(c&&Math.random()<.5){damage(c,Math.round(a.weapon.dmg*.8),null);log('A stray shot hits a civilian.');return}}}
+  for(let i=1;i<steps;i++){const t=i/steps,x=Math.round(a.x+dx*t),z=Math.round(a.z+dz*t);const c=cs.find(u=>u.x===x&&u.z===z);if(c&&Math.random()<.5){damage(c,Math.round(a.weapon.dmg*.8),a);log('A stray shot hits a civilian.');return}}}
 
 /* ---------- the prisoner (Breakout) ----------
    Mara Quill, a Resistance organiser held in the island prison. She joins
@@ -1560,7 +1579,7 @@ async function allyAct(a){if(a.down||a.gone||a.stun>0)return;const foesSeen=livi
     if(pick&&!(pick[0]===a.x&&pick[1]===a.z)){await moveAlong(a,pathTo(r,pick[0],pick[1]));if(a.down)return;best=allyShotFrom(a,a.x,a.z,foesSeen)}}
   if(best&&(S.alerted||best.c>=70))await shoot(a,best.e);a.moved=a.acted=true}
 async function alliesAct(){for(const a of units.filter(u=>u.ally&&!u.down&&!u.gone)){if(S.over)return;await allyAct(a);updBar(a)}}
-function allyDowned(u){if(!u.ally)return;u.gone=true;u.group.visible=false;if(u.el)u.el.remove();log(`${u.name} is down and out of the fight.`)}
+function allyDowned(u){if(!u.ally)return;log(`${u.name} is down. A medic can get them back up.`)}
 // ---------- after the operation ----------
 function rivalsEnd(won){if(!S.rivalsOn)return[];const R=rivalsFor(CUR.faction),dep=new Set(S.rivalIds),lines=[],gained={};
   let depXp=0,depN=0;for(const r of R.members){if(!dep.has(r.id))continue;const e=S.rivalUnits.find(u=>u.rival===r);const xp=10+(e?e.kills||0:0)*15+(S.rivalDowned.has(r.id)?0:30)+(won?0:40);gained[r.id]=xp;depXp+=xp;depN++}
@@ -1956,7 +1975,7 @@ const foes=()=>living('e').filter(u=>u.cls!=='turret');
 const unitAt=(x,z,ign)=>units.find(u=>u!==ign&&!u.gone&&u.x===x&&u.z===z&&!(u.down&&u.team==='e'));
 // What stops a unit (or the escort bot) entering a tile: anything standing
 // there except its own side's turrets and MG nests, which it passes through.
-const moveBlocker=(x,z,u)=>{const o=unitAt(x,z,u);return o&&!(o.cls==='turret'&&o.team===u.team)?o:null};
+const moveBlocker=(x,z,u)=>{const o=unitAt(x,z,u);return o&&!(o.cls==='turret'&&o.team===u.team)&&o.cls!=='civ'?o:null};
 // Path tiles the escort bot still has to cross: the rest of this stage's
 // route, or all of a later stage's. Nothing may be built on them.
 function botRoute(){const out=new Set();if(!M)return out;const stages=M.stages?M.stages.map(st=>st.objectives||[]):[M.objectives||[]],from=M.stages?S.stage:0;
@@ -1977,9 +1996,9 @@ function stepCost(u,a,b){return moveCost(u,a,b)}// movement rules live in mechan
 function reach(u,limit){const lim=limit??u.move,d=new Map([[key(u.x,u.z),0]]),prev=new Map(),climb=new Set(),kind=new Map(),thru=new Set(),open=[[u.x,u.z]];
   while(open.length){let bi=0;for(let i=1;i<open.length;i++)if(d.get(key(open[i][0],open[i][1]))<d.get(key(open[bi][0],open[bi][1])))bi=i;
     const[x,z]=open.splice(bi,1)[0],dd=d.get(key(x,z)),a=G[z][x];
-    for(const[dx,dz]of D4){const nx=x+dx,nz=z+dz,b=tileAt(nx,nz);if(!b)continue;const k=key(nx,nz);const bl=unitAt(nx,nz,u);if(bl&&!(bl.cls==='turret'&&bl.team===u.team))continue;if(bl)thru.add(k);const c=stepCost(u,a,b);if(!c)continue;const nd=dd+c;if(nd>lim)continue;
+    for(const[dx,dz]of D4){const nx=x+dx,nz=z+dz,b=tileAt(nx,nz);if(!b)continue;const k=key(nx,nz);const bl=unitAt(nx,nz,u);if(bl&&!(bl.cls==='turret'&&bl.team===u.team)&&bl.cls!=='civ')continue;if(bl)thru.add(k);const c=stepCost(u,a,b);if(!c)continue;const nd=dd+c;if(nd>lim)continue;
       if(d.has(k)&&d.get(k)<=nd)continue;d.set(k,nd);prev.set(k,key(x,z));kind.delete(k);if(b.h-a.h>.5)climb.add(k);else climb.delete(k);if(!open.some(o=>o[0]===nx&&o[1]===nz))open.push([nx,nz])}
-    for(const[nx,nz,c,kd]of moveLinks(u,x,z)){const k=key(nx,nz);const bl=unitAt(nx,nz,u);if(bl&&!(bl.cls==='turret'&&bl.team===u.team))continue;if(bl)thru.add(k);const nd=dd+c;if(nd>lim)continue;if(d.has(k)&&d.get(k)<=nd)continue;d.set(k,nd);prev.set(k,key(x,z));kind.set(k,kd);climb.delete(k);if(!open.some(o=>o[0]===nx&&o[1]===nz))open.push([nx,nz])}}
+    for(const[nx,nz,c,kd]of moveLinks(u,x,z)){const k=key(nx,nz);const bl=unitAt(nx,nz,u);if(bl&&!(bl.cls==='turret'&&bl.team===u.team)&&bl.cls!=='civ')continue;if(bl)thru.add(k);const nd=dd+c;if(nd>lim)continue;if(d.has(k)&&d.get(k)<=nd)continue;d.set(k,nd);prev.set(k,key(x,z));kind.set(k,kd);climb.delete(k);if(!open.some(o=>o[0]===nx&&o[1]===nz))open.push([nx,nz])}}
   for(const k of thru)d.delete(k);// can pass through, can't stop there
   return{d,prev,climb,kind}}
 function pathTo(r,x,z){const out=[];let k=key(x,z);while(r.prev.has(k)){out.unshift(k.split(',').map(Number));k=r.prev.get(k)}return out}
@@ -2268,7 +2287,7 @@ function spawnEnemy(type,x,z,R){const T=ETYPES[type],ef=ENEMY_OF[CUR.faction],B=
 function startMission(m,ops){
   if(!initRenderer()){$('#hud').innerHTML='<div class="fail">This game needs WebGL and the 3D engine, which couldn’t load here. Check your connection and reload.</div>';return}
   M=m;units=[];$('#hud').innerHTML='';
-  S={undo:null,undoStack:[],aim:null,sheet:null,logHist:[],reacted:false,phase:'player',sel:null,mode:null,turn:1,objIdx:0,prog:{},carrier:null,hold:0,vis:new Set(),explored:new Set(),alerted:!!m.alerted,reveals:[],credit:{},busy:false,reach:null,over:false,item:null,stats:{shots:0,hits:0,downs:0}};
+  S={undo:null,undoStack:[],aim:null,sheet:null,logHist:[],reacted:false,phase:'player',sel:null,mode:null,turn:1,objIdx:0,prog:{},carrier:null,hold:0,vis:new Set(),explored:new Set(),alerted:!!m.alerted,reveals:[],credit:{},busy:false,reach:null,over:false,item:null,stats:{shots:0,hits:0,downs:0,civ:0}};
   if(m.stages){m.objectives=m.stages.flatMap((st,i)=>st.objectives.map(o=>({...o,stage:i})));m.enemies=m.stages[0].enemies;m.reinf=m.stages[0].reinf}
   S.stage=0;S.stageTurn=1;S.turnsLeft=m.turns||null;S.poolIdx=0;if(m.defend){m.enemies=[];m.reinf=[];S.alerted=true}S.sec=(m.secondaries||[]).map(sc=>({...sc,done:false}));S.bot=null;
   const info=parseMap(m);mechInit(m);S.info=info;S.item=info.item;S.civInfo=info;
@@ -2463,7 +2482,7 @@ function refresh(){
   $('#undoBtn').hidden=!(S.undo&&S.phase==='player'&&!S.busy);const o=curObj();$('#obj').textContent=o?objLabel(o,S):'';$('#objStage').textContent=(M.stages?`Stage ${S.stage+1} of ${M.stages.length} · `:'')+(S.turnsLeft!=null?'turns left':'turn');$('#turn').textContent=S.turnsLeft!=null?S.turnsLeft:S.turn}
 function abilityTargets(u,id){const A=AB[id],out=[];
   if(A.tgt==='tile')for(const row of G)for(const t of row){if(t.type!=='water'&&dist(u,t)<=A.range&&!(t.x===u.x&&t.z===u.z))out.push(t)}
-  if(A.tgt==='ally')for(const p of living('p').concat(squad().filter(q=>q.down))){if(p.cls==='turret')continue;if(id==='adrenaline'&&(p===u||!p.moved||p.down))continue;
+  if(A.tgt==='ally')for(const p of living('p').concat(units.filter(q=>q.team==='p'&&q.down&&!q.gone&&(q.op||q.ally)))){if(p.cls==='turret')continue;if(id==='adrenaline'&&(p===u||!p.moved||p.down))continue;
     if(id==='patch'&&!(p.down||p.hp<p.maxHp))continue;if(id==='resupply'&&p===u)continue;if((A.range===1?cheb(u,p)<=1:dist(u,p)<=A.range))out.push(G[p.z][p.x])}
   if(A.tgt==='enemy')for(const e of living('e'))if(e.seen&&hitChance(u,e)>0)out.push(G[e.z][e.x]);
   if(A.tgt==='build'){const r=botRoute();for(const[dx,dz]of D4){const t=tileAt(u.x+dx,u.z+dz);if(t&&t.type!=='water'&&!t.obj&&!t.cp&&!unitAt(t.x,t.z)&&!r.has(key(t.x,t.z)))out.push(t)}}
@@ -2553,7 +2572,7 @@ async function shoot(a,b,mod=0){if(a.team==='p'||a.seen||b.team==='p'){const pa=
   if(n>1)setTimeout(()=>sfx('shell',a.group.position),300);if(hits){if(fl)dmg*=1.2;damage(b,Math.round(dmg),a,fl)}else{civStray(a,b);popup(b,'Miss','miss');sfx('miss',b.group.position);log(`${a.team==='p'?a.name:b.team==='p'?'Enemy':''} missed`)}rivalAfterShot(a);await sleep(320)}
 function damage(u,n,by,fl){if(u.cls==='bot')n=Math.round(n*.5);if(u.trait==='fireproof'&&S.dmgKind==='blast')n=Math.round(n/2);/* rivals */if(u.perks&&u.perks.has('jugg'))n=Math.round(n*.85);if(by&&by.perks&&by.perks.has('marksman')&&by.wkey==='sniper'&&G[by.z][by.x].h>G[u.z][u.x].h)n+=10;let left=n;if(u.shield>0){const s=Math.min(u.shield,left);u.shield-=s;left-=s}sfx('hit',u.group&&u.group.position);if(u.team==='p'&&navigator.vibrate)try{navigator.vibrate(35)}catch(e){}flashUnit(u,0xff2a1a);if(n>=35)shake(.12);u.hp=Math.max(0,u.hp-left);popup(u,'−'+n+(fl?' flanked':''),u.team==='p'?'hurt':'');updBar(u);
   if(u.hp<=0&&!u.down&&u.cls==='bot'){u.down=true;puff(u.group.position.clone(),8,0x3a3430,2);if(M.defend){log('Bot disabled! They will try to repair it.');banner('Bot down')}else{log('The bot is disabled! Repair it to keep going.');banner('Bot disabled','enemy')}updBar(u);return}
-  if(u.hp<=0&&!u.down){u.down=true;u.ow=false;puff(u.group.position.clone(),4,0x9a8f80,.9);if(u.op)S.stats.downs++;if(u.rig)u.rig.setBase('Death');else tween(300,k=>{u.lie.rotation.x=-Math.PI/2*k;u.lie.position.y=.08*k});u.ringMesh.visible=false;if(by&&((by.team==='p'&&u.team==='e')||(by.team==='e'&&u.team==='p')))by.kills=(by.kills||0)+1;rivalDowned(u,by);allyDowned(u);
+  if(u.hp<=0&&!u.down){u.down=true;u.ow=false;puff(u.group.position.clone(),4,0x9a8f80,.9);if(u.op)S.stats.downs++;if(u.rig)u.rig.setBase('Death');else tween(300,k=>{u.lie.rotation.x=-Math.PI/2*k;u.lie.position.y=.08*k});u.ringMesh.visible=false;if(by&&((by.team==='p'&&u.team==='e')||(by.team==='e'&&u.team==='p')))by.kills=(by.kills||0)+1;rivalDowned(u,by);allyDowned(u);if(u.cls==='civ'&&by&&by.team==='p'&&civFaction()===CUR.faction){S.stats.civ=(S.stats.civ||0)+1;log(`${u.name} was one of ours.`)}
     if(u.carry)dropCarry(u);if(u.cls==='turret'){u.gone=true;u.group.visible=false;u.el.remove()}log(u.team==='p'?`${u.name} is down!`:`${u.name} down`)}
   else{if(u.rig)u.rig.once('HitReact',1/SPD);if(by)log(`${by.team==='p'?by.name:'Enemy'} hits for ${n}`)}}
 async function doObjective(u){const o=curObj(),t=objTargetsNear(u)[0];if(!t)return;if(M.defend){clearUndo();S.busy=true;await face(u,t.x,t.z);const k=key(t.x,t.z),sub=DEF_FAST[o.type]===u.cls?2:1;S.prog[k]=Math.max(0,(S.prog[k]||0)-sub);u.acted=true;S.credit[u.op.id]=(S.credit[u.op.id]||0)+1;popup(u,S.prog[k]?`${S.prog[k]}/${o.need}`:'Undone','good');log(S.prog[k]?`${u.name} sets them back (${S.prog[k]}/${o.need}).`:`${u.name} undoes all their progress.`);S.busy=false;afterOrder();return}if(o.type==='escort'){clearUndo();S.busy=true;await face(u,t.x,t.z);S.prog.bot=(S.prog.bot||0)+(u.cls==='engineer'?2:1);u.acted=true;S.credit[u.op.id]=(S.credit[u.op.id]||0)+1;if(S.prog.bot>=2){const b=S.bot;b.down=false;b.hp=Math.round(b.maxHp*.5);S.prog.bot=0;b.ringMesh.visible=true;updBar(b);popup(b,'Repaired','good');log('The bot is running again.')}else popup(u,'1/2','good');S.busy=false;afterOrder();return}clearUndo();S.busy=true;await face(u,t.x,t.z);const add=(OBJ_FAST[o.type]===u.cls?2:1)+(o.type==='plant'&&u.perks.has('demo')?1:0),k=key(t.x,t.z);S.prog[k]=Math.min(o.need,(S.prog[k]||0)+add);u.acted=true;
@@ -2577,7 +2596,7 @@ async function doAbility(u,id,t){clearUndo();S.busy=true;S.mode=null;hl.clear();
     alarm();await sleep(420)}
   if(id==='suppress'){const e=unitAt(t.x,t.z);if(e){await tracer(u,e,true,0xffd27a);await tracer(u,e,true,0xffd27a);damage(e,10,u);e.stun=1;e.ow=false;updBar(e);popup(e,'Pinned','good')}alarm()}
   if(id==='resupply'){sfx('reload',u.group.position);const p=unitAt(t.x,t.z);if(p){p.cd={};popup(p,'Resupplied','good');refresh()}}
-  if(id==='patch'){const p=squad().find(q=>q.x===t.x&&q.z===t.z);if(p){if(p.down){const sg=u.perks.has('surgeon');p.down=false;p.hp=sg?70:40;p.moved=false;p.acted=!sg;p.downTurns=0;p.redeploy=false;p.ringMesh.visible=true;if(p.rig){p.rig.setBase('Idle');await sleep(450)}else await tween(280,k=>{p.lie.rotation.x=-Math.PI/2*(1-k);p.lie.position.y=.08*(1-k)});log(`${p.name} is back up. They can move but not act this turn.`)}else p.hp=Math.min(p.maxHp,p.hp+40);popup(p,'+40','good');updBar(p)}}
+  if(id==='patch'){const p=units.find(q=>q.team==='p'&&!q.gone&&(q.op||q.ally)&&q.x===t.x&&q.z===t.z);if(p){if(p.down){const sg=u.perks.has('surgeon');p.down=false;p.hp=sg?70:40;p.moved=false;p.acted=!sg;p.downTurns=0;p.redeploy=false;p.ringMesh.visible=true;if(p.rig){p.rig.setBase('Idle');await sleep(450)}else await tween(280,k=>{p.lie.rotation.x=-Math.PI/2*(1-k);p.lie.position.y=.08*(1-k)});log(`${p.name} is back up. They can move but not act this turn.`)}else p.hp=Math.min(p.maxHp,p.hp+40);popup(p,'+40','good');updBar(p)}}
   if(id==='adrenaline'){const p=squad().find(q=>q.x===t.x&&q.z===t.z);if(p){p.moved=false;popup(p,'Adrenaline','good');log(`${p.name} can move again`)}}
   if(id==='surgery'){for(const p of squad())if(!p.down&&dist(p,u)<=2){p.hp=Math.min(p.maxHp,p.hp+25);popup(p,'+25','good');updBar(p)}}
   if(id==='dismantle'){const o=unitAt(t.x,t.z);sfx('build',W(t.x,t.z));if(o&&o.cls==='turret'&&o.team===u.team){o.gone=true;o.group.visible=false;if(o.el)o.el.remove();log(`${u.name} dismantles the ${o.name.toLowerCase()}.`)}else if(t.obj==='wall'){t.obj=null;t.fort=false;t.built=null;if(t.objMesh){tileGroup.remove(t.objMesh);t.objMesh=null}log(`${u.name} dismantles the barricade.`)}computeVis();refresh()}
@@ -2659,20 +2678,20 @@ function checkEnd(){if(S.over)return true;if(S.prisoner&&S.prisoner.down&&(S.pri
 function endMission(won,why){if(S.over)return;S.over=true;S.phase='over';applyFog();refresh();
   const f=CUR.faction,m=M,res=[];let recruit=null;
   for(const u of squad()){const op=SAVE.roster[f].find(o=>o.id===u.op.id);if(!op)continue;const before=lvlOf(op.xp);
-    let xp=won?m.xp:25;xp+=u.kills*15+(S.credit[op.id]||0)*25;if(won&&S.info.cps.length&&S.info.cps.every(t=>t.owner==='p'))xp+=20;
+    let xp=won?m.xp:25;xp+=u.kills*15+(S.credit[op.id]||0)*25;if(won&&S.info.cps.length&&S.info.cps.every(t=>t.owner==='p'))xp+=20;xp=Math.max(0,xp-(S.stats.civ||0)*5);
     op.xp+=xp;const after=lvlOf(op.xp);if(won&&u.down)op.injured=2;res.push({op,xp,before,after,kills:u.kills,down:u.down})}
   for(const op of SAVE.roster[f])if(op.injured>0)op.injured--;
   if(won&&CUR.mi<0&&CUR.op){const oi=CAMPAIGN[f].indexOf(CUR.op);if(oi>=0&&oi>=(SAVE.opProg[f]||0))SAVE.opProg[f]=oi+1}
   if(won&&CUR.mi>=0){if(CUR.mi>=SAVE.prog[f]){SAVE.prog[f]=CUR.mi+1;if(m.recruit&&RECRUITS[m.recruit]){recruit=RECRUITS[m.recruit];SAVE.roster[f].push(mkOp(recruit))}}}
   const par=PAR[m.id]||8,third=m.defend?S.stage===0:S.turn<=par,stars=won?1+(S.stats.downs===0?1:0)+(third?1:0):0;if(won)SAVE.stars[m.id]=Math.max(SAVE.stars[m.id]||0,stars);
-  const summary={stars,par,third,defend:!!m.defend,turns:S.turn,downs:S.stats.downs,acc:S.stats.shots?Math.round(S.stats.hits/S.stats.shots*100):null,kills:res.reduce((a,r)=>a+r.kills,0)};
+  const summary={stars,par,third,defend:!!m.defend,turns:S.turn,downs:S.stats.downs,acc:S.stats.shots?Math.round(S.stats.hits/S.stats.shots*100):null,kills:res.reduce((a,r)=>a+r.kills,0),civ:S.stats.civ||0};
   summary.rivals=rivalsEnd(won);persist();sfx(won?'win':'lose');
   setTimeout(()=>viewDebrief(won,why,res,recruit,summary),1300);banner(won?'Mission complete':'Mission failed',won?'':'enemy')}
 function viewDebrief(won,why,res,recruit,sm){const f=CUR.faction,m=M;
   $('#v-debrief').innerHTML=`<h2 class="vh"><small>${m.title}</small>${won?'Mission complete':'Mission failed'}</h2>
   <div class="debrief-say">${speakerFig(m,f,'debrief-art')}<div class="story"><p>${won?(typeof m.debrief==='string'?m.debrief:m.debrief[f]):why+' Regroup and try again: everyone still keeps some of the experience they earned.'}</p></div></div>
   ${won?`<div class="stars"><b>${starStr(sm.stars)}</b><ul><li class="ok">Mission complete</li><li class="${sm.downs===0?'ok':''}">Nobody went down${sm.downs?` (${sm.downs} did)`:''}</li><li class="${sm.third?'ok':''}">${sm.defend?'The first line never fell':`Done within ${sm.par} turns (you took ${sm.turns})`}</li></ul></div>`:''}
-  ${rivalsDebrief(sm)}<p class="small">${sm.kills} enemies downed${sm.acc!==null?`, ${sm.acc}% of attacks landed`:''}.</p>
+  ${rivalsDebrief(sm)}${sm.civ?`<p class="small">${sm.civ} of your own people hit by your fire: −${sm.civ*5} XP each.</p>`:''}<p class="small">${sm.kills} enemies downed${sm.acc!==null?`, ${sm.acc}% of attacks landed`:''}.</p>
   <div class="dlist">${res.map(r=>{const l=r.after,nx=LEVELS[l]||null,pr=nx?Math.round((r.op.xp-LEVELS[l-1])/(nx-LEVELS[l-1])*100):100;const unl=[];for(let L=r.before+1;L<=r.after;L++){CLASS_AB[r.op.cls].forEach((a,i)=>{if(AB_LVL[i]===L)unl.push(AB[a].name)});if(L===3)unl.push('+1 move')}
     return `<div class="dcard"><div class="pf">${opPortrait(r.op)}</div><div class="oc"><b>${esc(r.op.name)} <i>Lv ${l}</i></b><span>+${r.xp} XP${r.kills?`, ${r.kills} kill${r.kills>1?'s':''}`:''}${r.down&&won?', injured':''}</span><div class="xp"><s style="width:${pr}%"></s></div>${r.after>r.before?`<p class="lvup">Level up!${unl.length?' Unlocked '+unl.join(', ')+'.':''} New perk to choose in the Roster.</p>`:''}</div></div>`}).join('')}</div>
   ${recruit?`<div class="recruit"><div class="pf">${portraitHTML(recruit)}</div><div><b>New recruit: ${esc(recruit.name)}</b><span>${BODY[recruit.body].label} ${recruit.cls} “${esc(recruit.callsign)}”</span></div></div>`:''}

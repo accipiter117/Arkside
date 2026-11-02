@@ -371,7 +371,7 @@ const foes=()=>living('e').filter(u=>u.cls!=='turret');
 const unitAt=(x,z,ign)=>units.find(u=>u!==ign&&!u.gone&&u.x===x&&u.z===z&&!(u.down&&u.team==='e'));
 // What stops a unit (or the escort bot) entering a tile: anything standing
 // there except its own side's turrets and MG nests, which it passes through.
-const moveBlocker=(x,z,u)=>{const o=unitAt(x,z,u);return o&&!(o.cls==='turret'&&o.team===u.team)?o:null};
+const moveBlocker=(x,z,u)=>{const o=unitAt(x,z,u);return o&&!(o.cls==='turret'&&o.team===u.team)&&o.cls!=='civ'?o:null};
 // Path tiles the escort bot still has to cross: the rest of this stage's
 // route, or all of a later stage's. Nothing may be built on them.
 function botRoute(){const out=new Set();if(!M)return out;const stages=M.stages?M.stages.map(st=>st.objectives||[]):[M.objectives||[]],from=M.stages?S.stage:0;
@@ -392,9 +392,9 @@ function stepCost(u,a,b){return moveCost(u,a,b)}// movement rules live in mechan
 function reach(u,limit){const lim=limit??u.move,d=new Map([[key(u.x,u.z),0]]),prev=new Map(),climb=new Set(),kind=new Map(),thru=new Set(),open=[[u.x,u.z]];
   while(open.length){let bi=0;for(let i=1;i<open.length;i++)if(d.get(key(open[i][0],open[i][1]))<d.get(key(open[bi][0],open[bi][1])))bi=i;
     const[x,z]=open.splice(bi,1)[0],dd=d.get(key(x,z)),a=G[z][x];
-    for(const[dx,dz]of D4){const nx=x+dx,nz=z+dz,b=tileAt(nx,nz);if(!b)continue;const k=key(nx,nz);const bl=unitAt(nx,nz,u);if(bl&&!(bl.cls==='turret'&&bl.team===u.team))continue;if(bl)thru.add(k);const c=stepCost(u,a,b);if(!c)continue;const nd=dd+c;if(nd>lim)continue;
+    for(const[dx,dz]of D4){const nx=x+dx,nz=z+dz,b=tileAt(nx,nz);if(!b)continue;const k=key(nx,nz);const bl=unitAt(nx,nz,u);if(bl&&!(bl.cls==='turret'&&bl.team===u.team)&&bl.cls!=='civ')continue;if(bl)thru.add(k);const c=stepCost(u,a,b);if(!c)continue;const nd=dd+c;if(nd>lim)continue;
       if(d.has(k)&&d.get(k)<=nd)continue;d.set(k,nd);prev.set(k,key(x,z));kind.delete(k);if(b.h-a.h>.5)climb.add(k);else climb.delete(k);if(!open.some(o=>o[0]===nx&&o[1]===nz))open.push([nx,nz])}
-    for(const[nx,nz,c,kd]of moveLinks(u,x,z)){const k=key(nx,nz);const bl=unitAt(nx,nz,u);if(bl&&!(bl.cls==='turret'&&bl.team===u.team))continue;if(bl)thru.add(k);const nd=dd+c;if(nd>lim)continue;if(d.has(k)&&d.get(k)<=nd)continue;d.set(k,nd);prev.set(k,key(x,z));kind.set(k,kd);climb.delete(k);if(!open.some(o=>o[0]===nx&&o[1]===nz))open.push([nx,nz])}}
+    for(const[nx,nz,c,kd]of moveLinks(u,x,z)){const k=key(nx,nz);const bl=unitAt(nx,nz,u);if(bl&&!(bl.cls==='turret'&&bl.team===u.team)&&bl.cls!=='civ')continue;if(bl)thru.add(k);const nd=dd+c;if(nd>lim)continue;if(d.has(k)&&d.get(k)<=nd)continue;d.set(k,nd);prev.set(k,key(x,z));kind.set(k,kd);climb.delete(k);if(!open.some(o=>o[0]===nx&&o[1]===nz))open.push([nx,nz])}}
   for(const k of thru)d.delete(k);// can pass through, can't stop there
   return{d,prev,climb,kind}}
 function pathTo(r,x,z){const out=[];let k=key(x,z);while(r.prev.has(k)){out.unshift(k.split(',').map(Number));k=r.prev.get(k)}return out}
@@ -683,7 +683,7 @@ function spawnEnemy(type,x,z,R){const T=ETYPES[type],ef=ENEMY_OF[CUR.faction],B=
 function startMission(m,ops){
   if(!initRenderer()){$('#hud').innerHTML='<div class="fail">This game needs WebGL and the 3D engine, which couldn’t load here. Check your connection and reload.</div>';return}
   M=m;units=[];$('#hud').innerHTML='';
-  S={undo:null,undoStack:[],aim:null,sheet:null,logHist:[],reacted:false,phase:'player',sel:null,mode:null,turn:1,objIdx:0,prog:{},carrier:null,hold:0,vis:new Set(),explored:new Set(),alerted:!!m.alerted,reveals:[],credit:{},busy:false,reach:null,over:false,item:null,stats:{shots:0,hits:0,downs:0}};
+  S={undo:null,undoStack:[],aim:null,sheet:null,logHist:[],reacted:false,phase:'player',sel:null,mode:null,turn:1,objIdx:0,prog:{},carrier:null,hold:0,vis:new Set(),explored:new Set(),alerted:!!m.alerted,reveals:[],credit:{},busy:false,reach:null,over:false,item:null,stats:{shots:0,hits:0,downs:0,civ:0}};
   if(m.stages){m.objectives=m.stages.flatMap((st,i)=>st.objectives.map(o=>({...o,stage:i})));m.enemies=m.stages[0].enemies;m.reinf=m.stages[0].reinf}
   S.stage=0;S.stageTurn=1;S.turnsLeft=m.turns||null;S.poolIdx=0;if(m.defend){m.enemies=[];m.reinf=[];S.alerted=true}S.sec=(m.secondaries||[]).map(sc=>({...sc,done:false}));S.bot=null;
   const info=parseMap(m);mechInit(m);S.info=info;S.item=info.item;S.civInfo=info;
@@ -878,7 +878,7 @@ function refresh(){
   $('#undoBtn').hidden=!(S.undo&&S.phase==='player'&&!S.busy);const o=curObj();$('#obj').textContent=o?objLabel(o,S):'';$('#objStage').textContent=(M.stages?`Stage ${S.stage+1} of ${M.stages.length} · `:'')+(S.turnsLeft!=null?'turns left':'turn');$('#turn').textContent=S.turnsLeft!=null?S.turnsLeft:S.turn}
 function abilityTargets(u,id){const A=AB[id],out=[];
   if(A.tgt==='tile')for(const row of G)for(const t of row){if(t.type!=='water'&&dist(u,t)<=A.range&&!(t.x===u.x&&t.z===u.z))out.push(t)}
-  if(A.tgt==='ally')for(const p of living('p').concat(squad().filter(q=>q.down))){if(p.cls==='turret')continue;if(id==='adrenaline'&&(p===u||!p.moved||p.down))continue;
+  if(A.tgt==='ally')for(const p of living('p').concat(units.filter(q=>q.team==='p'&&q.down&&!q.gone&&(q.op||q.ally)))){if(p.cls==='turret')continue;if(id==='adrenaline'&&(p===u||!p.moved||p.down))continue;
     if(id==='patch'&&!(p.down||p.hp<p.maxHp))continue;if(id==='resupply'&&p===u)continue;if((A.range===1?cheb(u,p)<=1:dist(u,p)<=A.range))out.push(G[p.z][p.x])}
   if(A.tgt==='enemy')for(const e of living('e'))if(e.seen&&hitChance(u,e)>0)out.push(G[e.z][e.x]);
   if(A.tgt==='build'){const r=botRoute();for(const[dx,dz]of D4){const t=tileAt(u.x+dx,u.z+dz);if(t&&t.type!=='water'&&!t.obj&&!t.cp&&!unitAt(t.x,t.z)&&!r.has(key(t.x,t.z)))out.push(t)}}
@@ -968,7 +968,7 @@ async function shoot(a,b,mod=0){if(a.team==='p'||a.seen||b.team==='p'){const pa=
   if(n>1)setTimeout(()=>sfx('shell',a.group.position),300);if(hits){if(fl)dmg*=1.2;damage(b,Math.round(dmg),a,fl)}else{civStray(a,b);popup(b,'Miss','miss');sfx('miss',b.group.position);log(`${a.team==='p'?a.name:b.team==='p'?'Enemy':''} missed`)}rivalAfterShot(a);await sleep(320)}
 function damage(u,n,by,fl){if(u.cls==='bot')n=Math.round(n*.5);if(u.trait==='fireproof'&&S.dmgKind==='blast')n=Math.round(n/2);/* rivals */if(u.perks&&u.perks.has('jugg'))n=Math.round(n*.85);if(by&&by.perks&&by.perks.has('marksman')&&by.wkey==='sniper'&&G[by.z][by.x].h>G[u.z][u.x].h)n+=10;let left=n;if(u.shield>0){const s=Math.min(u.shield,left);u.shield-=s;left-=s}sfx('hit',u.group&&u.group.position);if(u.team==='p'&&navigator.vibrate)try{navigator.vibrate(35)}catch(e){}flashUnit(u,0xff2a1a);if(n>=35)shake(.12);u.hp=Math.max(0,u.hp-left);popup(u,'−'+n+(fl?' flanked':''),u.team==='p'?'hurt':'');updBar(u);
   if(u.hp<=0&&!u.down&&u.cls==='bot'){u.down=true;puff(u.group.position.clone(),8,0x3a3430,2);if(M.defend){log('Bot disabled! They will try to repair it.');banner('Bot down')}else{log('The bot is disabled! Repair it to keep going.');banner('Bot disabled','enemy')}updBar(u);return}
-  if(u.hp<=0&&!u.down){u.down=true;u.ow=false;puff(u.group.position.clone(),4,0x9a8f80,.9);if(u.op)S.stats.downs++;if(u.rig)u.rig.setBase('Death');else tween(300,k=>{u.lie.rotation.x=-Math.PI/2*k;u.lie.position.y=.08*k});u.ringMesh.visible=false;if(by&&((by.team==='p'&&u.team==='e')||(by.team==='e'&&u.team==='p')))by.kills=(by.kills||0)+1;rivalDowned(u,by);allyDowned(u);
+  if(u.hp<=0&&!u.down){u.down=true;u.ow=false;puff(u.group.position.clone(),4,0x9a8f80,.9);if(u.op)S.stats.downs++;if(u.rig)u.rig.setBase('Death');else tween(300,k=>{u.lie.rotation.x=-Math.PI/2*k;u.lie.position.y=.08*k});u.ringMesh.visible=false;if(by&&((by.team==='p'&&u.team==='e')||(by.team==='e'&&u.team==='p')))by.kills=(by.kills||0)+1;rivalDowned(u,by);allyDowned(u);if(u.cls==='civ'&&by&&by.team==='p'&&civFaction()===CUR.faction){S.stats.civ=(S.stats.civ||0)+1;log(`${u.name} was one of ours.`)}
     if(u.carry)dropCarry(u);if(u.cls==='turret'){u.gone=true;u.group.visible=false;u.el.remove()}log(u.team==='p'?`${u.name} is down!`:`${u.name} down`)}
   else{if(u.rig)u.rig.once('HitReact',1/SPD);if(by)log(`${by.team==='p'?by.name:'Enemy'} hits for ${n}`)}}
 async function doObjective(u){const o=curObj(),t=objTargetsNear(u)[0];if(!t)return;if(M.defend){clearUndo();S.busy=true;await face(u,t.x,t.z);const k=key(t.x,t.z),sub=DEF_FAST[o.type]===u.cls?2:1;S.prog[k]=Math.max(0,(S.prog[k]||0)-sub);u.acted=true;S.credit[u.op.id]=(S.credit[u.op.id]||0)+1;popup(u,S.prog[k]?`${S.prog[k]}/${o.need}`:'Undone','good');log(S.prog[k]?`${u.name} sets them back (${S.prog[k]}/${o.need}).`:`${u.name} undoes all their progress.`);S.busy=false;afterOrder();return}if(o.type==='escort'){clearUndo();S.busy=true;await face(u,t.x,t.z);S.prog.bot=(S.prog.bot||0)+(u.cls==='engineer'?2:1);u.acted=true;S.credit[u.op.id]=(S.credit[u.op.id]||0)+1;if(S.prog.bot>=2){const b=S.bot;b.down=false;b.hp=Math.round(b.maxHp*.5);S.prog.bot=0;b.ringMesh.visible=true;updBar(b);popup(b,'Repaired','good');log('The bot is running again.')}else popup(u,'1/2','good');S.busy=false;afterOrder();return}clearUndo();S.busy=true;await face(u,t.x,t.z);const add=(OBJ_FAST[o.type]===u.cls?2:1)+(o.type==='plant'&&u.perks.has('demo')?1:0),k=key(t.x,t.z);S.prog[k]=Math.min(o.need,(S.prog[k]||0)+add);u.acted=true;
@@ -992,7 +992,7 @@ async function doAbility(u,id,t){clearUndo();S.busy=true;S.mode=null;hl.clear();
     alarm();await sleep(420)}
   if(id==='suppress'){const e=unitAt(t.x,t.z);if(e){await tracer(u,e,true,0xffd27a);await tracer(u,e,true,0xffd27a);damage(e,10,u);e.stun=1;e.ow=false;updBar(e);popup(e,'Pinned','good')}alarm()}
   if(id==='resupply'){sfx('reload',u.group.position);const p=unitAt(t.x,t.z);if(p){p.cd={};popup(p,'Resupplied','good');refresh()}}
-  if(id==='patch'){const p=squad().find(q=>q.x===t.x&&q.z===t.z);if(p){if(p.down){const sg=u.perks.has('surgeon');p.down=false;p.hp=sg?70:40;p.moved=false;p.acted=!sg;p.downTurns=0;p.redeploy=false;p.ringMesh.visible=true;if(p.rig){p.rig.setBase('Idle');await sleep(450)}else await tween(280,k=>{p.lie.rotation.x=-Math.PI/2*(1-k);p.lie.position.y=.08*(1-k)});log(`${p.name} is back up. They can move but not act this turn.`)}else p.hp=Math.min(p.maxHp,p.hp+40);popup(p,'+40','good');updBar(p)}}
+  if(id==='patch'){const p=units.find(q=>q.team==='p'&&!q.gone&&(q.op||q.ally)&&q.x===t.x&&q.z===t.z);if(p){if(p.down){const sg=u.perks.has('surgeon');p.down=false;p.hp=sg?70:40;p.moved=false;p.acted=!sg;p.downTurns=0;p.redeploy=false;p.ringMesh.visible=true;if(p.rig){p.rig.setBase('Idle');await sleep(450)}else await tween(280,k=>{p.lie.rotation.x=-Math.PI/2*(1-k);p.lie.position.y=.08*(1-k)});log(`${p.name} is back up. They can move but not act this turn.`)}else p.hp=Math.min(p.maxHp,p.hp+40);popup(p,'+40','good');updBar(p)}}
   if(id==='adrenaline'){const p=squad().find(q=>q.x===t.x&&q.z===t.z);if(p){p.moved=false;popup(p,'Adrenaline','good');log(`${p.name} can move again`)}}
   if(id==='surgery'){for(const p of squad())if(!p.down&&dist(p,u)<=2){p.hp=Math.min(p.maxHp,p.hp+25);popup(p,'+25','good');updBar(p)}}
   if(id==='dismantle'){const o=unitAt(t.x,t.z);sfx('build',W(t.x,t.z));if(o&&o.cls==='turret'&&o.team===u.team){o.gone=true;o.group.visible=false;if(o.el)o.el.remove();log(`${u.name} dismantles the ${o.name.toLowerCase()}.`)}else if(t.obj==='wall'){t.obj=null;t.fort=false;t.built=null;if(t.objMesh){tileGroup.remove(t.objMesh);t.objMesh=null}log(`${u.name} dismantles the barricade.`)}computeVis();refresh()}
@@ -1074,20 +1074,20 @@ function checkEnd(){if(S.over)return true;if(S.prisoner&&S.prisoner.down&&(S.pri
 function endMission(won,why){if(S.over)return;S.over=true;S.phase='over';applyFog();refresh();
   const f=CUR.faction,m=M,res=[];let recruit=null;
   for(const u of squad()){const op=SAVE.roster[f].find(o=>o.id===u.op.id);if(!op)continue;const before=lvlOf(op.xp);
-    let xp=won?m.xp:25;xp+=u.kills*15+(S.credit[op.id]||0)*25;if(won&&S.info.cps.length&&S.info.cps.every(t=>t.owner==='p'))xp+=20;
+    let xp=won?m.xp:25;xp+=u.kills*15+(S.credit[op.id]||0)*25;if(won&&S.info.cps.length&&S.info.cps.every(t=>t.owner==='p'))xp+=20;xp=Math.max(0,xp-(S.stats.civ||0)*5);
     op.xp+=xp;const after=lvlOf(op.xp);if(won&&u.down)op.injured=2;res.push({op,xp,before,after,kills:u.kills,down:u.down})}
   for(const op of SAVE.roster[f])if(op.injured>0)op.injured--;
   if(won&&CUR.mi<0&&CUR.op){const oi=CAMPAIGN[f].indexOf(CUR.op);if(oi>=0&&oi>=(SAVE.opProg[f]||0))SAVE.opProg[f]=oi+1}
   if(won&&CUR.mi>=0){if(CUR.mi>=SAVE.prog[f]){SAVE.prog[f]=CUR.mi+1;if(m.recruit&&RECRUITS[m.recruit]){recruit=RECRUITS[m.recruit];SAVE.roster[f].push(mkOp(recruit))}}}
   const par=PAR[m.id]||8,third=m.defend?S.stage===0:S.turn<=par,stars=won?1+(S.stats.downs===0?1:0)+(third?1:0):0;if(won)SAVE.stars[m.id]=Math.max(SAVE.stars[m.id]||0,stars);
-  const summary={stars,par,third,defend:!!m.defend,turns:S.turn,downs:S.stats.downs,acc:S.stats.shots?Math.round(S.stats.hits/S.stats.shots*100):null,kills:res.reduce((a,r)=>a+r.kills,0)};
+  const summary={stars,par,third,defend:!!m.defend,turns:S.turn,downs:S.stats.downs,acc:S.stats.shots?Math.round(S.stats.hits/S.stats.shots*100):null,kills:res.reduce((a,r)=>a+r.kills,0),civ:S.stats.civ||0};
   summary.rivals=rivalsEnd(won);persist();sfx(won?'win':'lose');
   setTimeout(()=>viewDebrief(won,why,res,recruit,summary),1300);banner(won?'Mission complete':'Mission failed',won?'':'enemy')}
 function viewDebrief(won,why,res,recruit,sm){const f=CUR.faction,m=M;
   $('#v-debrief').innerHTML=`<h2 class="vh"><small>${m.title}</small>${won?'Mission complete':'Mission failed'}</h2>
   <div class="debrief-say">${speakerFig(m,f,'debrief-art')}<div class="story"><p>${won?(typeof m.debrief==='string'?m.debrief:m.debrief[f]):why+' Regroup and try again: everyone still keeps some of the experience they earned.'}</p></div></div>
   ${won?`<div class="stars"><b>${starStr(sm.stars)}</b><ul><li class="ok">Mission complete</li><li class="${sm.downs===0?'ok':''}">Nobody went down${sm.downs?` (${sm.downs} did)`:''}</li><li class="${sm.third?'ok':''}">${sm.defend?'The first line never fell':`Done within ${sm.par} turns (you took ${sm.turns})`}</li></ul></div>`:''}
-  ${rivalsDebrief(sm)}<p class="small">${sm.kills} enemies downed${sm.acc!==null?`, ${sm.acc}% of attacks landed`:''}.</p>
+  ${rivalsDebrief(sm)}${sm.civ?`<p class="small">${sm.civ} of your own people hit by your fire: −${sm.civ*5} XP each.</p>`:''}<p class="small">${sm.kills} enemies downed${sm.acc!==null?`, ${sm.acc}% of attacks landed`:''}.</p>
   <div class="dlist">${res.map(r=>{const l=r.after,nx=LEVELS[l]||null,pr=nx?Math.round((r.op.xp-LEVELS[l-1])/(nx-LEVELS[l-1])*100):100;const unl=[];for(let L=r.before+1;L<=r.after;L++){CLASS_AB[r.op.cls].forEach((a,i)=>{if(AB_LVL[i]===L)unl.push(AB[a].name)});if(L===3)unl.push('+1 move')}
     return `<div class="dcard"><div class="pf">${opPortrait(r.op)}</div><div class="oc"><b>${esc(r.op.name)} <i>Lv ${l}</i></b><span>+${r.xp} XP${r.kills?`, ${r.kills} kill${r.kills>1?'s':''}`:''}${r.down&&won?', injured':''}</span><div class="xp"><s style="width:${pr}%"></s></div>${r.after>r.before?`<p class="lvup">Level up!${unl.length?' Unlocked '+unl.join(', ')+'.':''} New perk to choose in the Roster.</p>`:''}</div></div>`}).join('')}</div>
   ${recruit?`<div class="recruit"><div class="pf">${portraitHTML(recruit)}</div><div><b>New recruit: ${esc(recruit.name)}</b><span>${BODY[recruit.body].label} ${recruit.cls} “${esc(recruit.callsign)}”</span></div></div>`:''}
