@@ -418,6 +418,7 @@ body[data-faction="security"] .tape{display:none}
 .olist .od{display:block}.olist .od::first-letter{text-transform:uppercase}
 #miniWrap{max-width:calc(100% - 130px)}#miniWrap small{text-align:center}
 #mini{max-height:calc(100vh - 260px);width:auto!important;height:auto!important;max-width:100%}
+.ub.civ{display:none!important}
 </style>
 </head>
 <body data-view="title" data-faction="resistance">
@@ -1067,6 +1068,396 @@ function crtDismiss(btn,op){const f=CUR.faction;
   if(!btn.dataset.armed){btn.dataset.armed='1';btn.textContent='Tap again to dismiss';btn.classList.add('warn');setTimeout(()=>{if(btn.isConnected){delete btn.dataset.armed;btn.textContent='Dismiss';btn.classList.remove('warn')}},3000);return}
   SAVE.roster[f]=SAVE.roster[f].filter(o=>o.id!==op.id);if(typeof PICK!=='undefined')PICK=PICK.filter(id=>id!==op.id);persist();toast(`${op.name} has left the ${FACTIONS[f].label}`);viewRoster()}
 
+/* ===================== WORLD: the Ark around each map (overhaul stage C) =====================
+   Turns each map from a board in a void into a slice of the Ark: a deck
+   apron on stilts round the board, neighbouring stacks and shacks dropping
+   into the sea, moored boats, rope bridges, spray at the stilts, light fog
+   and the white Ark skyline with its needle tower. Each district theme
+   (container, founders, industrial) gets its own prop kit, scattered by a
+   seeded generator on the apron so props never block a tile.
+   Static props are merged into one mesh per material (worldBake), so a
+   whole kit costs a few draw calls. Low graphics thins the props, drops the
+   distant detail and the dusk point lights. Called from buildScene. */
+
+// ---------- merging ----------
+function worldMerge(parts){let nv=0,ni=0;for(const{g}of parts){nv+=g.attributes.position.count;ni+=g.index?g.index.count:g.attributes.position.count}
+  const pos=new Float32Array(nv*3),nor=new Float32Array(nv*3),uv=new Float32Array(nv*2),idx=nv>65535?new Uint32Array(ni):new Uint16Array(ni);let vo=0,io=0;const v=new THREE.Vector3(),nm=new THREE.Matrix3();
+  for(const{g,m}of parts){const p=g.attributes.position,n=g.attributes.normal,u=g.attributes.uv;nm.getNormalMatrix(m);
+    for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i).applyMatrix4(m);pos[(vo+i)*3]=v.x;pos[(vo+i)*3+1]=v.y;pos[(vo+i)*3+2]=v.z;
+      if(n){v.fromBufferAttribute(n,i).applyMatrix3(nm).normalize();nor[(vo+i)*3]=v.x;nor[(vo+i)*3+1]=v.y;nor[(vo+i)*3+2]=v.z}if(u){uv[(vo+i)*2]=u.getX(i);uv[(vo+i)*2+1]=u.getY(i)}}
+    const cnt=g.index?g.index.count:p.count;if(g.index)for(let i=0;i<cnt;i++)idx[io+i]=g.index.getX(i)+vo;else for(let i=0;i<cnt;i++)idx[io+i]=i+vo;
+    if(m.determinant()<0)for(let i=io;i<io+cnt;i+=3){const t=idx[i+1];idx[i+1]=idx[i+2];idx[i+2]=t}vo+=p.count;io+=cnt}
+  const out=new THREE.BufferGeometry();out.setAttribute('position',new THREE.BufferAttribute(pos,3));out.setAttribute('normal',new THREE.BufferAttribute(nor,3));out.setAttribute('uv',new THREE.BufferAttribute(uv,2));out.setIndex(new THREE.BufferAttribute(idx,1));out.computeBoundingSphere();return out}
+// Merge every static mesh in a group into one mesh per material and add
+// them to the scene. Meshes marked userData.live (animated) stay as they are.
+function worldBake(grp,shadow=true){grp.updateMatrixWorld(true);const by=new Map(),live=[];
+  grp.traverse(o=>{if(!o.isMesh)return;if(o.userData.live){live.push(o);return}const mt=o.material;if(!by.has(mt))by.set(mt,[]);by.get(mt).push({g:o.geometry,m:o.matrixWorld.clone()})});
+  for(const[mt,parts]of by){const m=new THREE.Mesh(worldMerge(parts),mt);m.castShadow=shadow&&HI();m.receiveShadow=true;scene.add(m)}
+  for(const o of live){const p=new THREE.Vector3(),q=new THREE.Quaternion(),s=new THREE.Vector3();o.matrixWorld.decompose(p,q,s);o.position.copy(p);o.quaternion.copy(q);o.scale.copy(s);scene.add(o)}}
+
+// ---------- textures (procedural, ours) ----------
+let WTX=null;
+function worldTex(){if(WTX)return WTX;const R=rng(911);WTX={};
+  const noise=(g,s,n,a,cols)=>{for(let i=0;i<n;i++){g.fillStyle=cols[i%cols.length];g.globalAlpha=R()*a;g.fillRect(R()*s,R()*s,1+R()*3,1+R()*3)}g.globalAlpha=1};
+  WTX.rust=cvTex((g,s)=>{g.fillStyle='#7a5e4c';g.fillRect(0,0,s,s);noise(g,s,700,.5,['#8f6b52','#4a382c','#a0583a','#5e4a3c']);g.strokeStyle='#3a2c22';g.lineWidth=3;g.strokeRect(1,1,s-2,s-2);
+    g.fillStyle='#2b211a';for(const[x,y]of[[8,8],[s-8,8],[8,s-8],[s-8,s-8]]){g.beginPath();g.arc(x,y,3,0,7);g.fill()}g.strokeStyle='rgba(0,0,0,.2)';g.lineWidth=1.5;for(let y=10;y<s;y+=14)for(let x=(y/14)%2?6:12;x<s;x+=14){g.beginPath();g.moveTo(x,y);g.lineTo(x+5,y-4);g.stroke()}});
+  WTX.planks=cvTex((g,s)=>{for(let i=0;i<6;i++){g.fillStyle=['#8b6a48','#7a5c3e','#94734f'][i%3];g.fillRect(0,i*s/6,s,s/6-2);g.fillStyle='#3d2c1e';g.fillRect(0,i*s/6+s/6-2,s,2)}noise(g,s,500,.35,['#5a4330','#a88560']);g.fillStyle='#2a1d14';for(let i=0;i<6;i++){g.fillRect(6,i*s/6+6,3,3);g.fillRect(s-9,i*s/6+6,3,3)}});
+  WTX.conc=cvTex((g,s)=>{g.fillStyle='#8f8a82';g.fillRect(0,0,s,s);noise(g,s,900,.4,['#77736c','#a6a199','#6b5a4a']);g.strokeStyle='#6c6862';g.lineWidth=2;g.strokeRect(1,1,s-2,s-2);g.fillStyle='rgba(0,0,0,.08)';for(let i=0;i<5;i++){g.beginPath();g.arc(R()*s,R()*s,6+R()*16,0,7);g.fill()}});
+  WTX.grate=cvTex((g,s)=>{g.clearRect(0,0,s,s);g.strokeStyle='#6d6a64';g.lineWidth=4;for(let i=0;i<=s;i+=s/8){g.beginPath();g.moveTo(i,0);g.lineTo(i,s);g.stroke();g.beginPath();g.moveTo(0,i);g.lineTo(s,i);g.stroke()}g.strokeStyle='#3a3834';g.lineWidth=6;g.strokeRect(0,0,s,s)});
+  WTX.shack=cvTex((g,s)=>{g.fillStyle='#d2c4b0';g.fillRect(0,0,s,s);for(let x=0;x<s;x+=10){g.fillStyle='rgba(0,0,0,.16)';g.fillRect(x,0,3,s)}noise(g,s,500,.45,['#4a2a1a','#b06a3a','#2a1a12']);});
+  WTX.chev=cvTex((g,s)=>{g.clearRect(0,0,s,s);g.fillStyle='#f3b33d';for(let i=0;i<2;i++){const o=i*s*.34;g.beginPath();g.moveTo(s*.16,s*.22+o);g.lineTo(s*.5,s*.06+o);g.lineTo(s*.84,s*.22+o);g.lineTo(s*.84,s*.38+o);g.lineTo(s*.5,s*.22+o);g.lineTo(s*.16,s*.38+o);g.closePath();g.fill()}});
+  WTX.holo=cvTex((g,s)=>{g.clearRect(0,0,s,s);g.strokeStyle='#7fe8ff';g.lineWidth=3;g.strokeRect(6,6,s-12,s-12);g.fillStyle='#7fe8ff';g.font='bold 22px sans-serif';g.textAlign='center';g.fillText('ARK',s/2,s/2-4);g.font='bold 13px sans-serif';g.fillText('AUTHORITY',s/2,s/2+16);
+    g.globalAlpha=.35;for(let y=0;y<s;y+=4)g.fillRect(0,y,s,1)});
+  WTX.grateW=cvTex((g,s)=>{const gr=g.createLinearGradient(0,0,s,s);gr.addColorStop(0,'#123a46');gr.addColorStop(1,'#1d5563');g.fillStyle=gr;g.fillRect(0,0,s,s);g.fillStyle='rgba(255,255,255,.08)';for(let i=0;i<14;i++)g.fillRect(R()*s,R()*s,8+R()*16,2);g.drawImage(WTX.grate.image,0,0,s,s)});
+  WTX.hazard=TX.hazard;return WTX}
+
+// ---------- prop pieces ----------
+const WM={};const wm=(c,tex,o)=>{const k=c+'|'+(tex||'')+(o?JSON.stringify(o):'');return WM[k]||(WM[k]=new THREE.MeshLambertMaterial(Object.assign({color:c},tex?{map:worldTex()[tex]}:{},o||{})))};
+function wbox(g,w,h,d,mat,x,y,z,ry=0){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.rotation.y=ry;g.add(m);return m}
+function wcyl(g,r1,r2,h,mat,x,y,z,seg=10){const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,seg),mat);m.position.set(x,y,z);g.add(m);return m}
+function wsph(g,r,mat,x,y,z){const m=new THREE.Mesh(new THREE.SphereGeometry(r,8,6),mat);m.position.set(x,y,z);g.add(m);return m}
+
+// A shack or container stack on stilts in the sea, with windows that light at dusk.
+function worldShack(g,R,x,z,lit,theme){const s=new THREE.Group();const levels=1+Math.floor(R()*3),cols=CONT_COLS;
+  for(let i=0;i<levels;i++){const c=cols[Math.floor(R()*cols.length)],w=1.6+R()*1.4,d=1+R()*.8;const b=wbox(s,w,.9,d,theme==='founders'?wm('#eef2f4'):wm(c,'corr'),(R()-.5)*.4,.45+i*.92,(R()-.5)*.3,R()<.3?Math.PI/2:0);
+    if(R()<.7){const win=new THREE.Mesh(new THREE.PlaneGeometry(.26,.2),lit?new THREE.MeshBasicMaterial({color:R()<.5?0xffc062:0xffe0a0}):wm('#3a4048'));win.position.set(b.position.x+(R()-.5)*w*.5,b.position.y+.08,b.position.z+d/2+.01);s.add(win)}}
+  if(theme!=='founders'&&R()<.6){const roof=wbox(s,2,.06,1.5,wm('#6e5a44','corr'),0,levels*.92+.02,0);roof.rotation.z=.12}
+  for(const[sx,sz]of[[-.7,-.4],[.7,-.4],[-.7,.4],[.7,.4]])wcyl(s,.07,.08,1.4,wm('#3d3128'),sx,-.7,sz,6);
+  s.position.set(x,-.25,z);s.rotation.y=R()*Math.PI*2;g.add(s);return s}
+
+// ---------- the build ----------
+function worldBuild(theme){if(!scene)return;const T=worldTex(),R=rng((M.id||'x').charCodeAt(0)*977+(M.id||'x').charCodeAt(1)*131+NX*7+NZ),lo=!HI(),lit=!!TM.lamps;
+  const half={x:NX/2,z:NZ/2},AP=1.8,top=-.05,stat=new THREE.Group();
+  // light fog that thickens with distance
+  scene.fog.near=lo?40:26;scene.fog.far=lo?125:105;
+  // deck apron round the board, on stilts
+  const apMat=theme==='founders'?wm('#e2e6e8','conc'):theme==='industrial'?wm('#9a958c','rust'):wm('#a08a74','planks');
+  const rim=[[0,-(half.z+AP/2),NX+AP*2,AP],[0,half.z+AP/2,NX+AP*2,AP],[-(half.x+AP/2),0,AP,NZ],[half.x+AP/2,0,AP,NZ]];
+  for(const[x,z,w,d]of rim){const m=wbox(stat,w,.18,d,apMat,x,top-.09,z);m.material.map&&(m.material.map.repeat&&0)}
+  const stM=wm(theme==='founders'?'#cfd5d8':'#4a3a2e');
+  for(let x=-half.x-AP;x<=half.x+AP;x+=2)for(const z of[-half.z-AP+.15,half.z+AP-.15])wcyl(stat,.1,.12,1.6,stM,x,top-.9,z,6);
+  for(let z=-half.z-AP;z<=half.z+AP;z+=2)for(const x of[-half.x-AP+.15,half.x+AP-.15])wcyl(stat,.1,.12,1.6,stM,x,top-.9,z,6);
+  // railings on the apron's outer edge (gaps where bridges go)
+  const railM=wm(theme==='founders'?'#f4f6f7':theme==='industrial'?'#e2b21f':'#c98a2c'),bridges=[];
+  const edgeLen={x:NX+AP*2,z:NZ+AP*2};
+  for(const sgn of[-1,1]){wbox(stat,edgeLen.x,.05,.05,railM,0,top+.42,sgn*(half.z+AP-.05));wbox(stat,.05,.05,edgeLen.z,railM,sgn*(half.x+AP-.05),top+.42,0);
+    for(let x=-edgeLen.x/2;x<=edgeLen.x/2;x+=1.2)wbox(stat,.05,.42,.05,railM,x,top+.21,sgn*(half.z+AP-.05));for(let z=-edgeLen.z/2;z<=edgeLen.z/2;z+=1.2)wbox(stat,.05,.42,.05,railM,sgn*(half.x+AP-.05),top+.21,z)}
+  // neighbouring stacks and shacks on stilts, dropping into the sea, some with rope bridges
+  const nN=(theme==='founders'?6:12)>>(lo?1:0);
+  for(let i=0;i<nN;i++){const side=Math.floor(R()*4),along=(R()-.5)*(side<2?NX:NZ),out=half.x+AP+2.2+R()*3;
+    const[x,z]=side===0?[along,-(half.z+AP+2.2+R()*3)]:side===1?[along,half.z+AP+2.2+R()*3]:side===2?[-out,along*(NZ/NX)]:[out,along*(NZ/NX)];
+    worldShack(stat,R,x,z,lit,theme);if(i<(lo?1:3))bridges.push([x,z,side])}
+  for(const[x,z,side]of bridges){const ex=side<2?x:Math.sign(x)*(half.x+AP),ez=side<2?Math.sign(z)*(half.z+AP):z,len=Math.hypot(x-ex,z-ez);if(len<1)continue;
+    const b=new THREE.Group();wbox(b,len,.05,.5,wm('#8b6a48','planks'),0,0,0);for(const sz of[-.25,.25]){wbox(b,len,.02,.02,wm('#3a2c22'),0,.4,sz);for(let k=-len/2;k<=len/2;k+=.5)wbox(b,.02,.4,.02,wm('#3a2c22'),k,.2,sz)}
+    b.position.set((x+ex)/2,top+.1,(z+ez)/2);b.rotation.y=-Math.atan2(z-ez,x-ex);stat.add(b)}
+  // the Ark's needle tower in the distance (with the existing skyline)
+  if(!lo){const ark=new THREE.Group(),wmat=wm('#f2f5f7',null,{emissive:0x1a2024});wcyl(ark,.25,3.4,34,wmat,0,16,0,18);wcyl(ark,4.6,5.4,3,wmat,0,1.5,0,20);wsph(ark,.5,wm('#bfe6ff',null,{emissive:0x335566}),0,33.2,0);
+    for(let i=0;i<5;i++){const h=6+R()*10;wcyl(ark,1.2+R(),1.6+R(),h,wmat,(R()-.5)*16,h/2,(R()-.5)*6,14)}ark.position.set(-30,-.4,-52);stat.add(ark)}
+  // ---------- prop kits on the apron ----------
+  const spots=[];for(let i=0;i<(lo?14:34);i++){const side=Math.floor(R()*4),t=R()-.5,o=.35+R()*(AP-.7);
+    spots.push(side===0?[t*(NX+AP),-(half.z+o),0]:side===1?[t*(NX+AP),half.z+o,Math.PI]:side===2?[-(half.x+o),t*(NZ+AP),Math.PI/2]:[half.x+o,t*(NZ+AP),-Math.PI/2])}
+  const at=(i)=>{const s=spots[i%spots.length];return{x:s[0],z:s[1],r:s[2]}};let si=0;const next=()=>at(si++);
+  const live=[];const liveAdd=m=>{m.userData.live=true;live.push(m);return m};
+  if(theme==='container'){// shanty: laundry, tarps, barrels, tanks, generators, plants, dishes, scrap, graffiti
+    const CL=[0xe3672a,0xd8d0b8,0x3d6a8a,0x8a3b24,0xe3c25a,0x6b8a4a];
+    for(let k=0;k<(lo?1:3);k++){const a=next(),b=next(),y=top+1.6;const pa=new THREE.Vector3(a.x,y,a.z),pb=new THREE.Vector3(b.x,y,b.z);if(pa.distanceTo(pb)>6||pa.distanceTo(pb)<1.2){continue}
+      for(const p of[pa,pb])wcyl(stat,.03,.04,1.7,wm('#4a3a2e'),p.x,top+.85,p.z,5);const line=new THREE.Mesh(new THREE.CylinderGeometry(.01,.01,pa.distanceTo(pb),4),wm('#222'));line.position.copy(pa).lerp(pb,.5);line.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),pb.clone().sub(pa).normalize());stat.add(line);
+      const n=Math.floor(pa.distanceTo(pb)/.4);for(let i=1;i<n;i++){const c=new THREE.Mesh(new THREE.PlaneGeometry(.26,.34),wm('#'+CL[(i+k)%CL.length].toString(16).padStart(6,'0'),null,{side:THREE.DoubleSide}));c.position.copy(pa).lerp(pb,i/n);c.position.y-=.19;c.rotation.y=-Math.atan2(pb.z-pa.z,pb.x-pa.x);c.userData.sway=i*1.7+k;liveAdd(c);stat.add(c)}}
+    for(let k=0;k<(lo?2:5);k++){const p=next();const g=new THREE.Group();const r=R();
+      if(r<.25){for(let j=0;j<3;j++){wcyl(g,.18,.18,.5,wm(j%2?'#3b5b6b':'#a8432a'),(j-1)*.4,.25,0,10);wcyl(g,.185,.185,.06,wm('#2a2a2a'),(j-1)*.4,.42,0,10)}}
+      else if(r<.45){wcyl(g,.38,.38,.9,wm('#3b5b6b'),0,.45,0,14);wcyl(g,.4,.4,.06,wm('#2a2a2a'),0,.92,0,14)}
+      else if(r<.62){wbox(g,.7,.42,.42,wm('#5f6b4a'),0,.21,0);wcyl(g,.05,.05,.3,wm('#333'),.22,.55,0,6)}
+      else if(r<.8){for(let j=0;j<3;j++){wcyl(g,.15,.12,.22,wm('#6a6d72'),(j-1)*.35,.11,0,10);wsph(g,.2,wm('#4f7a3a'),(j-1)*.35,.32,0)}}
+      else{const d=new THREE.Mesh(new THREE.SphereGeometry(.34,12,8,0,Math.PI*2,0,.9),wm('#cfcfcf',null,{side:THREE.DoubleSide}));d.position.y=.9;d.rotation.x=-1;g.add(d);wcyl(g,.03,.03,.9,wm('#555'),0,.45,0,5)}
+      g.position.set(p.x,top,p.z);g.rotation.y=p.r+R()*.6;stat.add(g)}
+    for(let k=0;k<(lo?1:3);k++){const p=next();const t=new THREE.Mesh(new THREE.PlaneGeometry(1.8,1.2),wm(['#d8682e','#3d6a8a','#c7922c'][k%3],null,{side:THREE.DoubleSide}));t.position.set(p.x,top+1.25,p.z);t.rotation.set(-1.2,p.r,0);stat.add(t);for(const dx of[-.8,.8])wcyl(stat,.025,.03,1.3,wm('#4a3a2e'),p.x+Math.cos(p.r)*dx,top+.65,p.z-Math.sin(p.r)*dx,5)}
+    for(let k=0;k<(lo?1:3);k++){const p=next();for(let j=0;j<5;j++){const b=wbox(stat,.2+R()*.3,.06+R()*.1,.2+R()*.3,wm(['#5b4a3a','#6a6d72','#8a3b24'][j%3]),p.x+(R()-.5)*.6,top+.05,p.z+(R()-.5)*.6,R()*3)}}}
+  else if(theme==='founders'){// security: planters, bollards, cameras, light pylons, holo signs
+    for(let k=0;k<(lo?3:7);k++){const p=next();const g=new THREE.Group();const r=R();
+      if(r<.35){wbox(g,.9,.42,.5,wm('#f2f4f5'),0,.21,0);for(let j=0;j<3;j++)wsph(g,.18,wm('#5f8f4a'),(j-1)*.28,.5,0)}
+      else if(r<.6){for(let j=0;j<3;j++){wcyl(g,.07,.08,.45,wm('#e8ecee'),(j-1)*.4,.22,0,10);wcyl(g,.075,.075,.05,wm('#2fa8d8'),(j-1)*.4,.4,0,10)}}
+      else{wcyl(g,.05,.07,2.4,wm('#e8ecee'),0,1.2,0,8);wbox(g,.5,.08,.16,wm('#e8ecee'),.2,2.4,0);wbox(g,.42,.04,.12,new THREE.MeshBasicMaterial({color:lit?0xdff6ff:0xcfe6f2}),.2,2.35,0)}
+      g.position.set(p.x,top,p.z);g.rotation.y=p.r;stat.add(g)}
+    for(let k=0;k<(lo?1:3);k++){const p=next();wcyl(stat,.04,.05,1.6,wm('#e8ecee'),p.x,top+.8,p.z,6);const cam=new THREE.Group();wbox(cam,.16,.12,.28,wm('#2a2f33'),0,0,.08);wcyl(cam,.04,.04,.04,new THREE.MeshBasicMaterial({color:0xff4a3a}),0,0,.23,8).rotation.x=Math.PI/2;cam.position.set(p.x,top+1.62,p.z);cam.userData.cam=R()*6;liveAdd(cam);stat.add(cam)}
+    for(let k=0;k<(lo?0:2);k++){const p=next();wcyl(stat,.03,.03,1.1,wm('#c8d0d4'),p.x,top+.55,p.z,6);const h=new THREE.Mesh(new THREE.PlaneGeometry(.9,.6),new THREE.MeshBasicMaterial({map:T.holo,transparent:true,opacity:.85,side:THREE.DoubleSide,depthWrite:false}));h.position.set(p.x,top+1.4,p.z);h.rotation.y=p.r;h.userData.holo=k;liveAdd(h);stat.add(h)}}
+  else{// industrial: pipes, valves, steam, hazard stripes, catwalks
+    for(const sgn of[-1,1]){const pz=sgn*(half.z+AP-.45);for(let j=0;j<2;j++){const p=wcyl(stat,.09+j*.03,.09+j*.03,NX+AP,wm(j?'#7a6a5a':'#5f6b70'),0,top+.18+j*.24,pz+j*.2*sgn,10);p.rotation.z=Math.PI/2}
+      for(let x=-half.x;x<=half.x;x+=3){const v=new THREE.Group();wcyl(v,.13,.13,.08,wm('#b8322a'),0,0,0,10).rotation.x=Math.PI/2;v.position.set(x,top+.45,pz-.12*sgn);stat.add(v)}}
+    for(let k=0;k<(lo?2:4);k++){const p=next();const h=new THREE.Mesh(new THREE.PlaneGeometry(1.4,.4),wm('#ffffff','hazard'));h.rotation.x=-Math.PI/2;h.rotation.z=p.r;h.position.set(p.x,top+.005,p.z);stat.add(h)}
+    for(let k=0;k<(lo?0:2);k++){const p=next();const c=new THREE.Group();wbox(c,2.2,.06,.7,new THREE.MeshLambertMaterial({map:T.grate,transparent:true,alphaTest:.3,side:THREE.DoubleSide}),0,1.2,0);for(const sx of[-1,1])for(const sz of[-.3,.3])wcyl(c,.03,.03,1.2,wm('#e2b21f'),sx,.6,sz,5);c.position.set(p.x,top,p.z);c.rotation.y=p.r;stat.add(c)}
+    if(!lo)for(let k=0;k<3;k++){const p=next();for(let j=0;j<3;j++){const st=new THREE.Mesh(new THREE.SphereGeometry(.14,6,5),new THREE.MeshLambertMaterial({color:0xf2f2f2,transparent:true,opacity:.45,depthWrite:false}));st.position.set(p.x,top+.5,p.z);st.userData.steam={x:p.x,z:p.z,ph:j/3,y0:top+.5};liveAdd(st);stat.add(st)}}}
+  worldBake(stat);
+  // ---------- animation for the live bits ----------
+  const sway=live.filter(m=>m.userData.sway!=null),cams=live.filter(m=>m.userData.cam!=null),holo=live.filter(m=>m.userData.holo!=null),steam=live.filter(m=>m.userData.steam);
+  if(live.length)ANIM.push((dt,t)=>{for(const c of sway)c.rotation.x=Math.sin(t*2+c.userData.sway)*.25;for(const c of cams)c.rotation.y=Math.sin(t*.4+c.userData.cam)*1.1;
+    for(const h of holo)h.material.opacity=.6+.25*Math.sin(t*3+h.userData.holo);for(const s of steam){const k=((t*.35+s.userData.steam.ph)%1);s.position.y=s.userData.steam.y0+k*1.4;s.scale.setScalar(.6+k*1.6);s.material.opacity=.45*(1-k)}});
+  // spray where the sea meets the stilts (High only)
+  if(!lo){const spray=[];const sm2=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.6,depthWrite:false});for(let i=0;i<14;i++){const side=i%4,t=R()-.5;const x=side<2?t*(NX+AP*2):(side===2?-1:1)*(half.x+AP),z=side<2?(side===0?-1:1)*(half.z+AP):t*(NZ+AP*2);
+      const m=new THREE.Mesh(new THREE.IcosahedronGeometry(.12,0),sm2.clone());m.position.set(x,-.3,z);m.userData.ph=R()*6;scene.add(m);spray.push(m)}
+    ANIM.push((dt,t)=>{for(const m of spray){const k=(Math.sin(t*1.3+m.userData.ph)+1)/2;m.position.y=-.32+k*.25;m.scale.setScalar(.6+k);m.material.opacity=.55*k}})}
+  // dusk and night: a few warm bulbs over the apron
+  if(lit&&!lo){for(let i=0;i<3;i++){const p=next();const l=new THREE.PointLight(0xffb060,.8,5,2);l.position.set(p.x,top+1.8,p.z);scene.add(l)}}}
+
+// Ground variety: a floor material per tile, from map data (M.mat rows, one
+// letter per tile: d deck, p planks, c concrete, g grating over water) or a
+// seeded pattern per district. Purely visual.
+const GROUND={d:'rust',p:'planks',c:'conc',g:'grateW'};
+function groundOf(t){if(M.mat&&M.mat[t.z]&&GROUND[M.mat[t.z][t.x]])return GROUND[M.mat[t.z][t.x]];
+  const th=THEME_OF[M.id]||'container',n=(Math.sin(t.x*.9+t.z*.37)+Math.sin(t.z*.71-t.x*.23)*1.2+2.2)/4.4;
+  if(th==='founders')return n<.18?'planks':'';if(th==='industrial')return n<.3?'grateW':n<.62?'rust':'conc';return n<.32?'planks':n<.7?'rust':'conc'}
+
+/* ===================== MECHANICS: climbing and parkour (overhaul stage D) =====================
+   Movement by body type, from references/4-map-drafts.html:
+
+   Feature                          Light      Medium                 Heavy
+   Ladder, one level                1 move     1 move                 2 moves
+   Climb step (marked ledge)        1 move     1 move                 No
+   Vault rail                       Free       1 move                 Walk round
+   Gap jump, one tile, same height  1 move     2 moves, marked only   No
+   Wall-hop, two levels             2 moves    No                     No
+   Zipline, one way                 1 move     1 move                 No
+   Drop down                        Two levels Two levels             One level
+   Crawl vent                       Yes        No                     No
+
+   Map data (all optional, per mission or operation):
+   - feat: rows of letters over the map, one per tile:
+       L ladder (climb onto this tile from a lower neighbour, per level)
+       s climb step (a marked ledge: climb one level onto it)
+       r vault rail (a low rail on the tile: hop over it in a straight line)
+       _ gap (a one-tile hole: jump over it in a straight line)
+       = marked gap (mediums may jump it too)
+   - zips: [[x1,z1,x2,z2], ...] one-way ziplines.
+   reach() asks moveCost() for each step and moveLinks() for jumps and zips,
+   so the enemy AI, which plans with reach(), uses every route its body
+   allows. Vault and gap moves are free for lights in the sense of costing
+   the same as walking the tiles (a vault counts as one move). */
+
+// Read the feature layer onto the tiles (called from parseMap).
+function parseFeat(m){S.zips=(m.zips||[]).map(z=>({x1:z[0],z1:z[1],x2:z[2],z2:z[3]}));if(!m.feat)return;
+  for(let z=0;z<NZ;z++)for(let x=0;x<NX;x++){const c=(m.feat[z]||'')[x],t=G[z][x];if(!c||c==='.'||c===' ')continue;
+    if(c==='L')t.ladder=true;else if(c==='s')t.step=true;else if(c==='r'){t.obj='rail'}else if(c==='_'||c==='='){t.type='gap';t.markedGap=c==='=';t.obj=null}}}
+
+// Cost of one orthogonal step from a to b for unit u, or 0 if not allowed.
+function moveCost(u,a,b){if(b.type==='water'||b.type==='gap'||b.obj||b.flood)return 0;if(b.pass==='light'&&u.body!=='light')return 0;if(b.pass==='nonheavy'&&u.body==='heavy')return 0;
+  const up=b.h-a.h,P=u.perks;if(Math.abs(up)<=.5)return 1;
+  if(up>0){// ladder: any body, per level
+    if(b.ladder){const lv=Math.ceil(up-.01);return u.body==='heavy'?2*lv:lv}
+    if(u.body==='heavy')return 0;
+    if(up<=1){if(b.step)return 1;return(u.body==='light'||(P&&P.has('climber')))?1:2}
+    if(up<=2&&u.body==='light')return P&&P.has('parkour')?1:2;return 0}
+  const dn=-up;if(dn<=1)return 1;if(dn<=2&&u.body!=='heavy')return 1;
+  if(a.ladder||b.ladder)return u.body==='heavy'?2*Math.ceil(dn-.01):Math.ceil(dn-.01);return 0}
+
+// Extra links from (x,z): vaults, gap jumps and ziplines. [nx,nz,cost,kind]
+function moveLinks(u,x,z){const out=[],a=G[z][x];if(u.body==='turret'||u.cls==='bot'||u.cls==='civ')return out;
+  for(const[dx,dz]of D4){const m=tileAt(x+dx,z+dz),b=tileAt(x+2*dx,z+2*dz);if(!m||!b)continue;
+    if(b.type==='water'||b.type==='gap'||b.obj||Math.abs(b.h-a.h)>.5)continue;if(b.pass==='light'&&u.body!=='light')continue;if(b.pass==='nonheavy'&&u.body==='heavy')continue;
+    if(m.obj==='rail'&&Math.abs(m.h-a.h)<=.5){if(u.body==='light')out.push([b.x,b.z,2,'vault']);else if(u.body==='medium')out.push([b.x,b.z,3,'vault'])}
+    if(m.type==='gap'){if(u.body==='light')out.push([b.x,b.z,2,'jump']);else if(u.body==='medium'&&m.markedGap)out.push([b.x,b.z,3,'jump'])}}
+  if(u.body!=='heavy')for(const zp of S.zips||[])if(zp.x1===x&&zp.z1===z){const b=G[zp.z2][zp.x2];if(b&&!b.obj)out.push([zp.x2,zp.z2,1,'zip'])}
+  return out}
+// Vault and gap costs above include the tile walked into (2 = one step plus
+// the free vault for lights; 3 = one step plus 1 for mediums).
+
+// ---------- markers on the map ----------
+let MECH_TX=null;
+function mechTex(){if(MECH_TX)return MECH_TX;MECH_TX={};
+  MECH_TX.chev=cvTex((g,s)=>{g.clearRect(0,0,s,s);g.fillStyle='#f3b33d';for(let i=0;i<2;i++){const o=i*s*.34;g.beginPath();g.moveTo(s*.16,s*.26+o);g.lineTo(s*.5,s*.1+o);g.lineTo(s*.84,s*.26+o);g.lineTo(s*.84,s*.42+o);g.lineTo(s*.5,s*.26+o);g.lineTo(s*.16,s*.42+o);g.closePath();g.fill()}});
+  return MECH_TX}
+function mechDecal(x,z,y,rot,sz=.7){const d=new THREE.Mesh(new THREE.PlaneGeometry(sz,sz),new THREE.MeshLambertMaterial({map:mechTex().chev,transparent:true,depthWrite:false}));d.rotation.x=-Math.PI/2;d.rotation.z=rot;const p=W(x,z);d.position.set(p.x,y+.02,p.z);scene.add(d);return d}
+// Ladders, rails, step chevrons, gap edges and zipline cables.
+function mechBuild(){if(!scene)return;const lad=new THREE.MeshLambertMaterial({color:0xd4a52a}),railM=new THREE.MeshLambertMaterial({color:0x6f7a80});
+  for(const row of G)for(const t of row){const p=W(t.x,t.z);
+    if(t.ladder)mechLadder(t);
+    if(t.step){let lo=null;for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(n&&n.h<t.h&&!n.obj&&(!lo||n.h<lo.n.h))lo={n,dx,dz}}mechDecal(t.x,t.z,topY(t),lo?Math.atan2(-lo.dx,lo.dz):0)}
+    if(t.obj==='rail'){const g=new THREE.Group(),y=topY(t);const bar=new THREE.Mesh(new THREE.BoxGeometry(.9,.07,.07),railM);bar.position.y=.5;g.add(bar);for(const x of[-.42,.42]){const q=new THREE.Mesh(new THREE.BoxGeometry(.07,.5,.07),railM);q.position.set(x,.25,0);g.add(q)}
+      let ax=0;for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(n&&n.obj==='rail'){ax=dx?0:Math.PI/2;break}}const n1=tileAt(t.x+1,t.z),n2=tileAt(t.x-1,t.z);if(!(n1&&n1.obj==='rail')&&!(n2&&n2.obj==='rail')){const nz=tileAt(t.x,t.z+1);if(nz&&nz.type!=='water'&&!nz.obj)ax=0}
+      g.rotation.y=ax;g.position.set(p.x,y,p.z);g.traverse(o=>{if(o.isMesh){o.castShadow=HI();o.userData.tile=t}});scene.add(g);mechDecal(t.x,t.z,y,ax+Math.PI/2,.55)}
+    if(t.type==='gap'&&t.markedGap){for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(n&&n.type!=='gap'&&n.type!=='water'&&!n.obj)mechDecal(n.x,n.z,topY(n),Math.atan2(dx,-dz),.5)}}}
+  for(const zp of S.zips||[]){const a=W(zp.x1,zp.z1),b=W(zp.x2,zp.z2);a.y=topY(G[zp.z1][zp.x1])+1.5;b.y=topY(G[zp.z2][zp.x2])+1.1;const mid=a.clone().lerp(b,.5);mid.y-=.35;
+    const curve=new THREE.QuadraticBezierCurve3(a,mid,b);scene.add(new THREE.Mesh(new THREE.TubeGeometry(curve,24,.018,5,false),new THREE.MeshLambertMaterial({color:0x2a2a2a})));
+    for(const[v,t]of[[a,G[zp.z1][zp.x1]],[b,G[zp.z2][zp.x2]]]){const post=new THREE.Mesh(new THREE.BoxGeometry(.07,v.y-topY(t)+.05,.07),new THREE.MeshLambertMaterial({color:0x8a8f94}));post.position.set(v.x+.3,(v.y+topY(t))/2,v.z+.3);scene.add(post)}}}
+
+let MECH_LAD=null;
+function mechLadder(t){const p=W(t.x,t.z),lad=MECH_LAD||(MECH_LAD=new THREE.MeshLambertMaterial({color:0xd4a52a}));let lo=null;for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(n&&n.type!=='water'&&n.type!=='gap'&&!n.obj&&n.h<t.h&&(!lo||n.h<lo.n.h))lo={n,dx,dz}}
+      if(lo){const h=topY(t)-topY(lo.n),g=new THREE.Group();for(const sx of[-.18,.18]){const r=new THREE.Mesh(new THREE.BoxGeometry(.04,h+.4,.04),lad);r.position.set(sx,(h+.4)/2,0);g.add(r)}
+        for(let y=.22;y<h+.3;y+=.26){const r=new THREE.Mesh(new THREE.BoxGeometry(.36,.03,.03),lad);r.position.set(0,y,0);g.add(r)}
+        g.position.set(p.x+lo.dx*.47,topY(lo.n),p.z+lo.dz*.47);g.rotation.y=Math.atan2(lo.dx,lo.dz);g.traverse(o=>{if(o.isMesh){o.castShadow=HI();o.userData.tile=t}});scene.add(g)}}
+// Move preview: a dotted arc from where a jump, vault or zipline starts to
+// where it lands, drawn with the blue move tiles before you commit.
+function mechArcs(r){for(const[k,kind]of r.kind){const pk=r.prev.get(k);if(!pk)continue;const[ax,az]=pk.split(',').map(Number),[bx,bz]=k.split(',').map(Number);
+  const a=W(ax,az),b=W(bx,bz);a.y=topY(G[az][ax])+.12;b.y=topY(G[bz][bx])+.12;const pts=[],H=kind==='zip'?-.2:.55;
+  for(let i=0;i<=16;i++){const t=i/16,v=a.clone().lerp(b,t);v.y+=Math.sin(t*Math.PI)*H+(kind==='zip'?(1.4*(1-t)+1*t):0);pts.push(v)}
+  const g=new THREE.BufferGeometry().setFromPoints(pts),l=new THREE.Line(g,new THREE.LineDashedMaterial({color:kind==='zip'?0x7fe8ff:0xf3b33d,dashSize:.08,gapSize:.06}));l.computeLineDistances();hl.add(l)}}
+
+/* ===================== Interactive points and traps =====================
+   Map data (optional): points:[...] and traps:[...], each {type, x, z, ...}.
+
+   Points (worked from an adjacent tile with the action):
+   - supply {x,z}: once per mission, heal 30 or refresh cooldowns.
+   - searchlight {x,z,dir:[dx,dz],len}: while on, anyone of yours ending a
+     move in its beam is spotted and it calls one reinforcement. Hack it
+     (2 progress, Operatives double) to switch it off.
+   - hatch {x,z,ladder:[x,z]}: repair (Engineers double) to drop a ladder
+     onto that tile for everyone.
+   - bridge {x,z,tiles:[[x,z],...]}: build to span gap tiles; heavies can cross.
+   - zipanchor {x,z,zip:[x1,z1,x2,z2]}: build to rig a zipline.
+   Traps (one use each; enemies use them too):
+   - crane {x,z,area:[[x,z]x4],crate:[x,z]}: shoot the hook. Cargo drops on
+     the 2x2 area: heavy damage and knocked down; the crate stays as cover.
+   - barrels {x,z}: shoot or grenade. Blast one tile round; chain reactions.
+   - steam {x,z,line:[[x,z]x3]}: shoot the valve. Steam for 2 turns, blocks
+     sight, scalds anyone ending a turn in it.
+   - fuel {x,z,area:[...]}: shoot the drum. Burns 2 turns, damage each turn.
+   - gantry {x,z,tiles:[...]}: plant a charge on the support. The walkway
+     drops: anyone on it falls a level and takes damage; the route is gone.
+   - flood {x,z,tiles:[...]}: hack the panel. The channel floods for 3 turns:
+     impassable, and anyone in it is washed out.
+   - shutter {x,z,tiles:[...]}: hack the panel. Slams a corridor shut. */
+const PT_INFO={supply:['Supply station','Once per mission: heal 30 or refresh cooldowns.'],searchlight:['Searchlight','Anyone in its beam is spotted and it calls reinforcements. Hack it to switch it off.'],
+  hatch:['Ladder hatch','Repair it to drop a ladder that stays down for everyone. Engineers work twice as fast.'],bridge:['Deployable bridge','Build it to span the gap. Heavies can cross it. Engineers work twice as fast.'],
+  zipanchor:['Zipline anchor','Build it to rig the zipline. Engineers work twice as fast.']};
+const TRAP_INFO={crane:['Crane cargo','Shoot the hook. The cargo drops on a 2×2 area: heavy damage and knocked down. The crate stays as full cover.'],barrels:['Explosive barrels','Shoot or grenade them. Blast one tile round, with chain reactions.'],
+  steam:['Steam pipe','Shoot the valve. Steam fills a line for 2 turns: blocks sight and scalds anyone ending a turn in it.'],fuel:['Fuel drum','Shoot the leaking drum. The spill burns for 2 turns and damages anyone in it.'],
+  gantry:['Gantry support','Plant a charge on it. The walkway drops: anyone on it falls a level and takes damage, and the route is gone.'],flood:['Floodgate panel','Hack it. The channel floods for 3 turns: impassable, and washes units out.'],
+  shutter:['Shutter panel','Hack it. Slams the corridor shut.']};
+const TRAP_SHOOT=new Set(['crane','barrels','steam','fuel']),PT_NEED={searchlight:2,hatch:2,bridge:2,zipanchor:2};
+const PT_FAST={searchlight:'operative',hatch:'engineer',bridge:'engineer',zipanchor:'engineer',flood:'operative',shutter:'operative'};
+function trapArea(tr){if(tr.type==='crane')return tr.area||[];if(tr.type==='steam')return tr.line||[];if(tr.type==='fuel')return tr.area||[];if(tr.type==='barrels'){const o=[];for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++)o.push([tr.x+dx,tr.z+dz]);return o}return tr.tiles||[]}
+function beamTiles(p){const o=[];const[dx,dz]=p.dir||[0,1];for(let i=1;i<=(p.len||5);i++)for(const w of[-1,0,1]){const x=p.x+dx*i+(dz?w:0),z=p.z+dz*i+(dx?w:0);if(tileAt(x,z))o.push([x,z])}return o}
+
+function mechInit(m){S.points=(m.points||[]).map((p,i)=>({...p,i,used:false,on:true}));S.traps=(m.traps||[]).map((t,i)=>({...t,i,used:false}));S.hazards=[];S.slCalled=false;
+  for(const p of S.points){G[p.z][p.x].point=p;if(p.type!=='supply'||true)G[p.z][p.x].obj=G[p.z][p.x].obj||'pt'}
+  for(const t of S.traps){const tl=G[t.z][t.x];tl.trap=t;if(t.type!=='crane')tl.obj=tl.obj||'pt'}}
+
+// ---------- models ----------
+function mechModels(){const M2=(c,o)=>new THREE.MeshLambertMaterial(Object.assign({color:c},o||{}));const red=new THREE.MeshBasicMaterial({color:0xff3b2a,side:THREE.DoubleSide});
+  const put=(g,t,obj)=>{const p=W(t.x,t.z);g.position.set(p.x,topY(G[t.z][t.x]),p.z);g.traverse(o=>{if(o.isMesh){o.castShadow=HI();o.userData.tile=G[t.z][t.x]}});scene.add(g);obj.mesh=g;return g};
+  const target=(g,y)=>{const r=new THREE.Mesh(new THREE.RingGeometry(.12,.19,20),red);r.position.y=y;r.userData.billboard=true;g.add(r);return r};
+  for(const p of S.points){const g=new THREE.Group();
+    if(p.type==='supply'){const b=new THREE.Mesh(new THREE.BoxGeometry(.5,.7,.36),M2(0x2f6f3f));b.position.y=.35;g.add(b);const l=new THREE.Mesh(new THREE.BoxGeometry(.24,.24,.02),new THREE.MeshBasicMaterial({color:0x7dff9a}));l.position.set(0,.5,.19);g.add(l);p.lamp=l}
+    else if(p.type==='searchlight'){const post=new THREE.Mesh(new THREE.CylinderGeometry(.05,.07,1.6,8),M2(0x8a8f94));post.position.y=.8;g.add(post);const head=new THREE.Mesh(new THREE.CylinderGeometry(.16,.2,.3,12),M2(0x2a2f33));head.rotation.x=Math.PI/2;head.position.y=1.6;g.add(head);
+      const beam=new THREE.Mesh(new THREE.ConeGeometry(1.3,(p.len||5),20,1,true),new THREE.MeshBasicMaterial({color:0xfff2b0,transparent:true,opacity:.14,depthWrite:false,side:THREE.DoubleSide}));const[dx,dz]=p.dir||[0,1];
+      beam.rotation.x=-Math.PI/2;beam.position.set(0,.9,(p.len||5)/2);const bg=new THREE.Group();bg.add(beam);bg.rotation.y=Math.atan2(dx,dz);g.add(bg);p.beam=bg}
+    else{const b=new THREE.Mesh(new THREE.BoxGeometry(.4,.5,.25),M2(0x3b3f45));b.position.y=.25;g.add(b);const s=new THREE.Mesh(new THREE.BoxGeometry(.2,.14,.02),new THREE.MeshBasicMaterial({color:0x38e0ff}));s.position.set(0,.36,.13);g.add(s)}
+    put(g,p,p)}
+  for(const t of S.traps){const g=new THREE.Group();
+    if(t.type==='crane'){const a=t.area||[[t.x,t.z]];let cx=0,cz=0;for(const[x,z]of a){cx+=x;cz+=z}cx/=a.length;cz/=a.length;const c=W(cx,cz),base=W(t.x,t.z),y0=topY(G[t.z][t.x]);
+      const cm=M2(0xd08a22);const mast=new THREE.Mesh(new THREE.BoxGeometry(.4,4.6,.4),cm);mast.position.set(0,2.3,0);g.add(mast);const L=Math.hypot(c.x-base.x,c.z-base.z);const jib=new THREE.Mesh(new THREE.BoxGeometry(L+.6,.3,.3),cm);jib.position.set(L/2,4.6,0);g.add(jib);
+      const cargo=new THREE.Group();const cb=new THREE.Mesh(new THREE.BoxGeometry(1.6,.7,1.6),M2(0x7a6a52,{map:worldTex().planks}));cargo.add(cb);for(const x of[-.5,.5]){const st=new THREE.Mesh(new THREE.BoxGeometry(.08,.72,1.62),M2(0xcc3333));st.position.x=x;cargo.add(st)}
+      cargo.position.set(L,3.2,0);g.add(cargo);const cable=new THREE.Mesh(new THREE.BoxGeometry(.03,1.1,.03),M2(0x222222));cable.position.set(L,4.0,0);g.add(cable);t.cargo=cargo;t.cable=cable;t.tgt=target(cargo,.5);g.rotation.y=-Math.atan2(c.z-base.z,c.x-base.x);
+      g.position.set(base.x,y0,base.z);g.traverse(o=>{if(o.isMesh){o.castShadow=HI();o.userData.tile=G[t.z][t.x]}});scene.add(g);t.mesh=g;
+      // the hook is also tappable from the area centre
+      for(const[x,z]of a)G[z][x].trapZone=t;continue}
+    if(t.type==='barrels'){for(const[dx,dz]of[[-.18,-.1],[.18,-.1],[0,.18]]){const b=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,.5,12),M2(0xb32c1f));b.position.set(dx,.25,dz);g.add(b);const s=new THREE.Mesh(new THREE.CylinderGeometry(.165,.165,.08,12),M2(0xf3b33d));s.position.set(dx,.36,dz);g.add(s)}t.tgt=target(g,.75)}
+    else if(t.type==='steam'){const v=new THREE.Mesh(new THREE.TorusGeometry(.16,.04,6,14),M2(0xb8322a));v.position.y=.55;g.add(v);const pp=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.6,10),M2(0x5f6b70));pp.position.y=.3;g.add(pp);t.tgt=target(g,.85)}
+    else if(t.type==='fuel'){const d=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.6,12),M2(0x3b5b3b));d.position.y=.3;g.add(d);const sp=new THREE.Mesh(new THREE.CircleGeometry(.5,16),M2(0x1a1a1a,{transparent:true,opacity:.6}));sp.rotation.x=-Math.PI/2;sp.position.set(.3,.02,.2);g.add(sp);t.tgt=target(g,.85)}
+    else if(t.type==='gantry'){const s=new THREE.Mesh(new THREE.BoxGeometry(.25,1.2,.25),M2(0x6f7a80));s.position.y=.6;g.add(s);const c=new THREE.Mesh(new THREE.BoxGeometry(.18,.12,.1),M2(0xcc3333));c.position.set(0,.6,.14);g.add(c)}
+    else{const b=new THREE.Mesh(new THREE.BoxGeometry(.4,.5,.25),M2(0x3b3f45));b.position.y=.25;g.add(b);const s=new THREE.Mesh(new THREE.BoxGeometry(.2,.14,.02),new THREE.MeshBasicMaterial({color:0xff7a3a}));s.position.set(0,.36,.13);g.add(s)}
+    put(g,t,t)}
+  ANIM.push(()=>{for(const t of S.traps)if(t.tgt&&t.tgt.visible)t.tgt.quaternion.copy(cam.quaternion)})}
+
+// ---------- helpers ----------
+const trapLive=t=>t&&!t.used;
+function trapShot(u,t){if(!u||u.acted||u.down||!TRAP_SHOOT.has(t.type)||!trapLive(t))return 0;const a=G[u.z][u.x],b=G[t.z][t.x],d=Math.hypot(u.x-t.x,u.z-t.z),w=u.weapon;
+  if(d>w.range+.01)return 0;if(t.type!=='crane'&&!los(a,b))return 0;return Math.max(10,Math.min(95,Math.round(w.acc-Math.max(0,d-w.opt)*8+(u.team==='p'&&!S.alerted?10:0))))}
+const adj=(u,o)=>Math.max(Math.abs(u.x-o.x),Math.abs(u.z-o.z))<=1;
+// Actions available to u from points and action traps (for the HUD).
+function mechActions(u){const out=[];if(!S.points||u.acted||u.down)return out;
+  for(const p of S.points){if(!adj(u,p))continue;
+    if(p.type==='supply'&&!p.used){out.push({k:'pt',i:p.i,a:'heal',label:'Heal 30',icon:'cross'});out.push({k:'pt',i:p.i,a:'cool',label:'Refresh',icon:'resupply'})}
+    else if(p.type==='searchlight'&&p.on){out.push({k:'pt',i:p.i,a:'work',label:`Hack light +${PT_FAST.searchlight===u.cls?2:1}`,icon:'key'})}
+    else if(PT_NEED[p.type]&&!p.used&&p.type!=='searchlight')out.push({k:'pt',i:p.i,a:'work',label:`${p.type==='hatch'?'Repair':'Build'} +${PT_FAST[p.type]===u.cls?2:1}`,icon:'wrench'})}
+  for(const t of S.traps){if(!trapLive(t)||TRAP_SHOOT.has(t.type)||!adj(u,t))continue;out.push({k:'trap',i:t.i,label:t.type==='gantry'?'Plant charge':t.type==='flood'?'Open floodgate':'Shut shutters',icon:t.type==='gantry'?'grenade':'key'})}
+  return out}
+
+// ---------- doing things ----------
+async function mechDo(u,act){clearUndo();S.busy=true;
+  if(act.k==='pt'){const p=S.points[act.i];await face(u,p.x,p.z);u.acted=true;
+    if(p.type==='supply'){if(act.a==='heal'){const h=Math.min(30,u.maxHp-u.hp);u.hp+=h;popup(u,'+'+h,'good');log(`${u.name} patches up at the supply station.`)}else{u.cd={};popup(u,'Ready','good');log(`${u.name} restocks: abilities ready.`)}p.used=true;if(p.lamp)p.lamp.material.color.set(0x444444);updBar(u)}
+    else{const k='pt:'+p.i,add=PT_FAST[p.type]===u.cls?2:1;S.prog[k]=(S.prog[k]||0)+add;popup(u,`${Math.min(S.prog[k],PT_NEED[p.type])}/${PT_NEED[p.type]}`,'good');
+      if(S.prog[k]>=PT_NEED[p.type]){p.used=true;
+        if(p.type==='searchlight'){p.on=false;if(p.beam)p.beam.visible=false;log('The searchlight goes dark.')}
+        if(p.type==='hatch'){const[x,z]=p.ladder;G[z][x].ladder=true;mechBuildLadder(G[z][x]);log('The ladder drops down. Anyone can climb it now.')}
+        if(p.type==='bridge'){for(const[x,z]of p.tiles){const t=G[z][x];t.type='floor';t.obj=null;tileMesh(t)}log('The bridge is across. Heavies can cross it.')}
+        if(p.type==='zipanchor'){const[x1,z1,x2,z2]=p.zip;S.zips.push({x1,z1,x2,z2});mechBuildZip(S.zips[S.zips.length-1]);log('The zipline is rigged.')}
+        sfx('good')}}
+    S.credit[u.op.id]=(S.credit[u.op.id]||0)+1;S.busy=false;afterOrder();return}
+  if(act.k==='trap'){const t=S.traps[act.i];await face(u,t.x,t.z);u.acted=true;await trapFire(t,u);S.busy=false;afterOrder()}}
+
+async function trapFire(t,by){if(!trapLive(t))return;t.used=true;if(t.tgt)t.tgt.visible=false;const who=by?(by.team==='p'?by.name:'The enemy'):'Something';
+  const hitArea=(area,n,knock)=>{for(const[x,z]of area){for(const v of units){if(v.gone||v.down||v.x!==x||v.z!==z)continue;damage(v,n,by);if(knock&&!v.down&&v.cls!=='turret'){v.stun=Math.max(v.stun||0,1);popup(v,'Knocked down','hurt')}}}};
+  if(t.type==='crane'){banner('Cargo drop!',by&&by.team==='e'?'enemy':'');log(`${who} shoots the hook. The cargo drops!`);const c=t.cargo,y0=c.position.y,yb=.35;await tween(420,k=>{c.position.y=y0-(y0-yb)*k*k});if(t.cable)t.cable.visible=false;shake(.35);
+    const ctr=t.area.reduce((a,[x,z])=>[a[0]+x/4,a[1]+z/4],[0,0]);puff(W(ctr[0],ctr[1]),10,0x9a8f80,1.4);hitArea(t.area,45,true);const[cx,cz]=t.crate||t.area[0];const ct=G[cz][cx];
+    for(const[x,z]of t.area)G[z][x].trapZone=null;if(!units.some(v=>!v.gone&&v.x===cx&&v.z===cz&&!v.down)){ct.obj='crate';ct.cargoCrate=true}sfx('boom',W(ctr[0],ctr[1]))}
+  else if(t.type==='barrels'){log(`${who} sets off the barrels!`);await explode(G[t.z][t.x],false);if(t.mesh)t.mesh.visible=false;G[t.z][t.x].obj=null;hitArea(trapArea(t),40,false);
+    for(const o of S.traps)if(o!==t&&o.type==='barrels'&&trapLive(o)&&Math.max(Math.abs(o.x-t.x),Math.abs(o.z-t.z))<=1){await sleep(150);await trapFire(o,by)}}
+  else if(t.type==='steam'||t.type==='fuel'){const area=trapArea(t),kind=t.type;log(kind==='steam'?`${who} bursts the steam valve!`:`${who} lights the fuel spill!`);sfx(kind==='steam'?'hit':'boom',W(t.x,t.z));
+    const meshes=area.map(([x,z])=>{const m=new THREE.Mesh(new THREE.BoxGeometry(.95,kind==='steam'?1.6:.25,.95),new THREE.MeshBasicMaterial({color:kind==='steam'?0xeef4f6:0xff7a2a,transparent:true,opacity:kind==='steam'?.55:.5,depthWrite:false}));const p=W(x,z);m.position.set(p.x,topY(G[z][x])+(kind==='steam'?.8:.12),p.z);scene.add(m);if(kind==='steam')G[z][x].smoke=true;return m});
+    S.hazards.push({kind,area,turns:2,dmg:kind==='steam'?15:18,meshes})}
+  else if(t.type==='gantry'){log(`${who} blows the gantry support!`);await explode(G[t.z][t.x],false);for(const[x,z]of t.tiles){const tl=G[z][x],drop=Math.max(0,tl.h-1);for(const v of units)if(!v.gone&&v.x===x&&v.z===z){damage(v,25,by);if(!v.down){v.stun=Math.max(v.stun||0,1);popup(v,'Fell','hurt')}}
+      tl.h=drop;if(tl.mesh)tileGroup.remove(tl.mesh);tileMesh(tl);for(const v of units)if(!v.gone&&v.x===x&&v.z===z)place(v)}}
+  else if(t.type==='flood'){log(`${who} opens the floodgate! The channel floods.`);const meshes=t.tiles.map(([x,z])=>{G[z][x].flood=true;const m=new THREE.Mesh(new THREE.BoxGeometry(.98,.3,.98),new THREE.MeshLambertMaterial({color:0x2f8fae,transparent:true,opacity:.7}));const p=W(x,z);m.position.set(p.x,topY(G[z][x])+.15,p.z);scene.add(m);return m});
+    for(const v of units){if(v.gone||v.down||!G[v.z][v.x].flood)continue;damage(v,10,by);const f=mechFreeNear(v);if(f){v.x=f.x;v.z=f.z;place(v);popup(v,'Washed out','hurt')}}
+    S.hazards.push({kind:'flood',area:t.tiles,turns:3,dmg:0,meshes})}
+  else if(t.type==='shutter'){log(`${who} slams the shutters shut.`);sfx('build',W(t.x,t.z));for(const[x,z]of t.tiles){const tl=G[z][x];if(units.some(v=>!v.gone&&v.x===x&&v.z===z))continue;tl.obj='crate';tl.shutter=true;const m=new THREE.Mesh(new THREE.BoxGeometry(.98,1.3,.2),new THREE.MeshLambertMaterial({color:0x5a6066}));const p=W(x,z);m.position.set(p.x,topY(tl)+.65,p.z);scene.add(m)}}
+  computeVis();applyFog();refresh()}
+function mechFreeNear(v){let best=null;for(let r=1;r<4&&!best;r++)for(let dx=-r;dx<=r;dx++)for(let dz=-r;dz<=r;dz++){const t=tileAt(v.x+dx,v.z+dz);if(t&&t.type!=='water'&&t.type!=='gap'&&!t.obj&&!t.flood&&!unitAt(t.x,t.z)&&(!best||Math.hypot(dx,dz)<best.d))best={x:t.x,z:t.z,d:Math.hypot(dx,dz)}}return best}
+function mechBuildLadder(t){mechLadder(t)}
+function mechBuildZip(zp){const a=W(zp.x1,zp.z1),b=W(zp.x2,zp.z2);a.y=topY(G[zp.z1][zp.x1])+1.5;b.y=topY(G[zp.z2][zp.x2])+1.1;const mid=a.clone().lerp(b,.5);mid.y-=.35;scene.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a,mid,b),24,.018,5,false),new THREE.MeshLambertMaterial({color:0x2a2a2a})))}
+
+// End of each side's turn: hazards tick, the searchlight spots and calls.
+function mechTurnTick(team){if(!S.hazards)return;
+  for(const h of S.hazards){if(h.dmg)for(const[x,z]of h.area)for(const v of units)if(!v.gone&&!v.down&&v.team===team&&v.x===x&&v.z===z){damage(v,h.dmg,null);popup(v,h.kind==='steam'?'Scalded':'Burned','hurt')}}
+  if(team==='e')for(const h of S.hazards){h.turns--;if(h.turns<=0){for(const m of h.meshes)scene.remove(m);for(const[x,z]of h.area){G[z][x].smoke=false;G[z][x].flood=false}}}
+  S.hazards=S.hazards.filter(h=>h.turns>0)}
+function mechSpotCheck(){if(!S.points)return;for(const p of S.points){if(p.type!=='searchlight'||!p.on)continue;const beam=beamTiles(p);
+  for(const v of squad()){if(v.down||v.disg>0)continue;if(beam.some(([x,z])=>x===v.x&&z===v.z)){if(!S.alerted)alarm(`${v.name} was caught in the searchlight`);else log(`${v.name} is in the searchlight beam.`);
+    if(!S.slCalled){S.slCalled=true;const sp=mechFreeNear({x:p.x,z:p.z});if(sp){const e=spawnEnemy('trooper',sp.x,sp.z,S.R);e.fresh=true;log('The searchlight calls in reinforcements.')}}return}}}}
+// Enemy AI: set off a trap if it would catch your squad and none of theirs.
+async function mechEnemyTraps(){if(!S.traps)return;for(const t of S.traps){if(!trapLive(t))continue;const area=trapArea(t);
+  const mine=squad().filter(v=>!v.down&&area.some(([x,z])=>x===v.x&&z===v.z)).length,theirs=living('e').filter(v=>area.some(([x,z])=>x===v.x&&z===v.z)).length;if(!mine||theirs)continue;
+  if(TRAP_SHOOT.has(t.type)){const sh=living('e').filter(e=>e.cls!=='turret'&&!e.acted&&e.seen!==undefined).map(e=>({e,c:trapShot(e,t)})).filter(o=>o.c>0).sort((a,b)=>b.c-a.c)[0];
+    if(sh&&Math.random()<.65){sh.e.acted=true;await face(sh.e,t.x,t.z);const hit=Math.random()*100<sh.c;if(sh.e.group){sh.e.group.visible=true}if(hit)await trapFire(t,sh.e);else log('The enemy shoots at a trap and misses.')}}
+  else{const e=living('e').find(e=>e.cls!=='turret'&&!e.acted&&adj(e,t));if(e){e.acted=true;await trapFire(t,e)}}}}
+// Player shot at a trap.
+async function fireAtTrap(u,t){const c=trapShot(u,t);if(!c)return;clearUndo();S.busy=true;refresh();await face(u,t.x,t.z);const hit=Math.random()*100<c;
+  sfx(u.wkey==='shotgun'?'shotgun':'shot',u.group.position);u.acted=true;u.disg=0;alarm(`${u.name} opened fire`);if(hit)await trapFire(t,u);else{log(`${u.name} missed the ${TRAP_INFO[t.type][0].toLowerCase()}.`)}S.busy=false;afterOrder()}
+// Red danger area for a trap, shown while aiming or on long-press.
+function mechShowArea(t){if(!hl)return;for(const[x,z]of trapArea(t)){const tl=tileAt(x,z);if(tl&&tl.type!=='water')hlTile(tl,0xff3b2a,.4)}}
+
+/* ===================== Civilians =====================
+   Unarmed people on the soldier rig in muted clothes and no weapon:
+   refugees in shanty areas, workers and technicians in Security areas.
+   They wander until the first shot or the alarm, then run for the map edge
+   or hide behind cover. Missed shots whose line passes one may hit them,
+   and blasts and traps do. Hit civilians go down and stay down, with no
+   penalty to the player. They block movement. Counts: about 6 to 10 in
+   shanty areas, 2 to 4 in Security areas, in between on the industrial
+   decks, halved on Low graphics. A mission can set civ:n. */
+function civCount(){const th=THEME_OF[M.id]||'container',R=S.R||Math.random;let n=M.civ!=null?M.civ:th==='container'?6+Math.floor(R()*5):th==='founders'?2+Math.floor(R()*3):4+Math.floor(R()*3);return HI()?n:Math.ceil(n/2)}
+function spawnCivilians(info){const n=civCount();if(!n)return;const th=THEME_OF[M.id]||'container',R=rng((M.id||'c').charCodeAt(1)*53+NX),sec=th==='founders';
+  const spawns=info.spawns||[],cand=[];for(const row of G)for(const t of row){if(t.type!=='floor'||t.obj||t.flood||t.cp||t.trap||t.point||t.zone||t.exit)continue;if(spawns.some(s=>Math.max(Math.abs(s.x-t.x),Math.abs(s.z-t.z))<4))continue;if(unitAt(t.x,t.z))continue;cand.push(t)}
+  for(let i=0;i<n&&cand.length;i++){const t=cand.splice(Math.floor(R()*cand.length),1)[0];const fac=sec?'security':'resistance';
+    const look=LOOK({faction:fac,body:R()<.2?'light':'medium',cls:'soldier',weapon:'rifle',skin:Math.floor(R()*6),hairCol:Math.floor(R()*7),face:['long','square','angular','broad'][Math.floor(R()*4)],facial:['none','stubble','beard','none'][Math.floor(R()*4)],hair:['buzz','crop','shaved','slick','dreads','topknot'][Math.floor(R()*6)],
+      headgear:sec?['none','cap','headset'][Math.floor(R()*3)]:['none','beanie','bandana','none'][Math.floor(R()*4)],facegear:sec?'none':['none','mask','none'][Math.floor(R()*3)],armour:'none',top:['tee','long','hoodie','jacket'][Math.floor(R()*4)],primary:sec?[2,5,1][Math.floor(R()*3)]:[1,3,5][Math.floor(R()*3)],secondary:sec?[5,1][Math.floor(R()*2)]:[3,5,1][Math.floor(R()*3)],gloves:'none'});
+    const c=newUnit({team:'c',cls:'civ',type:'civ',name:sec?['Technician','Worker','Clerk'][i%3]:['Refugee','Dock worker','Trader'][i%3],short:'Civilian',body:look.body,hp:30,maxHp:30,move:3,vis:0,weapon:{name:'none',dmg:0,range:0,acc:0,opt:0},x:t.x,z:t.z,look,wkey:'rifle'});
+    units.push(c);makeUnitMesh(c);if(c.rig&&c.rig.gun)c.rig.gun.visible=false;if(c.el)c.el.classList.add('civ');if(c.ringMesh)c.ringMesh.visible=false;c.group.rotation.y=R()*6.28}}
+// Their turn: wander while it's quiet, flee or hide once the shooting starts.
+async function civTurn(){const cs=units.filter(u=>u.cls==='civ'&&!u.down&&!u.gone);if(!cs.length)return;const fighters=units.filter(u=>!u.gone&&!u.down&&(u.team==='p'||u.team==='e')&&u.cls!=='bot');
+  for(const c of cs){const r=reach(c,S.alerted?4:2);let best=null,bs=-1e9;
+    for(const k of r.d.keys()){const[x,z]=k.split(',').map(Number);const t=G[z][x];if(t.flood||t.trapZone)continue;
+      if(!S.alerted){const s=Math.random();if(s>bs){bs=s;best=[x,z]}continue}
+      let near=99;for(const f of fighters)near=Math.min(near,Math.hypot(f.x-x,f.z-z));const edge=Math.min(x,z,NX-1-x,NZ-1-z);let cover=0;for(const f of fighters)cover+=coverOf(t,G[f.z][f.x]);
+      const s=near*1.2+cover*.6-edge*.8;if(s>bs){bs=s;best=[x,z]}}
+    if(!best||(best[0]===c.x&&best[1]===c.z))continue;const path=pathTo(r,best[0],best[1]);if(!path.length)continue;
+    if(c.group.visible&&S.vis.has(key(best[0],best[1])))await moveAlong(c,path);else{c.x=best[0];c.z=best[1];place(c)}
+    if(S.alerted&&Math.min(c.x,c.z,NX-1-c.x,NZ-1-c.z)===0){c.gone=true;c.group.visible=false;if(c.el)c.el.remove()}}
+  applyFog()}
+// A missed shot may hit a civilian standing on the line of fire.
+function civStray(a,b){const cs=units.filter(u=>u.cls==='civ'&&!u.down&&!u.gone);if(!cs.length)return;const dx=b.x-a.x,dz=b.z-a.z,steps=Math.ceil(Math.hypot(dx,dz)*3);
+  for(let i=1;i<steps;i++){const t=i/steps,x=Math.round(a.x+dx*t),z=Math.round(a.z+dz*t);const c=cs.find(u=>u.x===x&&u.z===z);if(c&&Math.random()<.5){damage(c,Math.round(a.weapon.dmg*.8),null);log('A stray shot hits a civilian.');return}}}
+
 /* ===================== ARK TACTICS: CAMPAIGN ===================== */
 let SPD=1;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms*SPD));
@@ -1305,7 +1696,7 @@ function tipHTML(k){const[a,b]=k.split(':');
 function unitTip(u){if(u.cls==='bot')return `<b>Maintenance bot</b>${u.down?'Disabled. Stand next to it and repair it.':'Moves up to 2 tiles along its route at the end of its side’s turn, as long as its side has someone next to it and the other side doesn’t outnumber them there.'}<small>${u.hp}/${u.maxHp} health.</small>`;if(u.op){return `<b>${esc(u.name)}</b>Lv ${u.lvl} ${u.body} ${u.cls}. ${u.hp}/${u.maxHp} health${u.shield?`, +${u.shield} shield`:''}.<small>${u.weapon.name}: ${u.weapon.dmg} dmg, range ${u.weapon.range}. ${MOVE_TIP[u.body]}</small>${u.down?`<small>Down. Back on their feet in ${Math.max(1,3-(u.downTurns||0))} turn(s) at the drop point, or sooner if a medic revives them.</small>`:''}`}
   if(u.cls==='turret'&&u.team==='p')return `<b>Your turret</b>${u.hp}/${u.maxHp} health. Fires at the end of your turn.`;
   const T=ETYPES[u.type]||{};return `<b>${esc(u.name)}</b>${T.desc||''}<small>${u.hp}/${u.maxHp} health. ${u.weapon.name}: ${u.weapon.dmg} dmg, range ${u.weapon.range}.${u.ow?' On overwatch.':''}${u.stun>0?' Stunned.':''}</small>`}
-function tileTip(t){const lv=t.h>=2?'High level':t.h>=1?'Mid level':t.type==='ramp'?'Stairs':'Ground';const bits=[];
+function tileTip(t){{const tr=t.trap||t.trapZone,pt=t.point;if(tr&&trapLive(tr)){mechShowArea(tr);const I=TRAP_INFO[tr.type];return `<b>${I[0]}</b>${I[1]}<small>One use. Enemies can set it off too. Danger area shown in red.</small>`}if(pt){const I=PT_INFO[pt.type];return `<b>${I[0]}</b>${I[1]}${pt.used||pt.on===false?'<small>Used.</small>':''}`}}const lv=t.h>=2?'High level':t.h>=1?'Mid level':t.type==='ramp'?'Stairs':'Ground';const bits=[];
   if(t.pass==='light')bits.push('Crawl vent: light bodies only. Half cover.');if(t.pass==='nonheavy')bits.push('Narrow gap: no heavies.');
   if(t.type==='ramp')bits.push('Stairs: the only way up for heavies.');if(t.cp)bits.push(`${t.cp==='health'?'Health':'Supply'} command post (${t.owner==='p'?'yours':t.owner==='e'?'enemy':'unclaimed'}). ${t.cp==='health'?'Heals the holder’s team 10 a turn.':'Speeds up the holder’s cooldowns.'} Stand here to swap class.`);
   if(t.obj==='crate'||t.obj==='pillar')bits.push('Full cover. Blocks sight.');if(t.obj==='wall')bits.push('Barricade: half cover. Grenades destroy it.');if(t.obj==='term')bits.push('Objective.');
@@ -1429,23 +1820,22 @@ function parseMap(m){const rows=m.map,hs=m.h;NZ=rows.length;NX=rows[0].length;N=
     if(ch==='H'||ch==='S'){t.cp=ch==='H'?'health':'supply';t.owner=null;cps.push(t)}
     if(ch==='P'||ch==='Q')spawns.push(t);if(ch==='Z'||ch==='Q'){t.zone=true;zone.push(t)}if(ch==='E'){t.exit=true;exits.push(t)}if(ch==='I'){t.item=true;item=t}
     G[z].push(t)}}
+  parseFeat(m);
   return{spawns,zone,exits,item,cps}}
-function stepCost(u,a,b){if(b.type==='water'||b.obj)return 0;if(b.pass==='light'&&u.body!=='light')return 0;if(b.pass==='nonheavy'&&u.body==='heavy')return 0;
-  const up=b.h-a.h;if(Math.abs(up)<=.5)return 1;
-  if(up>0){if(u.body==='heavy')return 0;if(up<=1)return(u.body==='light'||(u.perks&&u.perks.has('climber')))?1:2;if(up<=2&&u.body==='light')return u.perks&&u.perks.has('parkour')?1:2;return 0}
-  const dn=-up;if(dn<=1)return 1;if(dn<=2&&u.body!=='heavy')return 1;return 0}
-function reach(u,limit){const lim=limit??u.move,d=new Map([[key(u.x,u.z),0]]),prev=new Map(),climb=new Set(),open=[[u.x,u.z]];
+function stepCost(u,a,b){return moveCost(u,a,b)}// movement rules live in mechanics.js
+function reach(u,limit){const lim=limit??u.move,d=new Map([[key(u.x,u.z),0]]),prev=new Map(),climb=new Set(),kind=new Map(),open=[[u.x,u.z]];
   while(open.length){let bi=0;for(let i=1;i<open.length;i++)if(d.get(key(open[i][0],open[i][1]))<d.get(key(open[bi][0],open[bi][1])))bi=i;
     const[x,z]=open.splice(bi,1)[0],dd=d.get(key(x,z)),a=G[z][x];
     for(const[dx,dz]of D4){const nx=x+dx,nz=z+dz,b=tileAt(nx,nz);if(!b)continue;const k=key(nx,nz);if(unitAt(nx,nz,u))continue;const c=stepCost(u,a,b);if(!c)continue;const nd=dd+c;if(nd>lim)continue;
-      if(d.has(k)&&d.get(k)<=nd)continue;d.set(k,nd);prev.set(k,key(x,z));if(b.h-a.h>.5)climb.add(k);else climb.delete(k);if(!open.some(o=>o[0]===nx&&o[1]===nz))open.push([nx,nz])}}
-  return{d,prev,climb}}
+      if(d.has(k)&&d.get(k)<=nd)continue;d.set(k,nd);prev.set(k,key(x,z));kind.delete(k);if(b.h-a.h>.5)climb.add(k);else climb.delete(k);if(!open.some(o=>o[0]===nx&&o[1]===nz))open.push([nx,nz])}
+    for(const[nx,nz,c,kd]of moveLinks(u,x,z)){const k=key(nx,nz);if(unitAt(nx,nz,u))continue;const nd=dd+c;if(nd>lim)continue;if(d.has(k)&&d.get(k)<=nd)continue;d.set(k,nd);prev.set(k,key(x,z));kind.set(k,kd);climb.delete(k);if(!open.some(o=>o[0]===nx&&o[1]===nz))open.push([nx,nz])}}
+  return{d,prev,climb,kind}}
 function pathTo(r,x,z){const out=[];let k=key(x,z);while(r.prev.has(k)){out.unshift(k.split(',').map(Number));k=r.prev.get(k)}return out}
 function los(a,b){const dx=b.x-a.x,dz=b.z-a.z,steps=Math.ceil(Math.hypot(dx,dz)*4),hm=Math.max(a.h,b.h);
   for(let i=1;i<steps;i++){const t=i/steps,x=Math.round(a.x+dx*t),z=Math.round(a.z+dz*t);if((x===a.x&&z===a.z)||(x===b.x&&z===b.z))continue;const tl=G[z][x];
-    if(tl.obj==='crate'||tl.obj==='term'||tl.obj==='pillar'||tl.obj==='gate'||tl.obj==='door')return false;if(tl.h>hm+.4)return false}return true}
+    if(tl.obj==='crate'||tl.obj==='term'||tl.obj==='pillar'||tl.obj==='gate'||tl.obj==='door'||tl.smoke)return false;if(tl.h>hm+.4)return false}return true}
 function coverOf(t,from){let best=0;for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(!n)continue;if(dx*(from.x-t.x)+dz*(from.z-t.z)<=0)continue;
-    let c=0;if(n.obj==='crate'||n.obj==='term'||n.obj==='pillar'||n.obj==='gate'||n.obj==='door'||(n.obj==='wall'&&n.fort)||n.h-t.h>=1)c=2;else if(n.obj==='wall'||n.obj==='scaffold'||n.pass==='light'||n.h-t.h>=.5)c=1;best=Math.max(best,c)}return best}
+    let c=0;if(n.obj==='crate'||n.obj==='term'||n.obj==='pillar'||n.obj==='gate'||n.obj==='door'||(n.obj==='wall'&&n.fort)||n.h-t.h>=1)c=2;else if(n.obj==='wall'||n.obj==='rail'||n.obj==='pt'||n.obj==='scaffold'||n.pass==='light'||n.h-t.h>=.5)c=1;best=Math.max(best,c)}return best}
 function marked(e){return S.reveals.some(r=>Math.hypot(e.x-r.x,e.z-r.z)<=r.r)}
 function hitChance(att,tgt,mod=0){const a=G[att.z][att.x],t=G[tgt.z][tgt.x],d=dist(att,tgt),w=att.weapon;if(d>w.range+.01||!los(a,t))return 0;
   let c=w.acc+mod-Math.max(0,d-w.opt)*8;const cv=tgt.cls==='turret'?0:coverOf(t,a);c-=cv===2?40:cv===1?20:0;if(cv>0&&tgt.perks&&tgt.perks.has('dug'))c-=10;if(att.perks&&att.perks.has('eagle')&&att.team==='p'&&marked(tgt))c+=10;if(att.perks&&att.perks.has('ghost')&&att.disg>0)c+=20;{const dh=a.h-t.h;if(dh>=.5)c+=dh>=2?22:dh>=1?15:8;else if(dh<=-.5)c-=10}
@@ -1504,7 +1894,9 @@ function tileMesh(t){const p=W(t.x,t.z),hgt=topY(t)+.45;let topTex,topCol,sideTe
   else if(t.h>=1){topTex=TH.raisedTop;topCol=pickC(TH.raisedTopCols,t,1);sideTex=TH.raisedTex;sideCol=pickC(TH.raisedCols,t,2)}
   else{topTex=TH.floor.tex;topCol=pickC(TH.floor.cols,t,3)}
   if(t.zone)topCol='#d8b54e';if(t.exit)topCol='#5fae7a';
-  const top=lamT(topCol,topTex),side=lamT(sideCol,sideTex);
+  // ground variety (world.js): deck plate, planks, concrete, grating over water
+  const gm=t.type!=='ramp'&&t.h<1&&!t.zone&&!t.exit?groundOf(t):'';
+  const top=gm?new THREE.MeshLambertMaterial({map:worldTex()[gm],color:gm==='grateW'?0xffffff:pickC(['#ffffff','#f2ece4','#e8e2da'],t,4)}):lamT(topCol,topTex),side=lamT(sideCol,sideTex);
   const m=new THREE.Mesh(new THREE.BoxGeometry(.98,hgt,.98),[side,side,top,side,side,side]);m.position.set(p.x,topY(t)-hgt/2,p.z);m.userData.tile=t;
   const add=(geo,mat,x,y,z)=>{const c=new THREE.Mesh(geo,mat);c.position.set(x,y,z);c.userData.tile=t;m.add(c);return c};const ty=hgt/2;
   for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(!(t.h>=1&&t.type!=='ramp'&&n&&n.h<t.h-.5&&n.type!=='ramp'))continue;
@@ -1593,6 +1985,7 @@ function dressWorld(theme){const R=rng(M.id.charCodeAt(1)*131+7),half=N/2;
     else addAt(r<.5?towerProp(R,5+R()*7,1.2+R()*.8):turbineProp(R,true),x,-.3,z,R()*6)}
   // pontoons under near props
   // far Ark skyline: Founders' district on one side, container sprawl on the other
+  if(lo)return;// Low graphics: no distant city detail
   const ft=towerProp(R,26,3.4);addAt(ft,-38,-.3,-30);const ft2=towerProp(R,17,2.6);addAt(ft2,-26,-.3,-44);const ft3=towerProp(R,13,2.2);addAt(ft3,-48,-.3,-16);
   for(let i=0;i<10;i++){const a=-2.6+R()*1.6,r=40+R()*20;addAt(towerProp(R,6+R()*12,1.4+R()*1.6),Math.cos(a)*r,-.3,Math.sin(a)*r)}
   const hull=new THREE.Mesh(new THREE.SphereGeometry(30,40,12,0,Math.PI*2,0,Math.PI/2),sm('#e6ecef'));hull.scale.set(1.4,.08,1);addAt(hull,-40,-.6,-36);
@@ -1615,8 +2008,8 @@ function buildScene(info){
   const far=new THREE.Mesh(new THREE.PlaneGeometry(600,600),new THREE.MeshPhongMaterial({color:TM.far,specular:0x335566,shininess:20}));far.rotation.x=-Math.PI/2;far.position.y=-.42;scene.add(far);
   const deck=new THREE.Mesh(new THREE.BoxGeometry(NX+.6,.5,NZ+.6),lamT('#4a4440','side'));deck.position.y=-.62;deck.receiveShadow=true;scene.add(deck);
   tileGroup=new THREE.Group();scene.add(tileGroup);
-  for(const row of G)for(const t of row){if(t.type==='water')continue;tileMesh(t);if(t.obj)objMesh(t);if(t.cp)cpMesh(t);if(t.pass)passMesh(t);if(t.mg)mgSpot(t)}
-  dressWorld(theme);addLamps(theme);addBanners(theme);addBirds();PARTS=[];FXL=new THREE.PointLight(0xffb060,0,7,1.5);FXL.position.set(0,-5,0);scene.add(FXL);
+  for(const row of G)for(const t of row){if(t.type==='water'||t.type==='gap')continue;tileMesh(t);if(t.obj&&t.obj!=='rail'&&t.obj!=='pt')objMesh(t);if(t.cp)cpMesh(t);if(t.pass)passMesh(t);if(t.mg)mgSpot(t)}
+  dressWorld(theme);worldBuild(theme);mechBuild();mechModels();addLamps(theme);addBanners(theme);addBirds();PARTS=[];FXL=new THREE.PointLight(0xffb060,0,7,1.5);FXL.position.set(0,-5,0);scene.add(FXL);
   if(info.item){const g=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,.36,12),new THREE.MeshBasicMaterial({color:0x7dffd0}));const p=W(info.item.x,info.item.z);g.position.set(p.x,topY(info.item)+.25,p.z);scene.add(g);S.itemMesh=g}
   selRing=new THREE.Mesh(new THREE.RingGeometry(.4,.5,32),new THREE.MeshBasicMaterial({color:0xffe2a0,side:THREE.DoubleSide,transparent:true,opacity:.9}));selRing.rotation.x=-Math.PI/2;selRing.visible=false;scene.add(selRing);
   hl=new THREE.Group();scene.add(hl)}
@@ -1625,8 +2018,8 @@ function animateWorld(dt,t){for(const f of ANIM)f(dt,t);updateParts(dt);if(SEA&&
 /* ---------- atmosphere: time of day ---------- */
 const HI=()=>SAVE.settings.gfx!=='low';
 const TIMES={
-  day:{label:'Midday',sky:'linear-gradient(#2f86cf,#7fbbe2 45%,#cfe5ef 80%)',fog:0xcfe5ef,hemi:[0xdcefff,0x8a7a66,.72],sun:[0xfff3e0,.85,[7,14,5]],fill:[0x9fd0ff,.25],sea:0x165a75,far:0x1a6582},
-  morning:{label:'Morning',sky:'linear-gradient(#4a8fc9,#a9cfe6 50%,#f3dcc0 88%)',fog:0xeedfcb,hemi:[0xffe9d0,0x7a6a5a,.72],sun:[0xffe0b8,.82,[11,9,-3]],fill:[0xa8d0ff,.22],sea:0x1d6280,far:0x2a6a86},
+  day:{label:'Midday',sky:'linear-gradient(#2f86cf,#7fbbe2 45%,#cfe5ef 80%)',fog:0xcfe5ef,hemi:[0xd6ecff,0x5e6a78,.7],sun:[0xffe6c4,.95,[7,14,5]],fill:[0x8fc4ff,.3],sea:0x165a75,far:0x1a6582},
+  morning:{label:'Morning',sky:'linear-gradient(#4a8fc9,#a9cfe6 50%,#f3dcc0 88%)',fog:0xeedfcb,hemi:[0xf6e6d6,0x5a6676,.7],sun:[0xffd8a8,.95,[11,9,-3]],fill:[0x98c4ff,.28],sea:0x1d6280,far:0x2a6a86},
   golden:{label:'Golden hour',sky:'linear-gradient(#3a6aa8,#e3a56a 62%,#ffcf88 88%)',fog:0xf0c08a,hemi:[0xffd8a8,0x6a4a3a,.62],sun:[0xffb870,.98,[-11,6,8]],fill:[0x8fb0ff,.2],sea:0x2a4f6a,far:0x3a5a70},
   overcast:{label:'Overcast',sky:'linear-gradient(#7d8c9a,#aeb9c3 55%,#d2d9de 88%)',fog:0xc5cdd3,hemi:[0xe6ebf0,0x6a6a6a,.86],sun:[0xffffff,.42,[4,14,4]],fill:[0xffffff,.18],sea:0x2e5868,far:0x3a6070},
   dusk:{label:'Dusk',sky:'linear-gradient(#1c2340,#5a3a5e 50%,#e08a5a 88%)',fog:0x8a6a7a,hemi:[0xb0a0d0,0x3a2a2a,.58],sun:[0xff9a6a,.6,[-12,5,6]],fill:[0x8090ff,.22],sea:0x1a2f48,far:0x223650,lamps:true},
@@ -1648,7 +2041,7 @@ function addLamps(theme){const lit=!!TM.lamps,hx=NX/2+.15,hz=NZ/2+.15,h=hz,R=rng
     if(lit){const hh=new THREE.Mesh(new THREE.SphereGeometry(.3,10,8),halo);hh.position.copy(b.position);g.add(hh)}addAt(g,x,-.37,z,Math.atan2(-x,-z)-Math.PI/2)}
   if(theme==='container'){const cols=[0xffd27a,0xff7a7a,0x7ad8ff,0x9aff8a],mats=cols.map(c=>lit?new THREE.MeshBasicMaterial({color:c}):sm('#d8d4c8'));
     for(const side of[-1,1]){for(let k=0;k<NX-1;k+=2){const x0=k-(NX-1)/2,x1=x0+2,y0=1.9;for(let j=0;j<=8;j++){const t=j/8,x=x0+(x1-x0)*t,y=y0-Math.sin(t*Math.PI)*.35;const b=new THREE.Mesh(new THREE.SphereGeometry(.045,6,4),mats[(j+k)%4]);b.position.set(x,y,side*(h+.05));scene.add(b)}}}}
-  if(lit){const n=HI()?3:1;for(let i=0;i<n;i++){const l=new THREE.PointLight(0xffc880,.7,9,1.6);l.position.set(0,2.6,(i-(n-1)/2)*NZ/3);scene.add(l)}}}
+  if(lit&&HI()){const n=3;for(let i=0;i<n;i++){const l=new THREE.PointLight(0xffc880,.7,9,1.6);l.position.set(0,2.6,(i-(n-1)/2)*NZ/3);scene.add(l)}}}
 function addBanners(theme){const fs=theme==='container'?['resistance','resistance']:theme==='founders'?['security','security']:['resistance','security'];const h=N/2+.2,hx=NX/2+.2,hz=NZ/2+.2;
   [[-hx,-hz],[hx,hz]].forEach(([x,z],i)=>{const f=fs[i],g=new THREE.Group();const p=new THREE.Mesh(new THREE.CylinderGeometry(.04,.05,3,6),sm('#d8d8d8'));p.position.y=1.5;g.add(p);
     const cl=new THREE.Mesh(new THREE.PlaneGeometry(.9,1.3,6,1),new THREE.MeshLambertMaterial({map:bannerTex(f),side:THREE.DoubleSide}));cl.position.set(.47,2.3,0);g.add(cl);
@@ -1726,13 +2119,13 @@ function startMission(m,ops){
   S={undo:null,undoStack:[],aim:null,sheet:null,logHist:[],reacted:false,phase:'player',sel:null,mode:null,turn:1,objIdx:0,prog:{},carrier:null,hold:0,vis:new Set(),explored:new Set(),alerted:!!m.alerted,reveals:[],credit:{},busy:false,reach:null,over:false,item:null,stats:{shots:0,hits:0,downs:0}};
   if(m.stages){m.objectives=m.stages.flatMap((st,i)=>st.objectives.map(o=>({...o,stage:i})));m.enemies=m.stages[0].enemies;m.reinf=m.stages[0].reinf}
   S.stage=0;S.stageTurn=1;S.turnsLeft=m.turns||null;S.poolIdx=0;if(m.defend){m.enemies=[];m.reinf=[];S.alerted=true}S.sec=(m.secondaries||[]).map(sc=>({...sc,done:false}));S.bot=null;
-  const info=parseMap(m);S.info=info;S.item=info.item;
+  const info=parseMap(m);mechInit(m);S.info=info;S.item=info.item;S.civInfo=info;
   for(const o of m.objectives)if(o.targets)for(const[x,z]of o.targets){G[z][x].kind=o.type}for(const sc of S.sec)for(const[x,z]of sc.targets)G[z][x].sec=sc
   buildScene(info);S.itemHome=info.item;if(m.defend){info.spawns=m.stages[0].pspawns.map(([x,z])=>G[z][x]);S.espawns=m.stages[0].espawns}
   ops.forEach((op,i)=>{const sp=info.spawns[i],l=lvlOf(op.xp),B=EB[op.body],w=WPN[op.weapon];
     const P=new Set(op.perks||[]),st=opStats(op),wp={...w,acc:st.acc};if(P.has('marksman')&&op.weapon==='sniper')wp.range+=2;
     const u=newUnit({op,team:'p',name:op.name,short:op.name,cls:op.cls,body:op.body,lvl:l,hp:st.hp+DF().php,maxHp:st.hp+DF().php,move:st.move,vis:B.vis+(P.has('eagle')?1:0),weapon:wp,x:sp.x,z:sp.z,look:op.look,wkey:op.weapon,perks:P});units.push(u);makeUnitMesh(u)});
-  const R=rng(m.id.length*97+Math.max(0,CUR.mi)*13+7);for(const[t,x,z]of m.enemies)spawnEnemy(t,x,z,R);S.R=R;if(m.defend)topUpAttackers(99);
+  const R=rng(m.id.length*97+Math.max(0,CUR.mi)*13+7);for(const[t,x,z]of m.enemies)spawnEnemy(t,x,z,R);S.R=R;spawnCivilians(info);if(m.defend)topUpAttackers(99);
   const sp=info.spawns[0],p=W(sp.x,sp.z);camState.target.set(p.x*.5,0,p.z*.5);camState.zoom=1;camState.angle=Math.PI/4;fit();
   $('#mtitle').textContent=m.title;$('#sheet').hidden=true;$('#menuSheet').hidden=true;$('#miniWrap').hidden=true;$('#toasts').innerHTML='';S.sel=squad()[0];computeVis();refresh();banner('Your turn');
   if(!S.alerted)setTimeout(()=>log('You haven’t been spotted. Shots on unaware enemies get +20 accuracy.'),1500);setTimeout(()=>log('Tip: press and hold anything for details. Swipe the bottom panel to switch operative.'),5200)}
@@ -1745,6 +2138,7 @@ function computeVis(){const vis=new Set();
   S.vis=vis;for(const k of vis)S.explored.add(k);applyFog()}
 function applyFog(){for(const row of G)for(const t of row){if(t.type==='water')continue;const k=key(t.x,t.z),f=S.over||S.vis.has(k)?1:S.explored.has(k)?.66:.4;
     if(t._f===f)continue;t._f=f;tint(t.mesh,f);if(t.objMesh)tint(t.objMesh,f);if(t.cpMesh)tint(t.cpMesh,f);if(t.passMesh)tint(t.passMesh,f)}
+  for(const u of units)if(u.team==='c'){const v=!u.gone&&(S.over||S.vis.has(key(u.x,u.z)));u.group.visible=v;u.seen=v}
   for(const u of units)if(u.team==='e'){const v=S.over||(!u.gone&&S.vis.has(key(u.x,u.z)));u.group.visible=v;u.seen=v;if(v&&!u.down)u.last=[u.x,u.z];else if(u.last&&S.vis.has(key(u.last[0],u.last[1])))u.last=null}
   if(S.itemMesh)S.itemMesh.visible=!S.carrier&&(S.over||S.explored.has(key(S.item.x,S.item.z)))}
 
@@ -1885,13 +2279,15 @@ function refresh(){
   hl.clear();$('#hud').querySelectorAll('.tg').forEach(e=>e.remove());const u=S.sel;S.reach=null;selRing.visible=!!u&&!u.down&&S.phase==='player';
   if(u&&S.phase==='player'&&!u.down){
     if(S.mode){for(const t of abilityTargets(u,S.mode))hlTile(t,0xffc04a,.45)}
-    else{if(!u.moved){S.reach=reach(u);const seenE=living('e').filter(e=>e.seen);for(const k of S.reach.d.keys()){const[x,z]=k.split(',').map(Number);if(x===u.x&&z===u.z)continue;const t=G[z][x];let cv=-1;if(seenE.length){cv=2;for(const e of seenE)cv=Math.min(cv,coverOf(t,G[e.z][e.x]))}hlTile(t,cv===2?0x3aa0ff:0x5fc8ff,cv===2?.5:cv===1?.4:.26);if(cv>0)pips(t,cv);if(S.reach.climb.has(k))climbMark(t)}}
+    else{if(!u.moved){S.reach=reach(u);const seenE=living('e').filter(e=>e.seen);for(const k of S.reach.d.keys()){const[x,z]=k.split(',').map(Number);if(x===u.x&&z===u.z)continue;const t=G[z][x];let cv=-1;if(seenE.length){cv=2;for(const e of seenE)cv=Math.min(cv,coverOf(t,G[e.z][e.x]))}hlTile(t,cv===2?0x3aa0ff:0x5fc8ff,cv===2?.5:cv===1?.4:.26);if(cv>0)pips(t,cv);if(S.reach.climb.has(k))climbMark(t)}mechArcs(S.reach)}
       if(!u.acted)for(const e of living('e')){if(!e.seen)continue;const c=hitChance(u,e);if(!c)continue;const r=new THREE.Mesh(new THREE.RingGeometry(.36,.46,28),new THREE.MeshBasicMaterial({color:0xff4a3a,side:THREE.DoubleSide}));r.rotation.x=-Math.PI/2;const p=W(e.x,e.z);r.position.set(p.x,topY(G[e.z][e.x])+.04,p.z);r.userData.unit=e;r.userData.pulse=true;hl.add(r);
         const fl=e.cls!=='turret'&&coverOf(G[e.z][e.x],G[u.z][u.x])===0,mm=fl?1.2:1,lo=Math.round(u.weapon.dmg*.85*mm),hi=Math.round(u.weapon.dmg*1.15*mm);const lab=document.createElement('div');lab.className='tg'+(S.aim===e?' aim':'');lab.innerHTML=S.aim===e?`${c}% · ${lo}–${hi} dmg`:`${c}%`;lab._u=e;$('#hud').appendChild(lab)}}}
   $('#roster').innerHTML=railHTML(u);
-  const det=$('#detail');if(S.aim&&(!u||u.acted||u.down||S.aim.down||!S.aim.seen||!hitChance(u,S.aim)))S.aim=null;
+  const det=$('#detail');if(S.aim&&(S.aim.trap?!trapShot(u,S.aim.trap):(!u||u.acted||u.down||S.aim.down||!S.aim.seen||!hitChance(u,S.aim))))S.aim=null;
   if(S.phase!=='player'){det.innerHTML=''}
   else if(!u){det.innerHTML=`<div class="bar"><span class="sp"></span>${endBtn()}</div>`}
+  else if(S.aim&&S.aim.trap){const tt=S.aim.trap,c=trapShot(u,tt);mechShowArea(tt);
+    det.innerHTML=`<div class="who aimwho"><b>${TRAP_INFO[tt.type][0]}</b>Danger area in red. One use.</div><div class="bar">${hudBtn('aimcancel','Cancel','cancel',{cls:'pill ghost'})}<span class="sp"></span><button type="button" class="act fire" data-a="fire">Fire ${c}%</button></div>`}
   else if(S.aim){const v=S.aim,c=hitChance(u,v),cv=coverOf(G[v.z][v.x],G[u.z][u.x]),fl=v.cls!=='turret'&&cv===0;
     det.innerHTML=`<div class="who aimwho"><b>${esc(v.name)}</b>${cv===2?'Full cover':cv===1?'Half cover':'No cover'}${fl?' · flanked +20% dmg':''}${!S.alerted?' · unaware +20':''}</div><div class="bar">${hudBtn('aimcancel','Cancel','cancel',{cls:'pill ghost'})}<span class="sp"></span><button type="button" class="act fire" data-a="fire">Fire ${c}%</button></div>`}
   else{let btns='';const t=G[u.z][u.x];
@@ -1901,6 +2297,7 @@ function refresh(){
     else{for(const a of abilsOf(u)){const cd=u.cd[a]||0,ok=!u.acted&&!cd&&(AB[a].tgt==='self'||abilityTargets(u,a).length>0);btns+=hudBtn('ab',AB[a].name,AB_ICON[a],{id:a,tip:'ab:'+a,dis:!ok,cd:cd||0})}
       const near=objTargetsNear(u);if(near.length&&!u.acted){const o=curObj(),vt=o.type==='escort'?'repair':o.type;btns+=M.defend?hudBtn('obj',`${DEF_VERB[o.type]} −${DEF_FAST[o.type]===u.cls?2:1}`,'flag',{tip:'obj',cls:'obj'}):hudBtn('obj',`${o.type==='escort'?'Repair bot':OBJ_VERB[vt]} +${OBJ_FAST[vt]===u.cls?2:1}`,'flag',{tip:'obj',cls:'obj'})}
       if(!u.acted)for(const sc of secNear(u))btns+=hudBtn('sec',`${sc.label} +${SEC_FAST[sc.type]===u.cls?2:1}`,'key',{id:sc.id,tip:'sec:'+sc.id,cls:'sec'});
+      mechActions(u).forEach((a,i)=>{btns+=hudBtn('mech',a.label,a.icon,{id:String(i),cls:a.k==='trap'?'trap':'sec'})});
       if(!u.acted)btns+=hudBtn('ow','Overwatch','eye',{tip:'ow'});
       if(t.cp&&t.owner==='p'&&!u.acted)btns+=hudBtn('swap','Swap class','swap',{tip:'swap'});
       btns+=hudBtn('wait','Done','done',{tip:'wait',dis:isDone(u)})}
@@ -1920,6 +2317,8 @@ $('#detail').addEventListener('click',async e=>{if(e.target.closest('.who[data-a
   const b=e.target.closest('.act');if(!b||b.disabled||S.busy||S.phase!=='player')return;const u=S.sel,a=b.dataset.a;
   if(a==='end'){endTurnTap();return}
   if(a==='aimcancel'){S.aim=null;refresh();return}if(a==='modecancel'){S.mode=null;refresh();return}
+  if(a==='mech'){const act=mechActions(u)[+b.dataset.id];if(act)await mechDo(u,act);return}
+  if(a==='fire'&&S.aim&&S.aim.trap){const tt=S.aim.trap;S.aim=null;await fireAtTrap(u,tt);return}
   if(a==='fire'){const v=S.aim;S.aim=null;if(!v||!u)return;clearUndo();S.busy=true;refresh();await shoot(u,v);u.acted=true;u.disg=0;S.busy=false;afterOrder();return}
   if(a==='redeploy'){u.redeploy=!u.redeploy;log(u.redeploy?`${u.name} will redeploy at the drop point at the start of your next turn.`:`${u.name} will wait for a medic.`);refresh();return}
   if(a==='wait'){clearUndo();u.moved=u.acted=true;S.mode=null;afterOrder();return}
@@ -1934,11 +2333,12 @@ let retreatArmed=false;$('#retreat').onclick=()=>{if(S.over)return;if(!retreatAr
 
 async function tap(cx,cy){if(S.phase!=='player'||S.busy)return;const h=pickAt(cx,cy),u=S.sel;
   if(S.mode&&u){const t=h.unit?G[h.unit.z][h.unit.x]:h.tile;if(t&&abilityTargets(u,S.mode).includes(t)){await doAbility(u,S.mode,t);return}S.mode=null;refresh();return}
+  {const tt=h.tile&&(h.tile.trap||h.tile.trapZone);if(tt&&u&&TRAP_SHOOT.has(tt.type)&&trapShot(u,tt)){if(S.aim&&S.aim.trap===tt){S.aim=null;await fireAtTrap(u,tt);return}S.aim={trap:tt};mechShowArea(tt);sfx('ui');refresh();return}}
   if(h.unit){const v=h.unit;if(v.team==='p'){if(v.op)select(v);return}
     if(u&&!u.down&&!u.acted&&!v.down&&v.seen){const c=hitChance(u,v);if(c){if(S.aim===v){S.aim=null;clearUndo();S.busy=true;refresh();await shoot(u,v);u.acted=true;u.disg=0;S.busy=false;afterOrder();return}S.aim=v;sfx('ui');refresh();return}}if(v.seen&&!v.down)log(`${v.name}: ${v.hp}/${v.maxHp} health, ${v.weapon.name.toLowerCase()}, range ${v.weapon.range}${u&&!u.acted&&!u.down&&!hitChance(u,v)?'. Out of range or no line of sight':''}`);return}
   if(h.tile&&u&&S.reach&&S.reach.d.has(key(h.tile.x,h.tile.z))&&!(h.tile.x===u.x&&h.tile.z===u.z)){S.busy=true;hl.clear();$('#hud').querySelectorAll('.tg').forEach(e=>e.remove());
     const snap=undoSnap(u);S.reacted=false;
-    await moveAlong(u,pathTo(S.reach,h.tile.x,h.tile.z));u.moved=true;
+    await moveAlong(u,pathTo(S.reach,h.tile.x,h.tile.z));u.moved=true;mechSpotCheck();
     // Every move can be undone, along with anything it set off (overwatch
     // shots, being spotted, new contacts, the cartridge). Only a move that
     // ends the mission or completes an objective (which spawns the next
@@ -1970,7 +2370,7 @@ function alarm(why){if(S.alerted)return;S.alerted=true;sfx('alarm');banner('Spot
 async function moveAlong(u,p){if(u.rig)u.rig.hold_(u.body==='light'?'Run':'Walk',(u.body==='light'?1.25:1.7)/SPD);try{await moveSteps(u,p)}finally{if(u.rig)u.rig.release()}
   const t=G[u.z][u.x];if(t.cp&&t.owner!==u.team&&!u.down&&u.cls!=='turret'){setOwner(t,u.team);log(`${u.team==='p'?u.name+' takes':'The enemy takes'} the ${t.cp} command post`);if(u.team==='p')popup(u,'Post taken','good')}
   if(u.carry&&t.exit&&!u.down){S.extracted=true}}
-async function moveSteps(u,p){if(u.team==='p'||u.seen)camState.follow=u;for(const[x,z]of p){if(u.team==='e'&&u.seen&&camState.follow!==u)camState.follow=u;if(u.down)break;if(u.team==='e'&&!u.seen&&!S.vis.has(key(x,z))){u.x=x;u.z=z;place(u);applyFog();enemyPickup(u,G[z][x]);if(await reactions(u))break;continue}await face(u,x,z);const a=u.group.position.clone(),t=G[z][x],b=W(x,z);b.y=topY(t);const dy=Math.abs(b.y-a.y),hop=dy>.3,heard=u.team==='p'||u.seen;if(hop&&u.rig)u.rig.once('Jump',1.2/SPD);if(hop){if(heard)sfx('jump',u.group.position);setTimeout(()=>{burst(b.clone(),5,0x9a8f80,1.1,.4,-4,1.1,.4);if(heard)sfx('land',b)},(230+dy*160)*SPD)}else if(heard)sfx('step',u.group.position);u.crouch=t.pass==='light'?.55:1;
+async function moveSteps(u,p){if(u.team==='p'||u.seen)camState.follow=u;for(const[x,z]of p){if(u.team==='e'&&u.seen&&camState.follow!==u)camState.follow=u;if(u.down)break;if(u.team==='e'&&!u.seen&&!S.vis.has(key(x,z))){u.x=x;u.z=z;place(u);applyFog();enemyPickup(u,G[z][x]);if(await reactions(u))break;continue}await face(u,x,z);const a=u.group.position.clone(),t=G[z][x],b=W(x,z);b.y=topY(t);const far=Math.hypot(b.x-a.x,b.z-a.z)>1.4,dy=Math.abs(b.y-a.y),hop=dy>.3||far,heard=u.team==='p'||u.seen;if(hop&&u.rig)u.rig.once('Jump',1.2/SPD);if(hop){if(heard)sfx('jump',u.group.position);setTimeout(()=>{burst(b.clone(),5,0x9a8f80,1.1,.4,-4,1.1,.4);if(heard)sfx('land',b)},(230+dy*160)*SPD)}else if(heard)sfx('step',u.group.position);u.crouch=t.pass==='light'?.55:1;
     await tween(hop?250+dy*160:170,k=>{u.group.position.lerpVectors(a,b,k);if(hop)u.group.position.y+=Math.sin(k*Math.PI)*(.3+dy*.55);});u.x=x;u.z=z;
     if(u.team==='p'){computeVis();if(M.defend&&t.item&&!S.carrier&&S.item===t&&t!==S.itemHome){t.item=false;S.item=S.itemHome;S.itemHome.item=true;const hp=W(S.item.x,S.item.z);S.itemMesh.position.set(hp.x,topY(S.item)+.25,hp.z);popup(u,'Recovered','good');log(`${u.name} recovers the cache and returns it to the lab.`)}
       if(!M.defend&&t.item&&!S.carrier&&S.item===t&&(!M.stages||(curObj()&&curObj().type==='extract'))){S.carrier=u;u.carry=true;t.item=false;updBar(u);popup(u,'Cartridge','good');log(`${u.name} has the cartridge. Get to the exit!`);attachCarry(u)}
@@ -1980,7 +2380,7 @@ async function moveSteps(u,p){if(u.team==='p'||u.seen)camState.follow=u;for(cons
 function enemyPickup(u,t){if(M.defend&&u.team==='e'&&u.cls!=='bot'&&t.item&&!S.carrier&&S.item===t&&curObj()&&curObj().type==='extract'){S.carrier=u;u.carry=true;t.item=false;updBar(u);log('The enemy has the cache! Stop the carrier.');banner('Cache taken','enemy');attachCarry(u)}}
 function attachCarry(u){const c=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,.3,10),new THREE.MeshBasicMaterial({color:0x7dffd0}));c.position.y=1.15;u.group.add(c);u.carryMesh=c;if(S.itemMesh)S.itemMesh.visible=false}
 function dropCarry(u){if(!u.carry)return;u.carry=false;S.carrier=null;if(u.carryMesh)u.group.remove(u.carryMesh);const t=G[u.z][u.x];S.item=t;t.item=true;const p=W(t.x,t.z);S.itemMesh.position.set(p.x,topY(t)+.25,p.z);S.itemMesh.visible=true;log('The cartridge is on the ground. Pick it back up!')}
-async function reactions(m){const _r=0;for(const o of units){if(!o.ow||o.down||o.gone||o.team===m.team||o.stun>0)continue;if(m.down)return true;
+async function reactions(m){const _r=0;if(m.team==='c')return false;for(const o of units){if(!o.ow||o.down||o.gone||o.team===m.team||o.stun>0)continue;if(m.down)return true;
     if(o.team==='e'&&m.disg>0&&cheb(o,m)>1)continue;if(o.team==='p'&&!S.vis.has(key(m.x,m.z)))continue;const c=hitChance(o,m,-10);if(!c)continue;
     S.reacted=true;o.ow=false;updBar(o);log(`${o.team==='p'?o.name:'Enemy'} overwatch fire!`);await shoot(o,m,o.perks&&o.perks.has('sharp')?10:-10);if(o.team==='p')alarm()}return m.down}
 function muzzle(u){if(u.rig&&u.rig.gun)return rigMuzzleWorld(u.rig,new THREE.Vector3());const v=u.group.position.clone();v.y+=u.cls==='turret'?.5:u.body==='heavy'?.62:.58;v.x+=Math.sin(u.group.rotation.y)*.34;v.z+=Math.cos(u.group.rotation.y)*.34;return v}
@@ -1993,7 +2393,7 @@ async function shoot(a,b,mod=0){if(a.team==='p'||a.seen||b.team==='p'){const pa=
   if(a.team==='e'&&!a.seen){a.group.visible=true;a.el.style.display=''}
   for(let i=0;i<n;i++){const hit=Math.random()*100<c;if(hit){hits++;dmg+=a.weapon.dmg/n*(.85+Math.random()*.3)}await tracer(a,b,hit,a.team==='p'?0xffd27a:0x8fd8ff);await sleep(50)}
   if(a.team==='p'&&a.op){S.stats.shots++;if(hits)S.stats.hits++}if(a.team==='p')alarm(`${a.name} opened fire`);
-  if(n>1)setTimeout(()=>sfx('shell',a.group.position),300);if(hits){if(fl)dmg*=1.2;damage(b,Math.round(dmg),a,fl)}else{popup(b,'Miss','miss');sfx('miss',b.group.position);log(`${a.team==='p'?a.name:b.team==='p'?'Enemy':''} missed`)}await sleep(320)}
+  if(n>1)setTimeout(()=>sfx('shell',a.group.position),300);if(hits){if(fl)dmg*=1.2;damage(b,Math.round(dmg),a,fl)}else{civStray(a,b);popup(b,'Miss','miss');sfx('miss',b.group.position);log(`${a.team==='p'?a.name:b.team==='p'?'Enemy':''} missed`)}await sleep(320)}
 function damage(u,n,by,fl){if(u.cls==='bot')n=Math.round(n*.5);if(u.perks&&u.perks.has('jugg'))n=Math.round(n*.85);if(by&&by.perks&&by.perks.has('marksman')&&by.wkey==='sniper'&&G[by.z][by.x].h>G[u.z][u.x].h)n+=10;let left=n;if(u.shield>0){const s=Math.min(u.shield,left);u.shield-=s;left-=s}sfx('hit',u.group&&u.group.position);if(u.team==='p'&&navigator.vibrate)try{navigator.vibrate(35)}catch(e){}flashUnit(u,0xff2a1a);if(n>=35)shake(.12);u.hp=Math.max(0,u.hp-left);popup(u,'−'+n+(fl?' flanked':''),u.team==='p'?'hurt':'');updBar(u);
   if(u.hp<=0&&!u.down&&u.cls==='bot'){u.down=true;puff(u.group.position.clone(),8,0x3a3430,2);if(M.defend){log('Bot disabled! They will try to repair it.');banner('Bot down')}else{log('The bot is disabled! Repair it to keep going.');banner('Bot disabled','enemy')}updBar(u);return}
   if(u.hp<=0&&!u.down){u.down=true;u.ow=false;puff(u.group.position.clone(),4,0x9a8f80,.9);if(u.op)S.stats.downs++;if(u.rig)u.rig.setBase('Death');else tween(300,k=>{u.lie.rotation.x=-Math.PI/2*k;u.lie.position.y=.08*k});u.ringMesh.visible=false;if(by&&by.team==='p'&&u.team==='e')by.kills++;
@@ -2013,7 +2413,7 @@ async function doAbility(u,id,t){clearUndo();S.busy=true;S.mode=null;hl.clear();
   if(t&&!(t.x===u.x&&t.z===u.z))await face(u,t.x,t.z);
   if(id==='grenade'||id==='emp'){sfx('throw',u.group.position);const a=muzzle(u),b=W(t.x,t.z);b.y=topY(t)+.1;const g=new THREE.Mesh(new THREE.SphereGeometry(.08,8,6),new THREE.MeshBasicMaterial({color:id==='emp'?0x5fd8ff:0x556036}));scene.add(g);
     await tween(480,k=>{g.position.lerpVectors(a,b,k);g.position.y+=Math.sin(k*Math.PI)*1.6});scene.remove(g);
-    if(id==='grenade'){explode(t);for(const v of units)if(!v.down&&!v.gone&&cheb(v,t)<=1)damage(v,30+(u.perks.has('demo')?15:0)+Math.round(Math.random()*8),v.team==='e'?u:null);
+    if(id==='grenade'){for(const tr of S.traps||[])if(tr.type==='barrels'&&trapLive(tr)&&cheb(tr,t)<=1)trapFire(tr,u);explode(t);for(const v of units)if(!v.down&&!v.gone&&cheb(v,t)<=1)damage(v,30+(u.perks.has('demo')?15:0)+Math.round(Math.random()*8),v.team==='e'?u:null);
       for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){const n=tileAt(t.x+dx,t.z+dz);if(n&&n.obj==='wall'){tileGroup.remove(n.objMesh);n.obj=null;n.objMesh=null}}}
     else{const ring=new THREE.Mesh(new THREE.RingGeometry(.2,1.5,32),new THREE.MeshBasicMaterial({color:0x5fd8ff,transparent:true,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.copy(b);scene.add(ring);tween(400,k=>{ring.scale.setScalar(.3+k);ring.material.opacity=1-k}).then(()=>scene.remove(ring));
       for(const v of living('e'))if(cheb(v,t)<=1){v.stun=1;v.ow=false;updBar(v);popup(v,'Stunned','good')}}
@@ -2037,11 +2437,12 @@ async function turretsFire(team){for(const tu of units.filter(x=>x.cls==='turret
 function startTurnEffects(team){for(const t of S.info.cps){if(t.owner!==team)continue;for(const v of living(team)){if(v.cls==='turret')continue;
     if(t.cp==='health'&&v.hp<v.maxHp){v.hp=Math.min(v.maxHp,v.hp+10);updBar(v)}if(t.cp==='supply')for(const k in v.cd)v.cd[k]=Math.max(0,v.cd[k]-1)}}
   for(const v of units.filter(x=>x.team===team&&!x.gone)){for(const k in v.cd)v.cd[k]=Math.max(0,v.cd[k]-1);v.ow=false;if(v.disg>0)v.disg--;v.moved=v.acted=false;if(v.stun>0&&v.cls!=='turret'){v.moved=v.acted=true;v.stun--}updBar(v)}}
-async function endPlayerTurn(){clearUndo();S.phase='enemy';S.sel=null;S.mode=null;refresh();if(!M.defend)await moveBot();if(advanceObj())return;await turretsFire('p');if(checkEnd()||advanceObj())return;await enemyTurn()}
+async function endPlayerTurn(){clearUndo();mechTurnTick('p');S.phase='enemy';S.sel=null;S.mode=null;refresh();if(!M.defend)await moveBot();if(advanceObj())return;await turretsFire('p');if(checkEnd()||advanceObj())return;await enemyTurn()}
 async function enemyTurn(){banner('Enemy turn','enemy');await sleep(800);startTurnEffects('e');if(M.defend){topUpAttackers();assignRoles()}
   for(const[t,list]of(M.stages?(M.stages[S.stage].reinf||[]):(M.reinf||[])))if(t===(M.stages?S.stageTurn:S.turn)){let any=false,cnt=0;for(const[type,x,z]of list){if(cnt>=DF().wave)break;if(unitAt(x,z)||G[z][x].obj)continue;cnt++;const e=spawnEnemy(type,x,z,S.R);e.fresh=true;any=true}if(any){log('Enemy reinforcements have arrived');S.alerted=true;applyFog();await sleep(500)}}
   for(const e of [...living('e')]){if(S.over)return;if(e.fresh){e.fresh=false;continue}if(e.cls==='turret'||e.cls==='bot')continue;if(e.moved&&e.acted)continue;await aiAct(e);updBar(e);if(checkEnd())return;if(S.over)return}
-  await turretsFire('e');if(checkEnd())return;if(M.defend){await moveBot();if(advanceObj())return}
+  await mechEnemyTraps();if(checkEnd())return;await civTurn();
+  await turretsFire('e');if(checkEnd())return;mechTurnTick('e');if(checkEnd())return;if(M.defend){await moveBot();if(advanceObj())return}
   const o=curObj();if(o&&o.type==='hold'&&squad().some(p=>!p.down&&G[p.z][p.x].zone)){S.hold++;log(`Square held (${S.hold}/${o.turns})`)}
   if(advanceObj())return;
   S.turn++;S.stageTurn++;if(S.turnsLeft!=null){S.turnsLeft--;if(S.turnsLeft<=0){if(M.defend)endMission(true);else endMission(false,'Out of time. The enemy held the line.');return}if(S.turnsLeft<=2)log(M.defend?`Hold on! ${S.turnsLeft} turn${S.turnsLeft>1?'s':''} to go.`:`${S.turnsLeft} turn${S.turnsLeft>1?'s':''} left to complete the objective!`)}S.reveals=S.reveals.filter(r=>--r.turns>0);startTurnEffects('p');redeployDowned();S.phase='player';computeVis();banner('Your turn');

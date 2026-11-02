@@ -25,6 +25,7 @@ try {
     await page.goto(url + 'index.html');
     await page.waitForFunction(() => window.ARKSIDE, null, {timeout: 20000});
     await page.evaluate(a => { SAVE.settings.sound = false; SAVE.settings.units = 'animated' }, ANIM);
+    await page.evaluate(() => { SAVE.opProg = {resistance: 9, security: 9} });
     await page.click(`.fac.${faction}`);
     const ids = await page.$$eval('.mis.op', b => b.map(x => x.dataset.op));
     if (!ids.length) throw new Error(`no Operations section on the ${faction} campaign`);

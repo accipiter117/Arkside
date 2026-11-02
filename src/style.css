@@ -398,3 +398,4 @@ body[data-faction="security"] .tape{display:none}
 .olist .od{display:block}.olist .od::first-letter{text-transform:uppercase}
 #miniWrap{max-width:calc(100% - 130px)}#miniWrap small{text-align:center}
 #mini{max-height:calc(100vh - 260px);width:auto!important;height:auto!important;max-width:100%}
+.ub.civ{display:none!important}

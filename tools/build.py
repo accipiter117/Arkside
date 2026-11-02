@@ -28,6 +28,8 @@ JS_PARTS = {
     "//__MODEL_KIT__": "model-kit.js",
     "//__UNITS__": "units.js",
     "//__CREATOR_UI__": "creator-ui.js",
+    "//__WORLD__": "world.js",
+    "//__MECH__": "mechanics.js",
     "//__ENGINE__": "engine.js",
 }
 GLBS = {"sec": "soldier_ct.glb", "res": "soldier_t.glb"}

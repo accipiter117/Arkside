@@ -37,11 +37,12 @@ Each map ships with a validator entry in `tools/maps/` proving every stage is re
 
 ## Status
 - [x] Attacker AI and Container City defence version (`x1d`).
-- [ ] Security Tower, attack and defence.
+- [x] Security Tower, attack (`x2`, Breakout) and defence (`x2d`, Breakout: Lockdown). Map built in `tools/maps/tower.py`.
 - [ ] Terminal.
 - [ ] Shipyard.
 - [ ] Reactor.
 - [ ] Refuel.
 - [ ] Aquarium.
 - [ ] Founders' Tower.
-- [ ] Rewire both campaigns and retire the old missions.
+- [x] Rewire both campaigns: operations are the campaign (`CAMPAIGN` in engine.js), the old missions are skirmishes until each is replaced.
+- [x] Container City retrofit: sniper towers, ladders, climb steps, vault rails, zipline, crane trap, barrels, steam pipe, supply station, civilians.

@@ -26,6 +26,9 @@ python3 tools/build.py      # src/* -> index.html and lab/unit-review.html
 | `src/model-kit.js` | Palette, seeded RNG, toon material and outline helpers |
 | `src/units.js` | Unit models: the animated Toon Shooter soldiers (loading, recolouring, attachments, body types, animation), the creator head, procedural weapons, a capsule fallback, and the 3D menu portraits |
 | `src/creator-ui.js` | The in-game Operative Creator with its live 3D preview |
+| `src/world.js` | The Ark around each map: apron, stilts, neighbouring shacks, bridges, prop kits, ground variety |
+| `src/mechanics.js` | Climbing and parkour rules, interactive points, traps, civilians and the Breakout prisoner |
+| `tools/maps/tower.py` | Security Tower map source (also checked by `validate_long.py`) |
 | `src/lab/unit-review.template.html` | The unit review lab page (built into `lab/unit-review.html`) |
 | `src/engine.js` | Everything else: data, missions, save system, menus, tactics engine, AI, visuals, audio |
 
@@ -40,6 +43,8 @@ python3 tools/maps/validate.py              # map reachability, prints OK
 node tools/smoke.mjs [--low]                # every mission, 3 turns, fails on console errors
 node tools/ops-smoke.mjs                    # every operation from both campaigns
 node tools/creator-smoke.mjs [--dark]       # recruit, edit, dismiss, deploy a recruit
+node tools/mech-test.mjs                    # movement rules by body type
+node tools/trap-test.mjs                    # traps and interactive points
 node tools/screens.mjs                      # phone-size screenshots into shots/
 node tools/perf.mjs                         # frame rate and draw calls, High vs Low
 ```
