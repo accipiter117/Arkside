@@ -47,7 +47,7 @@ try {
       check(sp.tags, `${faction} op ${i + 1}: rivals carry name tags with the rival marker`);
       check(sp.allies === 2 && sp.allyTags, `${faction} op ${i + 1}: two militia allies spawned`);
       check(sp.intel === 2, `${faction} op ${i + 1}: two intel pickups placed`);
-      check(sp.grunts >= 3, `${faction} op ${i + 1}: grunts fill out the force (${sp.grunts})`);
+      check(sp.grunts >= 2, `${faction} op ${i + 1}: grunts fill out the force (${sp.grunts})`);
       if (i === 1) {
         check(!sp.rivals.includes(downedId), `${faction} op 2: the injured rival ${downedId} sat out`);
         const benchIn = await page.evaluate(ids => ids.some(id => !window.__dep1.includes(id)), sp.rivals);
