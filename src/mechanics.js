@@ -224,34 +224,53 @@ function mechShowArea(t){if(!hl)return;for(const[x,z]of trapArea(t)){const tl=ti
 /* ===================== Civilians =====================
    Unarmed people on the soldier rig in muted clothes and no weapon:
    refugees in shanty areas, workers and technicians in Security areas.
-   They wander until the first shot or the alarm, then run for the map edge
-   or hide behind cover. Missed shots whose line passes one may hit them,
+   They stream across the map from the far side towards their own faction's
+   edge (refugees to the Resistance end, citizens to the Security end), new
+   ones arriving at the start while the count is under the cap, and leave
+   when they reach the far end. Once shooting starts they keep clear of
+   fighters. Missed shots whose line passes one may hit them,
    and blasts and traps do. Hit civilians go down and stay down, with no
-   penalty to the player. They block movement. Counts: about 6 to 10 in
+   penalty unless they are your own faction's people (small XP cut). Units
+   walk through them but can't stop on them. Cap: about 6 to 10 in
    shanty areas, 2 to 4 in Security areas, in between on the industrial
    decks, halved on Low graphics. A mission can set civ:n. */
 function civCount(){const th=THEME_OF[M.id]||'container',R=S.R||Math.random;let n=M.civ!=null?M.civ:th==='container'?6+Math.floor(R()*5):th==='founders'?2+Math.floor(R()*3):4+Math.floor(R()*3);return HI()?n:Math.ceil(n/2)}
-function spawnCivilians(info){const n=civCount();if(!n)return;const th=THEME_OF[M.id]||'container',R=rng((M.id||'c').charCodeAt(1)*53+NX),sec=th==='founders';
-  const spawns=info.spawns||[],cand=[];for(const row of G)for(const t of row){if(t.type!=='floor'||t.obj||t.flood||t.cp||t.trap||t.point||t.zone||t.exit)continue;if(spawns.some(s=>Math.max(Math.abs(s.x-t.x),Math.abs(s.z-t.z))<4))continue;if(unitAt(t.x,t.z))continue;cand.push(t)}
-  for(let i=0;i<n&&cand.length;i++){const t=cand.splice(Math.floor(R()*cand.length),1)[0];const fac=sec?'security':'resistance';
-    const look=LOOK({faction:fac,body:R()<.2?'light':'medium',cls:'soldier',weapon:'rifle',skin:Math.floor(R()*6),hairCol:Math.floor(R()*7),face:['long','square','angular','broad'][Math.floor(R()*4)],facial:['none','stubble','beard','none'][Math.floor(R()*4)],hair:['buzz','crop','shaved','slick','dreads','topknot'][Math.floor(R()*6)],
-      headgear:sec?['none','cap','headset'][Math.floor(R()*3)]:['none','beanie','bandana','none'][Math.floor(R()*4)],facegear:sec?'none':['none','mask','none'][Math.floor(R()*3)],armour:'none',top:['tee','long','hoodie','jacket'][Math.floor(R()*4)],primary:sec?[2,5,1][Math.floor(R()*3)]:[1,3,5][Math.floor(R()*3)],secondary:sec?[5,1][Math.floor(R()*2)]:[3,5,1][Math.floor(R()*3)],gloves:'none'});
-    const c=newUnit({team:'c',cls:'civ',type:'civ',name:sec?['Technician','Worker','Clerk'][i%3]:['Refugee','Dock worker','Trader'][i%3],short:'Civilian',body:look.body,hp:30,maxHp:30,move:3,vis:0,weapon:{name:'none',dmg:0,range:0,acc:0,opt:0},x:t.x,z:t.z,look,wkey:'rifle'});
-    units.push(c);makeUnitMesh(c);if(c.rig&&c.rig.gun)c.rig.gun.visible=false;if(c.el)c.el.classList.add('civ');if(c.ringMesh)c.ringMesh.visible=false;c.group.rotation.y=R()*6.28}}
-// Their turn: wander while it's quiet, flee or hide once the shooting starts.
-async function civTurn(){const cs=units.filter(u=>u.cls==='civ'&&!u.down&&!u.gone);if(!cs.length)return;const fighters=units.filter(u=>!u.gone&&!u.down&&(u.team==='p'||u.team==='e')&&u.cls!=='bot');
-  for(const c of cs){const r=reach(c,S.alerted?4:2);let best=null,bs=-1e9;
+function civFaction(){return (THEME_OF[M.id]||'container')==='founders'?'security':'resistance'}
+function civLook(i,R){const sec=civFaction()==='security';const look=LOOK({faction:civFaction(),body:R()<.2?'light':'medium',cls:'soldier',weapon:'rifle',skin:Math.floor(R()*6),hairCol:Math.floor(R()*7),face:['long','square','angular','broad'][Math.floor(R()*4)],facial:['none','stubble','beard','none'][Math.floor(R()*4)],hair:['buzz','crop','shaved','slick','dreads','topknot'][Math.floor(R()*6)],
+    headgear:sec?['none','cap','headset'][Math.floor(R()*3)]:['none','beanie','bandana','none'][Math.floor(R()*4)],facegear:sec?'none':['none','mask','none'][Math.floor(R()*3)],armour:'none',top:['tee','long','hoodie','jacket'][Math.floor(R()*4)],primary:sec?[2,5,1][Math.floor(R()*3)]:[1,3,5][Math.floor(R()*3)],secondary:sec?[5,1][Math.floor(R()*2)]:[3,5,1][Math.floor(R()*3)],gloves:'none'});
+  return{look,name:sec?['Technician','Worker','Clerk'][i%3]:['Refugee','Dock worker','Trader'][i%3]}}
+function civSpawnAt(t,R){const i=S.civN=(S.civN||0)+1,{look,name}=civLook(i,R);
+  const c=newUnit({team:'c',cls:'civ',type:'civ',name,short:'Civilian',body:look.body,hp:30,maxHp:30,move:4,vis:0,weapon:{name:'none',dmg:0,range:0,acc:0,opt:0},x:t.x,z:t.z,look,wkey:'rifle'});
+  units.push(c);makeUnitMesh(c);if(c.rig&&c.rig.gun)c.rig.gun.visible=false;if(c.el)c.el.classList.add('civ');if(c.ringMesh)c.ringMesh.visible=false;c.group.rotation.y=R()*6.28;c.stuck=0;return c}
+// The stream runs from the enemy of the civilians' faction towards their own side. Projection along that axis, 0 at the start.
+function civAxis(info){const mean=a=>a.length?[a.reduce((s,t)=>s+t[0],0)/a.length,a.reduce((s,t)=>s+t[1],0)/a.length]:[NX/2,NZ/2];
+  const pl=mean((info.spawns||[]).map(t=>[t.x,t.z]));let en;if(S.espawns)en=mean(S.espawns);else if(M.stages&&M.stages[M.stages.length-1].spawns)en=mean(M.stages[M.stages.length-1].spawns);else en=mean((M.enemies||[]).map(e=>[e[1],e[2]]));
+  const own=civFaction()===CUR.faction,from=own?en:pl,to=own?pl:en;let dx=to[0]-from[0],dz=to[1]-from[1];const L=Math.hypot(dx,dz)||1;dx/=L;dz/=L;
+  let lo=1e9,hi=-1e9;for(const row of G)for(const t of row){if(t.type!=='floor')continue;const p=(t.x-from[0])*dx+(t.z-from[1])*dz;lo=Math.min(lo,p);hi=Math.max(hi,p)}
+  S.civAxis={from,dx,dz,lo,hi,p:t=>(t.x-from[0])*dx+(t.z-from[1])*dz}}
+function civCap(){const n=civCount();return n}
+function civEntryTiles(){const A=S.civAxis,spawns=(S.info.spawns||[]).concat((S.espawns||[]).map(([x,z])=>G[z][x])),out=[];
+  for(const row of G)for(const t of row){if(t.type!=='floor'||t.obj||t.flood||t.cp||t.trap||t.point||t.zone||t.exit)continue;if(A.p(t)>A.lo+(A.hi-A.lo)*.15)continue;if(spawns.some(s=>Math.max(Math.abs(s.x-t.x),Math.abs(s.z-t.z))<3))continue;if(unitAt(t.x,t.z))continue;out.push(t)}return out}
+function spawnCivilians(info){const n=civCount();if(!n)return;const R=rng((M.id||'c').charCodeAt(1)*53+NX);civAxis(info);S.civN=0;
+  const spawns=info.spawns||[],cand=[];for(const row of G)for(const t of row){if(t.type!=='floor'||t.obj||t.flood||t.cp||t.trap||t.point||t.zone||t.exit)continue;if(spawns.some(s=>Math.max(Math.abs(s.x-t.x),Math.abs(s.z-t.z))<4))continue;if(unitAt(t.x,t.z))continue;if(S.civAxis.p(t)>S.civAxis.hi-(S.civAxis.hi-S.civAxis.lo)*.2)continue;cand.push(t)}
+  for(let i=0;i<Math.ceil(n/2)&&cand.length;i++){const t=cand.splice(Math.floor(R()*cand.length),1)[0];civSpawnAt(t,R)}}
+// Their turn: hurry along the stream towards their own side, keeping clear of fighters once the shooting starts,
+// leave the map at the far end, and new ones arrive at the start while the count is under the cap.
+async function civTurn(){const cap=civCount();if(!cap||!S.civAxis)return;const A=S.civAxis,R=S.R||Math.random;
+  const cs=units.filter(u=>u.cls==='civ'&&!u.down&&!u.gone),fighters=units.filter(u=>!u.gone&&!u.down&&(u.team==='p'||u.team==='e')&&u.cls!=='bot');
+  for(const c of cs){const r=reach(c,S.alerted?5:4),p0=A.p(c);let best=null,bs=-1e9;
     for(const k of r.d.keys()){const[x,z]=k.split(',').map(Number);const t=G[z][x];if(t.flood||t.trapZone)continue;
-      if(!S.alerted){const s=Math.random();if(s>bs){bs=s;best=[x,z]}continue}
-      let near=99;for(const f of fighters)near=Math.min(near,Math.hypot(f.x-x,f.z-z));const edge=Math.min(x,z,NX-1-x,NZ-1-z);let cover=0;for(const f of fighters)cover+=coverOf(t,G[f.z][f.x]);
-      const s=near*1.2+cover*.6-edge*.8;if(s>bs){bs=s;best=[x,z]}}
-    if(!best||(best[0]===c.x&&best[1]===c.z))continue;const path=pathTo(r,best[0],best[1]);if(!path.length)continue;
-    if(c.group.visible&&S.vis.has(key(best[0],best[1])))await moveAlong(c,path);else{c.x=best[0];c.z=best[1];place(c)}
-    if(S.alerted&&Math.min(c.x,c.z,NX-1-c.x,NZ-1-c.z)===0){c.gone=true;c.group.visible=false;if(c.el)c.el.remove()}}
+      let s=(A.p(t)-p0)*1.2+R()*.8;if(S.alerted){for(const f of fighters){const d=Math.hypot(f.x-x,f.z-z);if(d<2.5)s-=(2.5-d)*1.5}}
+      if(s>bs){bs=s;best=[x,z]}}
+    if(best&&!(best[0]===c.x&&best[1]===c.z)){const path=pathTo(r,best[0],best[1]);if(path.length){if(c.group.visible&&S.vis.has(key(best[0],best[1])))await moveAlong(c,path);else{c.x=best[0];c.z=best[1];place(c)}}}
+    if(A.p(c)<=p0+.5)c.stuck=(c.stuck||0)+1;else c.stuck=0;
+    if(A.p(c)>=A.hi-(A.hi-A.lo)*.1||c.stuck>=3){c.gone=true;c.group.visible=false;if(c.el)c.el.remove()}}
+  const alive=units.filter(u=>u.cls==='civ'&&!u.down&&!u.gone).length,want=Math.min(cap-alive,alive<cap/2?2:1);
+  if(want>0){const ent=civEntryTiles();for(let i=0;i<want&&ent.length;i++){const t=ent.splice(Math.floor(R()*ent.length),1)[0];civSpawnAt(t,R)}}
   applyFog()}
 // A missed shot may hit a civilian standing on the line of fire.
 function civStray(a,b){const cs=units.filter(u=>u.cls==='civ'&&!u.down&&!u.gone);if(!cs.length)return;const dx=b.x-a.x,dz=b.z-a.z,steps=Math.ceil(Math.hypot(dx,dz)*3);
-  for(let i=1;i<steps;i++){const t=i/steps,x=Math.round(a.x+dx*t),z=Math.round(a.z+dz*t);const c=cs.find(u=>u.x===x&&u.z===z);if(c&&Math.random()<.5){damage(c,Math.round(a.weapon.dmg*.8),null);log('A stray shot hits a civilian.');return}}}
+  for(let i=1;i<steps;i++){const t=i/steps,x=Math.round(a.x+dx*t),z=Math.round(a.z+dz*t);const c=cs.find(u=>u.x===x&&u.z===z);if(c&&Math.random()<.5){damage(c,Math.round(a.weapon.dmg*.8),a);log('A stray shot hits a civilian.');return}}}
 
 /* ---------- the prisoner (Breakout) ----------
    Mara Quill, a Resistance organiser held in the island prison. She joins
