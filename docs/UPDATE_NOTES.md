@@ -65,3 +65,13 @@ Built in the Claude chat and already playable there. This brings the repo up to 
 - **Light** operatives can now take the **sniper rifle** (and the battle rifle).
 - Weapons by body (`BODY_WPN`): light: machine pistol, SMG, battle rifle, sniper rifle. Medium: SMG, assault rifle, shotgun, battle rifle, sniper rifle. Heavy: assault rifle, shotgun, battle rifle, LMG, minigun.
 - The battle rifle is a new procedural model on the soldiers, about 0.8 long in the hand.
+
+# Update 8: visual and world overhaul
+
+- **Menus:** gunmetal plates, condensed type, Resistance and Security skins; campaign with hexagon numbers, Attack/Defend tags, stage pips and padlocks; briefings with an "Incoming transmission" speaker, numbered stages and four squad cards.
+- **Mission HUD:** map first, about 8 to 12% of the screen (was about 42%): objective pill, menu, minimap button, one rotate button, two-finger twist, squad rail, round action buttons, aim then Fire, a details sheet and toasts.
+- **Environment:** every map sits inside the Ark with an apron on stilts, neighbouring shacks, bridges, spray, fog, prop kits per district and ground variety.
+- **Mechanics:** ladders, climb steps, vault rails, gap jumps, ziplines by body type; interactive points; eight traps; civilians.
+- **Maps:** Container City retrofit, and Security Tower: Breakout (Resistance attack) and Breakout: Lockdown (Security defence).
+- **Campaign:** operations are the campaign now, unlocking in order; the old missions are skirmishes.
+

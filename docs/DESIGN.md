@@ -10,7 +10,7 @@ The Ark: a floating eco-city off the coast, now overcrowded and drowning. Two fa
 Visual direction, taken from Brink's art direction: contrast between rusty container shanties and bright blue sky, gleaming white curved Founders' architecture, scavenged turbines, graffiti, algae reactors and hydroponics. Bold forms over noisy detail.
 
 ## Structure
-Title (pick faction, settings, creator import, save code) → Campaign (4 missions per faction, stars) → Briefing and squad pick (up to 4) → Mission → Debrief (XP, level ups, recruit, stars).
+Title (pick faction, settings, share operatives, save code) → Campaign (operations in order, `CAMPAIGN`; old missions listed as skirmishes) → Briefing and squad pick (up to 4) → Mission → Debrief (XP, level ups, recruit, stars).
 
 ## Missions (`MISSIONS`)
 | ID | Mission | District, time | Objectives |
@@ -57,6 +57,9 @@ The Operative Creator lives in the game (`src/creator-ui.js`): Roster, then Recr
 ## Presentation
 - Isometric three.js view with pan, pinch zoom and 90° rotation. Toon-shaded units with inverted-hull outlines.
 - Three district themes (container, founders, industrial) with procedural canvas textures, props, skyline, boats, turbines, birds and banners. Six times of day with lamps at dusk and night.
+- Each map sits inside the Ark (`src/world.js`): a deck apron on stilts with railings, neighbouring shacks and stacks on stilts with lit windows, rope bridges, spray at the stilts, light fog and the Ark's needle tower. Per-theme prop kits on the apron (shanty laundry, tarps, barrels, tanks, plants, dishes and scrap; Security planters, bollards, turning cameras, light pylons and holo signs; industrial pipes, valves, steam, hazard stripes and catwalks), merged into a few meshes. Ground variety per tile: deck plate, planks, concrete and grating over water (`mat` rows on a map, or a seeded pattern). Low graphics thins props and drops distant detail and dusk point lights.
+- Menus use gunmetal plates with chamfered corners and condensed type, with a Resistance skin (orange, hazard stripes, tape, grain) and a Security skin (steel blue, cyan rules, corner brackets, grid).
+- Mission HUD is map-first (about 8 to 12% of the screen): objective pill, menu sheet, map button (minimap), one rotate button, squad rail, round action buttons, aim with Fire and Cancel, a details sheet, and toasts.
 - Effects: tracers, muzzle lights, sparks, debris, smoke, camera shake, hit flashes, overwatch range rings.
 - Audio is synthesised with WebAudio. Settings: graphics high or low, sound, game speed.
 
@@ -67,3 +70,10 @@ Clothing shapes come from the base models, so tops (tee, tank, hoodie, jacket) d
 
 ## Operations
 Long multi-stage missions (`OPERATIONS`), see `docs/OPERATIONS_PLAN.md`. Attack versions move your drop point forward as stages fall; defence versions (`defend:true`, e.g. `x1d`) flip the roles, with the attacker AI assigning pushers, escorts and flankers each turn. Downed operatives can redeploy at the drop point (by choice, or automatically after 3 turns) or wait for a medic.
+
+## Climbing, parkour, traps and civilians (`src/mechanics.js`)
+- Movement by body type: ladders (light and medium 1 a level, heavy 2), climb steps (light and medium 1, no heavies), vault rails (lights free, mediums +1, heavies walk round), gap jumps (lights; mediums on marked gaps only), wall-hops (lights, two levels), one-way ziplines (light and medium), drops (two levels, heavies one), crawl vents (lights). Map data: `feat` rows (`L` ladder, `s` step, `r` rail, `_` gap, `=` marked gap) and `zips`. The move preview draws a dotted arc for jumps, vaults and ziplines. Enemy AI plans with the same rules.
+- Interactive points (`points`): supply station (once: heal 30 or refresh), searchlight (spots and calls one reinforcement; hack to switch off; in defence it lights attackers for you), ladder hatch, deployable bridge, zipline anchor.
+- Traps (`traps`, one use, enemies use them too): crane cargo, explosive barrels (chain), steam pipe (blocks sight, scalds), fuel spill, gantry collapse, floodgate, shutters, drawbridge (cuts off a reinforcement boat). Shoot the shootable ones (aim at them like a target); work the others from an adjacent tile. Press and hold shows the danger area in red.
+- Civilians: unarmed people in muted clothes, more in shanty areas than Security ones (`civ` on a mission overrides), halved on Low. They wander, then flee or hide once shooting starts. Stray shots, blasts and traps can down them, with no penalty. They block movement.
+- Breakout's prisoner, Mara Quill, joins at the getaway with an SMG and a light body, can't redeploy, and the mission fails if she stays down for 3 turns.
