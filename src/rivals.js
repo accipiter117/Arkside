@@ -45,7 +45,7 @@ function rivalsStage(){if(!S.rivalsOn)return;const alive=S.rivalUnits.filter(e=>
 function rivalsFill(){if(!S.rivalsOn||!S.rivalPending.length)return;const g=freshGrunts();while(S.rivalPending.length&&g.length)makeRival(g.shift(),S.rivalPending.shift())}
 // Traits in play.
 function rivalAfterShot(a){if(a.team==='e'&&a.trait==='ghost'&&!a.down&&!squad().some(p=>!p.down&&cheb(p,a)<=1)){a.ghostT=1;applyFog();log(`${a.name} slips out of sight.`)}}
-function rivalDowned(u,by){if(!u.rival)return;S.rivalDowned.add(u.rival.id);if(by&&by.op)u.rival.nemesis=by.op.id;rivalReveal(u.rival,'downed')}
+function rivalDowned(u,by){if(!u.rival)return;S.rivalDowned.add(u.rival.id);if(by&&by.op)u.rival.nemesis=by.op.id;rivalReveal(u.rival,'downed');if(typeof ctlRivalDowned==='function')ctlRivalDowned(u.rival)}
 function rivalReveal(r,how){if(r.revealed)return;r.revealed=true;const T=RIVAL_TRAITS[r.trait];log(`${r.name}: ${T.name}. ${T.desc}`);S.rivalEvents.push({id:r.id,kind:'reveal',how});persist()}
 function rivalSpot(t){for(const e of living('e'))if(e.rival&&!e.rival.revealed&&dist(e,t)<=3)rivalReveal(e.rival,'spot')}
 // Intel pickups: two per operation on quiet floor tiles away from the drop point.
