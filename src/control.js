@@ -11,7 +11,7 @@ const CTL_ROUND=10;
 function ctlZoneTiles(zn){const out=[];for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){const t=tileAt(zn.x+dx,zn.z+dz);if(t&&t.type!=='water'&&t.type!=='gap'&&!t.obj)out.push(t)}return out}
 function ctlZone(){return M.zones[S.ctl.zi%M.zones.length]}
 function ctlNext(){return M.zones[(S.ctl.zi+1)%M.zones.length]}
-function ctlStart(m){if(!m.control)return;S.ctl={zi:0,left:m.zoneTurns||6,score:{p:0,e:0},warned:false};S.alerted=true;ctlDraw();log(`Control: hold ${ctlZone().name.toLowerCase()} alone at the end of a round for ${CTL_ROUND} points. First to ${M.win} wins.`)}
+function ctlStart(m){if(!m.control)return;S.ctl={zi:0,left:m.zoneTurns||6,score:{p:0,e:0},warned:false,returns:[]};S.alerted=true;ctlDraw();log(`Control: hold ${ctlZone().name.toLowerCase()} alone at the end of a round for ${CTL_ROUND} points. First to ${M.win} wins.`)}
 function ctlInside(team){return units.filter(u=>u.team===team&&!u.down&&!u.gone&&u.cls!=='turret'&&u.cls!=='bot'&&u.cls!=='civ'&&ctlZoneTiles(ctlZone()).some(t=>t.x===u.x&&t.z===u.z))}
 // End of a full round: score, count the zone down, move it, check the win. Returns true when the mission ended.
 function ctlTick(){if(!M.control||S.over)return false;const C=S.ctl,zn=ctlZone(),p=ctlInside('p').length,e=ctlInside('e').length;
@@ -22,6 +22,9 @@ function ctlTick(){if(!M.control||S.over)return false;const C=S.ctl,zn=ctlZone()
   C.left--;if(C.left<=0){C.zi++;C.left=M.zoneTurns||6;C.warned=false;banner(`Zone moved: ${ctlZone().name}`);sfx('alarm');log(`The fight moves to ${ctlZone().name.toLowerCase()}.`);ctlDraw()}
   else if(C.left<=2&&!C.warned){C.warned=true;log(`Next zone in ${C.left} turns: ${ctlNext().name}.`);ctlDraw()}
   ctlOwnerTint();return false}
+// Downed rivals come back with the next wave three turns later (they are still injured for the next operation).
+function ctlRivalDowned(r){if(!M.control||!S.ctl)return;S.ctl.returns.push({r,turn:S.turn+3})}
+function ctlRivalReturns(){if(!S.ctl)return;const due=S.ctl.returns.filter(x=>x.turn<=S.turn);if(!due.length)return;S.ctl.returns=S.ctl.returns.filter(x=>x.turn>S.turn);for(const x of due){const old=S.rivalUnits.find(u=>u.rival===x.r&&u.down&&!u.gone);if(old){old.gone=true;old.group.visible=false;if(old.el)old.el.remove()}S.rivalPending.push(x.r);log(`${x.r.name} is back in the fight.`)}}
 function ctlLabel(st){const C=st&&S.ctl,m=st?M:curMission();if(!C)return `hold the zones. First to ${m.win} points`;return `${ctlZone().name} · ${C.left} turn${C.left>1?'s':''} · ${C.score.p}:${C.score.e}`}
 // AI: pushers go and stand in the zone, in cover where they can; once inside they shoot.
 async function ctlPushAct(e){const tiles=ctlZoneTiles(ctlZone());if(!tiles.length)return aiShootOrMove(e);
