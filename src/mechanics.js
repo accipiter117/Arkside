@@ -54,26 +54,27 @@ function moveLinks(u,x,z){const out=[],a=G[z][x];if(u.body==='turret'||u.cls==='
 // ---------- markers on the map ----------
 let MECH_TX=null;
 function mechTex(){if(MECH_TX)return MECH_TX;MECH_TX={};
-  MECH_TX.chev=cvTex((g,s)=>{g.clearRect(0,0,s,s);g.fillStyle='#f3b33d';for(let i=0;i<2;i++){const o=i*s*.34;g.beginPath();g.moveTo(s*.16,s*.26+o);g.lineTo(s*.5,s*.1+o);g.lineTo(s*.84,s*.26+o);g.lineTo(s*.84,s*.42+o);g.lineTo(s*.5,s*.26+o);g.lineTo(s*.16,s*.42+o);g.closePath();g.fill()}});
+  const chev=col=>cvTex((g,s)=>{g.clearRect(0,0,s,s);g.fillStyle=col;for(let i=0;i<2;i++){const o=i*s*.34;g.beginPath();g.moveTo(s*.16,s*.26+o);g.lineTo(s*.5,s*.1+o);g.lineTo(s*.84,s*.26+o);g.lineTo(s*.84,s*.42+o);g.lineTo(s*.5,s*.26+o);g.lineTo(s*.16,s*.42+o);g.closePath();g.fill()}});
+  MECH_TX.chev=chev('#f3b33d');MECH_TX.chevW=chev('#f4f6f8');MECH_TX.chevC=chev('#5fe8ff');
   return MECH_TX}
-function mechDecal(x,z,y,rot,sz=.7){const d=new THREE.Mesh(new THREE.PlaneGeometry(sz,sz),new THREE.MeshLambertMaterial({map:mechTex().chev,transparent:true,depthWrite:false}));d.rotation.x=-Math.PI/2;d.rotation.z=rot;const p=W(x,z);d.position.set(p.x,y+.02,p.z);scene.add(d);return d}
+function mechDecal(x,z,y,rot,sz=.7,tex='chev'){const d=new THREE.Mesh(new THREE.PlaneGeometry(sz,sz),new THREE.MeshLambertMaterial({map:mechTex()[tex],transparent:true,depthWrite:false}));d.rotation.x=-Math.PI/2;d.rotation.z=rot;const p=W(x,z);d.position.set(p.x,y+.02,p.z);scene.add(d);return d}
 // Ladders, rails, step chevrons, gap edges and zipline cables.
-function mechBuild(){if(!scene)return;const lad=new THREE.MeshLambertMaterial({color:0xd4a52a}),railM=new THREE.MeshLambertMaterial({color:0x6f7a80});
+function mechBuild(){if(!scene)return;const lad=new THREE.MeshLambertMaterial({color:0xd4a52a}),railM=new THREE.MeshLambertMaterial({color:0xe2b21f});
   for(const row of G)for(const t of row){const p=W(t.x,t.z);
     if(t.ladder)mechLadder(t);
     if(t.step){let lo=null;for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(n&&n.h<t.h&&!n.obj&&(!lo||n.h<lo.n.h))lo={n,dx,dz}}mechDecal(t.x,t.z,topY(t),lo?Math.atan2(-lo.dx,lo.dz):0)}
     if(t.obj==='rail'){const g=new THREE.Group(),y=topY(t);const bar=new THREE.Mesh(new THREE.BoxGeometry(.9,.07,.07),railM);bar.position.y=.5;g.add(bar);for(const x of[-.42,.42]){const q=new THREE.Mesh(new THREE.BoxGeometry(.07,.5,.07),railM);q.position.set(x,.25,0);g.add(q)}
       let ax=0;for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(n&&n.obj==='rail'){ax=dx?0:Math.PI/2;break}}const n1=tileAt(t.x+1,t.z),n2=tileAt(t.x-1,t.z);if(!(n1&&n1.obj==='rail')&&!(n2&&n2.obj==='rail')){const nz=tileAt(t.x,t.z+1);if(nz&&nz.type!=='water'&&!nz.obj)ax=0}
       g.rotation.y=ax;g.position.set(p.x,y,p.z);g.traverse(o=>{if(o.isMesh){o.castShadow=HI();o.userData.tile=t}});scene.add(g);mechDecal(t.x,t.z,y,ax+Math.PI/2,.55)}
-    if(t.type==='gap'&&t.markedGap){for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(n&&n.type!=='gap'&&n.type!=='water'&&!n.obj)mechDecal(n.x,n.z,topY(n),Math.atan2(dx,-dz),.5)}}}
-  for(const zp of S.zips||[]){const a=W(zp.x1,zp.z1),b=W(zp.x2,zp.z2);a.y=topY(G[zp.z1][zp.x1])+1.5;b.y=topY(G[zp.z2][zp.x2])+1.1;const mid=a.clone().lerp(b,.5);mid.y-=.35;
-    const curve=new THREE.QuadraticBezierCurve3(a,mid,b);scene.add(new THREE.Mesh(new THREE.TubeGeometry(curve,24,.018,5,false),new THREE.MeshLambertMaterial({color:0x2a2a2a})));
-    for(const[v,t]of[[a,G[zp.z1][zp.x1]],[b,G[zp.z2][zp.x2]]]){const post=new THREE.Mesh(new THREE.BoxGeometry(.07,v.y-topY(t)+.05,.07),new THREE.MeshLambertMaterial({color:0x8a8f94}));post.position.set(v.x+.3,(v.y+topY(t))/2,v.z+.3);scene.add(post)}}}
+    if(t.type==='gap'){for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(n&&n.type!=='gap'&&n.type!=='water'&&!n.obj)mechDecal(n.x,n.z,topY(n),Math.atan2(dx,-dz),t.markedGap?.5:.42,t.markedGap?'chev':'chevW')}}
+    if(t.pass==='light'){for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(n&&n.type==='floor'&&!n.obj&&!n.pass&&Math.abs(n.h-t.h)<=.5)mechDecal(n.x,n.z,topY(n),Math.atan2(-dx,dz),.5,'chevC')}}}
+  for(const zp of S.zips||[])mechBuildZip(zp)}
 
 let MECH_LAD=null;
 function mechLadder(t){const p=W(t.x,t.z),lad=MECH_LAD||(MECH_LAD=new THREE.MeshLambertMaterial({color:0xd4a52a}));let lo=null;for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(n&&n.type!=='water'&&n.type!=='gap'&&!n.obj&&n.h<t.h&&(!lo||n.h<lo.n.h))lo={n,dx,dz}}
-      if(lo){const h=topY(t)-topY(lo.n),g=new THREE.Group();for(const sx of[-.18,.18]){const r=new THREE.Mesh(new THREE.BoxGeometry(.04,h+.4,.04),lad);r.position.set(sx,(h+.4)/2,0);g.add(r)}
-        for(let y=.22;y<h+.3;y+=.26){const r=new THREE.Mesh(new THREE.BoxGeometry(.36,.03,.03),lad);r.position.set(0,y,0);g.add(r)}
+      if(lo){const h=topY(t)-topY(lo.n),g=new THREE.Group();for(const sx of[-.2,.2]){const r=new THREE.Mesh(new THREE.BoxGeometry(.06,h+.4,.06),lad);r.position.set(sx,(h+.4)/2,0);g.add(r)}
+        for(let y=.22;y<h+.3;y+=.26){const r=new THREE.Mesh(new THREE.BoxGeometry(.4,.05,.05),lad);r.position.set(0,y,0);g.add(r)}
+        mechDecal(lo.n.x,lo.n.z,topY(lo.n),Math.atan2(-lo.dx,lo.dz),.5);
         g.position.set(p.x+lo.dx*.47,topY(lo.n),p.z+lo.dz*.47);g.rotation.y=Math.atan2(lo.dx,lo.dz);g.traverse(o=>{if(o.isMesh){o.castShadow=HI();o.userData.tile=t}});scene.add(g)}}
 // Move preview: a dotted arc from where a jump, vault or zipline starts to
 // where it lands, drawn with the blue move tiles before you commit.
@@ -197,7 +198,17 @@ async function trapFire(t,by){if(!trapLive(t))return;t.used=true;if(t.tgt)t.tgt.
   computeVis();applyFog();refresh()}
 function mechFreeNear(v){let best=null;for(let r=1;r<4&&!best;r++)for(let dx=-r;dx<=r;dx++)for(let dz=-r;dz<=r;dz++){const t=tileAt(v.x+dx,v.z+dz);if(t&&t.type!=='water'&&t.type!=='gap'&&!t.obj&&!t.flood&&!unitAt(t.x,t.z)&&(!best||Math.hypot(dx,dz)<best.d))best={x:t.x,z:t.z,d:Math.hypot(dx,dz)}}return best}
 function mechBuildLadder(t){mechLadder(t)}
-function mechBuildZip(zp){const a=W(zp.x1,zp.z1),b=W(zp.x2,zp.z2);a.y=topY(G[zp.z1][zp.x1])+1.5;b.y=topY(G[zp.z2][zp.x2])+1.1;const mid=a.clone().lerp(b,.5);mid.y-=.35;scene.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a,mid,b),24,.018,5,false),new THREE.MeshLambertMaterial({color:0x2a2a2a})))}
+function mechBuildZip(zp){const ta=G[zp.z1][zp.x1],tb=G[zp.z2][zp.x2],a=W(zp.x1,zp.z1),b=W(zp.x2,zp.z2);a.y=topY(ta)+1.5;b.y=topY(tb)+1.1;const mid=a.clone().lerp(b,.5);mid.y-=.35;
+  scene.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a,mid,b),24,.03,6,false),new THREE.MeshLambertMaterial({color:0x9aa3aa})));
+  const postM=new THREE.MeshLambertMaterial({color:0xe2b21f});for(const[v,t]of[[a,ta],[b,tb]]){const hgt=v.y-topY(t)+.05,post=new THREE.Mesh(new THREE.BoxGeometry(.09,hgt,.09),postM);post.position.set(v.x+.3,topY(t)+hgt/2,v.z+.3);post.castShadow=HI();scene.add(post)}
+  const pul=new THREE.Mesh(new THREE.BoxGeometry(.22,.14,.1),new THREE.MeshLambertMaterial({color:0x2a2d30}));pul.position.set(a.x,a.y-.1,a.z);scene.add(pul);
+  mechDecal(zp.x1,zp.z1,topY(ta),Math.atan2(zp.x2-zp.x1,-(zp.z2-zp.z1)),.55,'chevC')}
+// Briefing line listing the routes a map offers (counted from its layers, so it stays honest).
+function routesLine(m){const feat=m.feat||[],map=m.map||[],h=m.h||[];let lad=0,st=0,rail=0,gap=0,tow=0,vent=0;
+  for(let z=0;z<map.length;z++)for(let x=0;x<map[z].length;x++){const c=(feat[z]||'')[x]||'.';if(c==='L'){lad++;if(+((h[z]||'')[x]||0)>=4)tow++}if(c==='s')st++;if(c==='r')rail++;if(c==='_'||c==='=')gap++;if(map[z][x]==='n')vent++}
+  const zips=(m.zips||[]).length,anch=(m.points||[]).filter(p=>p.type==='zipanchor').length,parts=[];
+  if(zips)parts.push(`${zips} zipline${zips>1?'s':''}${anch?` (+${anch} to rig)`:''}`);if(vent)parts.push(`crawl vents (${vent} tiles)`);if(tow)parts.push(`${tow} perch${tow>1?'es':''}`);if(lad)parts.push(`${lad} ladders`);if(st)parts.push('climb steps');if(rail)parts.push('vault rails');if(gap)parts.push(`${gap} gap jump${gap>1?'s':''}`);
+  return parts.length?`<div class="brief rv-brief routes">Routes: ${parts.join(' · ')}</div>`:''}
 
 // End of each side's turn: hazards tick, the searchlight spots and calls.
 function mechTurnTick(team){if(!S.hazards)return;

@@ -38,7 +38,7 @@ Each map ships with a validator entry in `tools/maps/` proving every stage is re
 ## Status
 - [x] Attacker AI and Container City defence version (`x1d`).
 - [x] Security Tower, attack (`x2`, Breakout) and defence (`x2d`, Breakout: Lockdown). Map built in `tools/maps/tower.py`.
-- [ ] Terminal.
+- [x] Terminal, attack (`x3`, Terminal: Data Run, Security) and defence (`x3d`, Terminal: Blackout, Resistance). Map built in `tools/maps/terminal.py`.
 - [ ] Shipyard.
 - [ ] Reactor.
 - [ ] Refuel.

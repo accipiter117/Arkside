@@ -41,6 +41,7 @@ for x in (0, 2, 4, 5, 6, 7): h[23][x] = 0 # openings under the wall gate, culver
 rect(3, 13, 6, 2, 2)                      # cell block, level 1
 m[14][5] = 'T'                            # the cell block door
 for x, z in ((0, 14), (11, 14), (0, 22), (11, 22)): f[z][x] = 'L'   # corner ladders
+f[18][0] = '_'; f[18][11] = '='                                       # broken catwalk: lights jump the left gap, mediums the marked right one
 f[20][2] = 'r'; f[20][9] = 'r'            # vault rails along the exercise pens
 for z in (16, 17, 18, 19): m[z][2] = 'w' if z in (16, 19) else '.'; 
 for z in (16, 19): m[z][9] = 'w'
@@ -52,6 +53,7 @@ for x in range(4, 8): h[24][x] = 0; h[25][x] = 0   # the gate
 m[25][4] = 'D'; m[25][5] = 'T'; m[25][6] = 'D'; m[25][7] = 'D'
 h[24][2] = 0; h[25][2] = 0; m[24][2] = 'n'; m[25][2] = 'n'          # drainage culvert, lights only
 h[24][0] = 0; h[25][0] = 0; m[25][0] = 'K'                           # service hatch
+h[24][9] = 0; h[25][9] = 0; m[24][9] = 'n'; m[25][9] = 'n'          # second drain under the wall, lights only
 h[24][1] = 6; h[24][10] = 6; f[24][1] = 'L'; f[24][10] = 'L'         # sniper towers on the wall corners
 f[25][1] = 'L'; f[25][10] = 'L'                                      # ladders from the dock onto the wall
 rect(1, 26, 3, 2, 2, 'C'); rect(1, 26, 3, 2, 2, '.')                 # crate stack, level 1
@@ -68,14 +70,14 @@ ZIPS = [[1, 24, 3, 19], [10, 24, 8, 20], [10, 2, 3, 2]]
 
 STAGES = [
   dict(name='The sea wall', objectives=[dict(type='plant', label='Blow the wall gate', targets=[[5, 25]], need=2, clears=[[4, 25], [6, 25], [7, 25]])], spawns=None, addTurns=0,
-       enemies=[['marksman', 1, 24], ['marksman', 10, 24], ['trooper', 3, 24], ['trooper', 9, 24], ['heavy', 5, 24], ['trooper', 9, 27]], reinf=[[3, [['trooper', 6, 22]]]]),
+       enemies=[['marksman', 1, 24], ['marksman', 10, 24], ['trooper', 3, 24], ['trooper', 8, 24], ['heavy', 5, 24], ['trooper', 9, 27]], reinf=[[3, [['trooper', 6, 22]]]]),
   dict(front=24, name='The prison yard', objectives=[dict(type='hack', label='Hack the cell block door', targets=[[5, 14]], need=3)], spawns=[[4, 24], [5, 24], [6, 24], [7, 24]], addTurns=8,
        enemies=[['marksman', 0, 16], ['marksman', 11, 20], ['trooper', 4, 17], ['trooper', 7, 19], ['heavy', 5, 16], ['medic', 8, 15], ['engineer', 2, 13]], reinf=[[3, [['trooper', 1, 12], ['trooper', 10, 12]]]]),
   dict(front=11, name='The getaway', objectives=[dict(type='rescue', label='Get her to the boats')], spawns=[[4, 10], [5, 10], [6, 10], [7, 10]], addTurns=8,
        enemies=[['trooper', 2, 8], ['trooper', 3, 6], ['marksman', 10, 3], ['heavy', 6, 5], ['infiltrator', 8, 3], ['medic', 1, 4]], reinf=[[2, [['trooper', 6, 0], ['trooper', 7, 0]]], [4, [['heavy', 6, 0]]]]),
 ]
 SECONDARIES = [dict(id='hatch', type='hack', stage=0, targets=[[0, 25]], need=2, label='Hack the service hatch')]
-POINTS = [dict(type='supply', x=11, z=32), dict(type='searchlight', x=0, z=18, dir=[1, 0], len=5), dict(type='searchlight', x=11, z=17, dir=[-1, 0], len=5),
+POINTS = [dict(type='supply', x=11, z=32), dict(type='zipanchor', x=0, z=12, zip=[1, 12, 3, 9]), dict(type='searchlight', x=0, z=18, dir=[1, 0], len=5), dict(type='searchlight', x=11, z=17, dir=[-1, 0], len=5),
           dict(type='hatch', x=9, z=13, ladder=[9, 12]), dict(type='supply', x=1, z=10)]
 TRAPS = [dict(type='crane', x=11, z=29, area=[[5, 26], [6, 26], [5, 27], [6, 27]], crate=[5, 26]), dict(type='steam', x=3, z=22, line=[[4, 23], [5, 23], [6, 23]]),
          dict(type='drawbridge', x=8, z=1, tiles=[[6, 0], [7, 0]])]

@@ -91,3 +91,19 @@ Built in the Claude chat and already playable there. This brings the repo up to 
 - **Walk through them.** Units pass through civilians but can't stop on them. Stray shots, blasts and traps still hit them.
 - **Your own people count.** Downing a civilian of your own faction (by your fire, including strays) costs 5 XP per operative and gets a line in the debrief. Enemy-faction civilians cost nothing.
 - **Militia can be revived.** Downed militia allies lie where they fall; a medic's Patch up gets them back up. They still don't redeploy.
+
+# Update 11: Terminal, and every operation open
+
+- **Terminal: Data Run** (Security attack, operation 4 of the Security campaign) and **Terminal: Blackout** (Resistance defence, operation 4 of the Resistance campaign). A 12 x 36 transit terminal on the industrial decks in three stages: hack the mainframe in the concourse to lift the security shutters, crack the safe in the baggage hall, then carry the data key up to the monorail platform. Mezzanines and escalators, ticket barriers to vault, a crawl vent and a hackable side door past the shutters, one-tile offices with ladders and a zipline, steam, fuel and barrel traps, and three supply stations. Seven civilians stream through.
+- **Every operation is open from the start** while testing (`OPEN_OPS` in engine.js). Security Tower was already there, locked behind the Container City wins; now it shows straight away.
+- Map source and validator entry: `tools/maps/terminal.py`, `python3 tools/maps/validate_long.py`.
+
+# Update 12: mobility pass
+
+- **Container City:** two long ziplines from the sniper towers over the gate into the street, a three-tile crawl vent beside the gate, climb steps onto the crate stacks, two level-2 perches with ladders above the crane yard, and a zipline anchor an engineer can rig from the street walkway down into the yard.
+- **Security Tower:** a second drain under the sea wall for lights, the prison-yard catwalk broken by two gap jumps (lights on the left, mediums at the marked right one), and a zipline anchor on the catwalk corner that drops into the getaway yard.
+- **Terminal:** lookout perches above both mezzanines with the ziplines moved up to them, broken office walkways (marked gap left, lights-only gap right), a two-tile vent run past the shutters and a duct run through the platform hall.
+- **Easier to spot:** ladders are thicker with a chevron at the foot, vault rails are painted hazard yellow, ziplines have a bright cable, yellow posts, a pulley and a cyan chevron at the start, plain gaps get white edge chevrons (yellow for marked ones), and crawl vents get cyan chevrons at each mouth.
+- **Briefing:** a Routes line counts the ziplines, vents, perches, ladders, climb steps, rails and gap jumps on the map.
+- **Fix:** gap tiles crashed the fog pass (they have no floor mesh), which froze the enemy turn on any map with a gap.
+- **Tooling:** `tools/maps/sync.py` copies the map layers from the Python sources into `src/engine.js`, so edit the map in `tools/maps/`, validate, sync, build.
