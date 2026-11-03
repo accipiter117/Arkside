@@ -70,8 +70,10 @@ async function allyAct(a){if(a.down||a.gone||a.stun>0)return;const foesSeen=livi
 async function alliesAct(){for(const a of units.filter(u=>u.ally&&!u.down&&!u.gone)){if(S.over)return;await allyAct(a);updBar(a)}}
 function allyDowned(u){if(!u.ally)return;log(`${u.name} is down. A medic can get them back up.`)}
 // ---------- after the operation ----------
-function rivalsEnd(won){if(!S.rivalsOn)return[];const R=rivalsFor(CUR.faction),dep=new Set(S.rivalIds),lines=[],gained={};
-  let depXp=0,depN=0;for(const r of R.members){if(!dep.has(r.id))continue;const e=S.rivalUnits.find(u=>u.rival===r);const xp=10+(e?e.kills||0:0)*15+(S.rivalDowned.has(r.id)?0:30)+(won?0:40);gained[r.id]=xp;depXp+=xp;depN++}
+// Deployed rivals level at the same pace as your operatives: each gets the squad's average XP gain for the mission,
+// plus 15 a kill; a downed rival gets three quarters. The bench gets half the deployed average.
+function rivalsEnd(won,avgXp=0){if(!S.rivalsOn)return[];const R=rivalsFor(CUR.faction),dep=new Set(S.rivalIds),lines=[],gained={};
+  let depXp=0,depN=0;for(const r of R.members){if(!dep.has(r.id))continue;const e=S.rivalUnits.find(u=>u.rival===r);const xp=Math.round((avgXp+(e?e.kills||0:0)*15)*(S.rivalDowned.has(r.id)?.75:1));gained[r.id]=xp;depXp+=xp;depN++}
   const benchXp=depN?Math.round(depXp/depN/2):0;for(const r of R.members)if(!dep.has(r.id))gained[r.id]=benchXp;
   for(const r of R.members){const before=rivalLvl(r);r.xp+=gained[r.id]||0;r.before=before}
   const avg=R.members.reduce((a,r)=>a+rivalLvl(r),0)/R.members.length;for(const r of R.members){const target=Math.floor(avg)-2;if(rivalLvl(r)<target)r.xp=Math.max(r.xp,LEVELS[target-1]||0)}
