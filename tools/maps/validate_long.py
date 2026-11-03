@@ -91,7 +91,7 @@ for k,d in L.items():
         print(k,'stage',si,out)
         # apply stage completion effects
         for o in st['objectives']:
-            for p in o.get('clears',[])+o.get('targets',[]) if o['type']=='plant' else []:G[p[1]][p[0]]['ch']='.'
+            for p in o.get('clears',[])+(o.get('targets',[]) if o['type']=='plant' else []):G[p[1]][p[0]]['ch']='.'
         for sc in d['secondaries']:
             if sc['stage']==si:
                 for p in sc['targets']:

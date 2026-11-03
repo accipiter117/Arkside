@@ -49,6 +49,8 @@ node tools/bot-route-test.mjs               # escort bot vs friendly turrets, ro
 node tools/rivals-test.mjs                  # three operations per faction: rivals, traits, injuries, allies, old saves
 node tools/screens.mjs                      # phone-size screenshots into shots/
 node tools/perf.mjs                         # frame rate and draw calls, High vs Low
+python3 tools/maps/validate_long.py         # every operation map: all bodies reach every objective
+python3 tools/maps/sync.py                  # copy map layers from tools/maps into src/engine.js
 ```
 
 Where the three.js CDNs and Google Fonts are blocked (as in the cloud sandbox), the tools serve the same files from npm packages cached in `tools/.cache`. See `tools/browser.mjs`.
