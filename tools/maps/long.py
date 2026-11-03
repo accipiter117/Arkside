@@ -59,3 +59,7 @@ L['x2'] = TOWER
 # Terminal: Data Run (built in terminal.py)
 from terminal import TERMINAL
 L['x3'] = TERMINAL
+
+# Harbour Row: Control (built in control.py)
+from control import CONTROL
+L['c1'] = CONTROL

@@ -31,6 +31,7 @@ JS_PARTS = {
     "//__WORLD__": "world.js",
     "//__MECH__": "mechanics.js",
     "//__RIVALS__": "rivals.js",
+    "//__CONTROL__": "control.js",
     "//__ENGINE__": "engine.js",
 }
 GLBS = {"sec": "soldier_ct.glb", "res": "soldier_t.glb"}
