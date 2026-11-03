@@ -404,10 +404,10 @@ function stepCost(u,a,b){return moveCost(u,a,b)}// movement rules live in mechan
 function reach(u,limit){const lim=limit??u.move,d=new Map([[key(u.x,u.z),0]]),prev=new Map(),climb=new Set(),kind=new Map(),thru=new Set(),open=[[u.x,u.z]];
   while(open.length){let bi=0;for(let i=1;i<open.length;i++)if(d.get(key(open[i][0],open[i][1]))<d.get(key(open[bi][0],open[bi][1])))bi=i;
     const[x,z]=open.splice(bi,1)[0],dd=d.get(key(x,z)),a=G[z][x];
-    for(const[dx,dz]of D4){const nx=x+dx,nz=z+dz,b=tileAt(nx,nz);if(!b)continue;const k=key(nx,nz);const bl=unitAt(nx,nz,u);if(bl&&!(bl.cls==='turret'&&bl.team===u.team)&&bl.cls!=='civ')continue;if(bl)thru.add(k);const c=stepCost(u,a,b);if(!c)continue;const nd=dd+c;if(nd>lim)continue;
+    for(const[dx,dz]of D4){const nx=x+dx,nz=z+dz,b=tileAt(nx,nz);if(!b)continue;const k=key(nx,nz);const bl=unitAt(nx,nz,u);if(bl&&bl.cls==='turret'&&bl.team!==u.team)continue;if(bl)thru.add(k);const c=stepCost(u,a,b);if(!c)continue;const nd=dd+c;if(nd>lim)continue;
       if(d.has(k)&&d.get(k)<=nd)continue;d.set(k,nd);prev.set(k,key(x,z));kind.delete(k);if(b.h-a.h>.5)climb.add(k);else climb.delete(k);if(!open.some(o=>o[0]===nx&&o[1]===nz))open.push([nx,nz])}
-    for(const[nx,nz,c,kd]of moveLinks(u,x,z)){const k=key(nx,nz);const bl=unitAt(nx,nz,u);if(bl&&!(bl.cls==='turret'&&bl.team===u.team)&&bl.cls!=='civ')continue;if(bl)thru.add(k);const nd=dd+c;if(nd>lim)continue;if(d.has(k)&&d.get(k)<=nd)continue;d.set(k,nd);prev.set(k,key(x,z));kind.set(k,kd);climb.delete(k);if(!open.some(o=>o[0]===nx&&o[1]===nz))open.push([nx,nz])}}
-  for(const k of thru)d.delete(k);// can pass through, can't stop there
+    for(const[nx,nz,c,kd]of moveLinks(u,x,z)){const k=key(nx,nz);const bl=unitAt(nx,nz,u);if(bl&&bl.cls==='turret'&&bl.team!==u.team)continue;if(bl)thru.add(k);const nd=dd+c;if(nd>lim)continue;if(d.has(k)&&d.get(k)<=nd)continue;d.set(k,nd);prev.set(k,key(x,z));kind.set(k,kd);climb.delete(k);if(!open.some(o=>o[0]===nx&&o[1]===nz))open.push([nx,nz])}}
+  for(const k of thru)d.delete(k);// units pass through each other (not enemy turrets), but can't stop on an occupied tile
   return{d,prev,climb,kind}}
 function pathTo(r,x,z){const out=[];let k=key(x,z);while(r.prev.has(k)){out.unshift(k.split(',').map(Number));k=r.prev.get(k)}return out}
 function los(a,b){const dx=b.x-a.x,dz=b.z-a.z,steps=Math.ceil(Math.hypot(dx,dz)*4),hm=Math.max(a.h,b.h);
@@ -1096,7 +1096,7 @@ function endMission(won,why){if(S.over)return;S.over=true;S.phase='over';applyFo
   if(won&&CUR.mi>=0){if(CUR.mi>=SAVE.prog[f]){SAVE.prog[f]=CUR.mi+1;if(m.recruit&&RECRUITS[m.recruit]){recruit=RECRUITS[m.recruit];SAVE.roster[f].push(mkOp(recruit))}}}
   const par=PAR[m.id]||8,third=m.defend?S.stage===0:S.turn<=par,stars=won?1+(S.stats.downs===0?1:0)+(third?1:0):0;if(won)SAVE.stars[m.id]=Math.max(SAVE.stars[m.id]||0,stars);
   const summary={stars,par,third,defend:!!m.defend,turns:S.turn,downs:S.stats.downs,acc:S.stats.shots?Math.round(S.stats.hits/S.stats.shots*100):null,kills:res.reduce((a,r)=>a+r.kills,0),civ:S.stats.civ||0,ctl:M.control?{...S.ctl.score}:null};
-  summary.rivals=rivalsEnd(won);persist();sfx(won?'win':'lose');
+  summary.rivals=rivalsEnd(won,res.length?Math.round(res.reduce((a,r)=>a+r.xp,0)/res.length):0);persist();sfx(won?'win':'lose');
   setTimeout(()=>viewDebrief(won,why,res,recruit,summary),1300);banner(won?'Mission complete':'Mission failed',won?'':'enemy')}
 function viewDebrief(won,why,res,recruit,sm){const f=CUR.faction,m=M;
   $('#v-debrief').innerHTML=`<h2 class="vh"><small>${m.title}</small>${won?'Mission complete':'Mission failed'}</h2>

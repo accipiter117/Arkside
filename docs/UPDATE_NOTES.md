@@ -115,3 +115,8 @@ Built in the Claude chat and already playable there. This brings the repo up to 
 - **The enemy:** the rival squad deploys first, then waves of two every other turn from the north edge while under seven on the field. Pushers head for the zone and dig into cover inside it. Your militia stand with you and your downed operatives redeploy at the south drop point as usual.
 - Code lives in `src/control.js` with hooks in `engine.js` marked "control"; the map in `tools/maps/control.py` (validated from both sides' spawns).
 - **Respawns (after the first play-test):** enemy waves now arrive every turn (three when they are down to two or fewer), the field cap is eight, downed rivals rejoin with a wave three turns later, your downed operatives redeploy after two turns instead of three, and downed militia redeploy at the drop point too.
+
+# Update 14: rival levelling, pass-through movement
+
+- **Rivals level at your pace.** Each deployed rival now earns the squad's average XP gain for the mission plus 15 a kill (three quarters if they were downed), instead of a small fixed amount. The bench still gets half, and the catch-up rule still lifts stragglers.
+- **Units pass through each other.** Any unit can move through any other unit, friend or enemy, but nobody can end a move on an occupied tile. Enemy turrets and MG nests still block. The escort bot is unchanged: an enemy standing on its route still stops it.
