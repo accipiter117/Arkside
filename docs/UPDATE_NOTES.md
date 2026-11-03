@@ -107,3 +107,10 @@ Built in the Claude chat and already playable there. This brings the repo up to 
 - **Briefing:** a Routes line counts the ziplines, vents, perches, ladders, climb steps, rails and gap jumps on the map.
 - **Fix:** gap tiles crashed the fog pass (they have no floor mesh), which froze the enemy turn on any map with a gap.
 - **Tooling:** `tools/maps/sync.py` copies the map layers from the Python sources into `src/engine.js`, so edit the map in `tools/maps/`, validate, sync, build.
+
+# Update 13: Control mode, Harbour Row
+
+- **Harbour Row** is a 20 x 20 shanty district with a market square, a walled clinic, a pump house deck, a water tower and a canal with two bridges, plus rooftop runs, ladders, three ziplines, a crawl duct and a broken walkway. It sits in a new Control section on the campaign screen, open to both factions from the start and replayable.
+- **Control rules:** one zone is live at a time (market, pump house, clinic, water tower, canal bridge, in that order). At the end of each full round the team that is alone inside the zone scores 10; both inside and nobody scores. The zone moves every 6 turns and the next one is announced two turns ahead, with its outline shown faintly. First to 100 wins; at the 24-turn cap the higher score takes it, level is a draw.
+- **The enemy:** the rival squad deploys first, then waves of two every other turn from the north edge while under seven on the field. Pushers head for the zone and dig into cover inside it. Your militia stand with you and your downed operatives redeploy at the south drop point as usual.
+- Code lives in `src/control.js` with hooks in `engine.js` marked "control"; the map in `tools/maps/control.py` (validated from both sides' spawns).
