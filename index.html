@@ -1296,12 +1296,17 @@ function mechBuild(){if(!scene)return;const lad=new THREE.MeshLambertMaterial({c
     if(t.pass==='light'){for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(n&&n.type==='floor'&&!n.obj&&!n.pass&&Math.abs(n.h-t.h)<=.5)mechDecal(n.x,n.z,topY(n),Math.atan2(-dx,dz),.5,'chevC')}}}
   for(const zp of S.zips||[])mechBuildZip(zp)}
 
+// The lower neighbour a ladder or climb step is used from (the lowest open one), shared with tileMesh so railings open there.
+function mechLowSide(t){let lo=null;for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(n&&n.type!=='water'&&n.type!=='gap'&&!n.obj&&n.h<t.h&&(!lo||n.h<lo.n.h))lo={n,dx,dz}}return lo}
 let MECH_LAD=null;
-function mechLadder(t){const p=W(t.x,t.z),lad=MECH_LAD||(MECH_LAD=new THREE.MeshLambertMaterial({color:0xd4a52a}));let lo=null;for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(n&&n.type!=='water'&&n.type!=='gap'&&!n.obj&&n.h<t.h&&(!lo||n.h<lo.n.h))lo={n,dx,dz}}
-      if(lo){const h=topY(t)-topY(lo.n),g=new THREE.Group();for(const sx of[-.2,.2]){const r=new THREE.Mesh(new THREE.BoxGeometry(.06,h+.4,.06),lad);r.position.set(sx,(h+.4)/2,0);g.add(r)}
-        for(let y=.22;y<h+.3;y+=.26){const r=new THREE.Mesh(new THREE.BoxGeometry(.4,.05,.05),lad);r.position.set(0,y,0);g.add(r)}
+function mechLadder(t){const p=W(t.x,t.z),lad=MECH_LAD||(MECH_LAD={stile:new THREE.MeshLambertMaterial({color:0x2f3338}),rung:new THREE.MeshLambertMaterial({color:0xf2c230}),cap:new THREE.MeshLambertMaterial({color:0xf2c230})});const lo=mechLowSide(t);
+      if(lo){const h=topY(t)-topY(lo.n),g=new THREE.Group();
+        // steel stiles with yellow rungs, flush against the face, and a hoop over the top edge you can read from any angle
+        for(const sx of[-.21,.21]){const r=new THREE.Mesh(new THREE.BoxGeometry(.07,h+.5,.07),lad.stile);r.position.set(sx,(h+.5)/2-.02,0);g.add(r);const hoop=new THREE.Mesh(new THREE.BoxGeometry(.07,.07,.5),lad.stile);hoop.position.set(sx,h+.46,-.25);g.add(hoop)}
+        for(let y=.2;y<h+.2;y+=.24){const r=new THREE.Mesh(new THREE.BoxGeometry(.42,.06,.08),lad.rung);r.position.set(0,y,.01);g.add(r)}
+        const bar=new THREE.Mesh(new THREE.BoxGeometry(.49,.06,.06),lad.cap);bar.position.set(0,h+.46,-.5);g.add(bar);
         mechDecal(lo.n.x,lo.n.z,topY(lo.n),Math.atan2(-lo.dx,lo.dz),.5);
-        g.position.set(p.x+lo.dx*.47,topY(lo.n),p.z+lo.dz*.47);g.rotation.y=Math.atan2(lo.dx,lo.dz);g.traverse(o=>{if(o.isMesh){o.castShadow=HI();o.userData.tile=t}});scene.add(g)}}
+        g.position.set(p.x+lo.dx*.5,topY(lo.n),p.z+lo.dz*.5);g.rotation.y=Math.atan2(lo.dx,lo.dz);g.traverse(o=>{if(o.isMesh){o.castShadow=HI();o.userData.tile=t}});scene.add(g)}}
 // Move preview: a dotted arc from where a jump, vault or zipline starts to
 // where it lands, drawn with the blue move tiles before you commit.
 function mechArcs(r){for(const[k,kind]of r.kind){const pk=r.prev.get(k);if(!pk)continue;const[ax,az]=pk.split(',').map(Number),[bx,bz]=k.split(',').map(Number);
@@ -1424,10 +1429,15 @@ async function trapFire(t,by){if(!trapLive(t))return;t.used=true;if(t.tgt)t.tgt.
   computeVis();applyFog();refresh()}
 function mechFreeNear(v){let best=null;for(let r=1;r<4&&!best;r++)for(let dx=-r;dx<=r;dx++)for(let dz=-r;dz<=r;dz++){const t=tileAt(v.x+dx,v.z+dz);if(t&&t.type!=='water'&&t.type!=='gap'&&!t.obj&&!t.flood&&!unitAt(t.x,t.z)&&(!best||Math.hypot(dx,dz)<best.d))best={x:t.x,z:t.z,d:Math.hypot(dx,dz)}}return best}
 function mechBuildLadder(t){mechLadder(t)}
-function mechBuildZip(zp){const ta=G[zp.z1][zp.x1],tb=G[zp.z2][zp.x2],a=W(zp.x1,zp.z1),b=W(zp.x2,zp.z2);a.y=topY(ta)+1.5;b.y=topY(tb)+1.1;const mid=a.clone().lerp(b,.5);mid.y-=.35;
-  scene.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a,mid,b),24,.03,6,false),new THREE.MeshLambertMaterial({color:0x9aa3aa})));
-  const postM=new THREE.MeshLambertMaterial({color:0xe2b21f});for(const[v,t]of[[a,ta],[b,tb]]){const hgt=v.y-topY(t)+.05,post=new THREE.Mesh(new THREE.BoxGeometry(.09,hgt,.09),postM);post.position.set(v.x+.3,topY(t)+hgt/2,v.z+.3);post.castShadow=HI();scene.add(post)}
-  const pul=new THREE.Mesh(new THREE.BoxGeometry(.22,.14,.1),new THREE.MeshLambertMaterial({color:0x2a2d30}));pul.position.set(a.x,a.y-.1,a.z);scene.add(pul);
+function mechBuildZip(zp){const ta=G[zp.z1][zp.x1],tb=G[zp.z2][zp.x2],ca=W(zp.x1,zp.z1),cb=W(zp.x2,zp.z2);const dir=cb.clone().sub(ca).setY(0).normalize();
+  // the start post stands at the back of the start tile (behind the rider), the landing post just beyond the landing tile; the cable runs post top to post top
+  const a=ca.clone().addScaledVector(dir,-.38);a.y=topY(ta)+1.75;const b=cb.clone().addScaledVector(dir,.38);b.y=topY(tb)+1.25;const mid=a.clone().lerp(b,.5);mid.y-=.3;
+  const cable=new THREE.Mesh(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a,mid,b),28,.035,7,false),new THREE.MeshLambertMaterial({color:0xb8c0c6}));cable.castShadow=HI();scene.add(cable);
+  const postM=new THREE.MeshLambertMaterial({color:0xe2b21f}),capM=new THREE.MeshLambertMaterial({color:0x2f3338});
+  for(const[v,t]of[[a,ta],[b,tb]]){const hgt=v.y-topY(t);const post=new THREE.Mesh(new THREE.BoxGeometry(.11,hgt,.11),postM);post.position.set(v.x,topY(t)+hgt/2,v.z);post.castShadow=HI();scene.add(post);
+    const cap=new THREE.Mesh(new THREE.BoxGeometry(.2,.1,.2),capM);cap.position.set(v.x,v.y,v.z);scene.add(cap);const foot=new THREE.Mesh(new THREE.BoxGeometry(.28,.06,.28),capM);foot.position.set(v.x,topY(t)+.03,v.z);scene.add(foot)}
+  const pul=new THREE.Group();const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.06,10),capM);wheel.rotation.x=Math.PI/2;wheel.rotation.z=Math.atan2(dir.x,dir.z)+Math.PI/2;pul.add(wheel);const hdl=new THREE.Mesh(new THREE.BoxGeometry(.3,.05,.05),new THREE.MeshLambertMaterial({color:0xf2c230}));hdl.position.y=-.2;hdl.rotation.y=Math.atan2(dir.x,dir.z)+Math.PI/2;pul.add(hdl);
+  const pp=a.clone().lerp(b,.08);pp.y-=.02;pul.position.copy(pp);scene.add(pul);
   mechDecal(zp.x1,zp.z1,topY(ta),Math.atan2(zp.x2-zp.x1,-(zp.z2-zp.z1)),.55,'chevC')}
 // Briefing line listing the routes a map offers (counted from its layers, so it stays honest).
 function routesLine(m){const feat=m.feat||[],map=m.map||[],h=m.h||[];let lad=0,st=0,rail=0,gap=0,tow=0,vent=0;
@@ -2143,8 +2153,10 @@ function tileMesh(t){const p=W(t.x,t.z),hgt=topY(t)+.45;let topTex,topCol,sideTe
   const top=gm?new THREE.MeshLambertMaterial({map:worldTex()[gm],color:gm==='grateW'?0xffffff:pickC(['#ffffff','#f2ece4','#e8e2da'],t,4)}):lamT(topCol,topTex),side=lamT(sideCol,sideTex);
   const m=new THREE.Mesh(new THREE.BoxGeometry(.98,hgt,.98),[side,side,top,side,side,side]);m.position.set(p.x,topY(t)-hgt/2,p.z);m.userData.tile=t;
   const add=(geo,mat,x,y,z)=>{const c=new THREE.Mesh(geo,mat);c.position.set(x,y,z);c.userData.tile=t;m.add(c);return c};const ty=hgt/2;
+  const lowSide=(t.ladder||t.step)&&typeof mechLowSide==='function'?mechLowSide(t):null;
   for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(!(t.h>=1&&t.type!=='ramp'&&n&&n.h<t.h-.5&&n.type!=='ramp'))continue;
     add(new THREE.BoxGeometry(dx?.06:.98,.03,dz?.06:.98),lamT(TH.edge),dx*.46,ty+.015,dz*.46);
+    if(lowSide&&lowSide.dx===dx&&lowSide.dz===dz){for(const s of[-.42,.42])add(new THREE.BoxGeometry(.05,.34,.05),lamT(TH.glass?'#ffffff':TH.rail),dx*.46+(dz?s:0),ty+.17,dz*.46+(dx?s:0));continue}// opening where the ladder or climb step comes up
     if(TH.glass){add(new THREE.BoxGeometry(dx?.03:.94,.3,dz?.03:.94),lamT('#bfe6ff',null,{transparent:true,opacity:.38}),dx*.47,ty+.17,dz*.47);add(new THREE.BoxGeometry(dx?.05:.96,.03,dz?.05:.96),lamT('#ffffff'),dx*.47,ty+.33,dz*.47)}
     else{for(const s of[-.42,.42])add(new THREE.BoxGeometry(.04,.32,.04),lamT(TH.rail),dx*.46+(dz?s:0),ty+.16,dz*.46+(dx?s:0));add(new THREE.BoxGeometry(dx?.04:.92,.04,dz?.04:.92),lamT(TH.rail),dx*.46,ty+.31,dz*.46)}}
   if(t.h>=1&&TH===THEMES.container&&hsh(t.x,t.z,9)%5===0){for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(n&&n.h<t.h){const d=add(new THREE.PlaneGeometry(.8,.5),lamT('#ffffff','graf',{transparent:true,depthWrite:false}),dx*.495,ty-.35,dz*.495);d.rotation.y=Math.atan2(dx,dz);break}}}
