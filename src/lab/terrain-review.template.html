@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arkside: terrain review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root{--bg:#11181c;--panel:#182126;--ink:#e4eaec;--muted:#93a1a8;--line:#2b383f;--acc:#c9581c;color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 Barlow,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
+main{max-width:1100px;margin:0 auto;padding:14px 14px 40px}
+h1{font-family:Teko,'Arial Narrow',sans-serif;font-weight:600;font-size:38px;line-height:.9;margin:0}
+.intro{color:var(--muted);margin:6px 0 10px;max-width:70ch}
+button{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 11px;font-weight:600;min-height:40px;cursor:pointer}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.view{position:relative;width:100%;aspect-ratio:1/1;max-height:80vh;border-radius:6px 18px 6px 6px;overflow:hidden;background:linear-gradient(#3a6aa8,#e3a56a 62%,#ffcf88 88%);touch-action:none}
+.view.night{background:linear-gradient(#070b1a,#16203a 60%,#2c3c5c 92%)}
+.view canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.lbl{position:absolute;transform:translate(-50%,0);color:#fff;font:600 11px Barlow,sans-serif;text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap;pointer-events:none}
+.lbl small{display:block;font-weight:400;font-size:10px;opacity:.85}
+.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin-top:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px}
+.card b{font-family:Teko,sans-serif;font-size:20px;font-weight:500;display:block;line-height:1}
+.card .d{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:1px 6px;border-radius:5px;background:#2b383f;margin:2px 6px 4px 0}
+.card .t{color:var(--muted)}
+.card .r{margin-top:4px}
+.note{font-size:13px;color:var(--muted);margin-top:12px;max-width:70ch}
+</style></head><body><main>
+<h1>Terrain review</h1>
+<p class="intro">Proposed tile types for more varied maps, built the way the game builds its props (procedural, one tile each). Filter by district, flip day and night, drag to turn the board. Nothing here is in a map yet: each card says the gameplay rule it would carry.</p>
+<div class="row" id="filters"></div>
+<div class="row"><button type="button" class="btn" id="night" aria-pressed="false">Night</button><button type="button" class="btn" id="spin" aria-pressed="false">Spin</button></div>
+<div class="view" id="view"><canvas id="c"></canvas><div id="labels"></div></div>
+<div class="list" id="cards"></div>
+<p class="note">Rules are proposals in gameplay terms. Cover: none, half (one tier) or full (two tiers). Sight: whether the tile blocks line of sight. Move: blocked, open, slow (2 moves), vault (hop in a straight line), climb (lights and mediums step up), ladder, ramp, narrow (no heavies), hack (opens on a hack).</p>
+</main>
+<script>
+//__TERRAIN_KIT__
+</script>
+<script>
+const view=document.getElementById('view'),canvas=document.getElementById('c'),labels=document.getElementById('labels'),cards=document.getElementById('cards');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();const cam=new THREE.OrthographicCamera(-6,6,6,-6,.1,100);
+const hemi=new THREE.HemisphereLight(0xffd8a8,0x6a4a3a,.7),sun=new THREE.DirectionalLight(0xffe0b0,.9);sun.position.set(6,9,4);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-9,right:9,top:9,bottom:-9,near:1,far:40});scene.add(hemi,sun);
+const DIST={all:'All',shanty:'Shanty decks',ark:'The Ark',industrial:'Industrial decks'};
+let district='all',night=false,spin=false,angle=Math.PI/4,board=null,items=[];
+const GROUND={shanty:['#8f7462','#806452','#977a63'],ark:['#dfe3e5','#d2d8db','#e8ebed'],industrial:['#6f6a62','#7a756c','#656059'],any:['#7d858a','#767e83']};
+function build(){if(board)scene.remove(board);board=new THREE.Group();items=[];TK.ANIM.length=0;const list=TK.byDistrict(district),cols=Math.ceil(Math.sqrt(list.length*1.1)),gap=1.6;
+  const rows=Math.ceil(list.length/cols);list.forEach((e,i)=>{const cx=(i%cols-(cols-1)/2)*gap,cz=(Math.floor(i/cols)-(rows-1)/2)*gap;const g=new THREE.Group();g.position.set(cx,0,cz);
+    const gc=GROUND[e.district]||GROUND.any;const t=new THREE.Mesh(new THREE.BoxGeometry(1,.45,1),new THREE.MeshLambertMaterial({color:gc[i%gc.length]}));t.position.y=-.225;t.receiveShadow=true;g.add(t);
+    const inner=new THREE.Group();try{e.build(inner,i)}catch(err){console.error(e.id,err)}g.add(inner);board.add(g);items.push({e,g})});
+  const ext=Math.max(cols,rows)*gap/2+1.2;cam.left=-ext;cam.right=ext;cam.top=ext*.9;cam.bottom=-ext*.9;cam.updateProjectionMatrix();scene.add(board);renderCards(list)}
+function renderCards(list){cards.innerHTML=list.map(e=>`<div class="card"><b>${e.name}</b><span class="d">${DIST[e.district]||'Anywhere'}</span><span class="t">${e.cover} cover · sight ${e.sight} · move ${e.move}</span><div class="r">${e.rule}</div></div>`).join('')}
+function fit(){const w=view.clientWidth,h=view.clientHeight;renderer.setSize(w,h,false)}
+function setLight(){if(night){hemi.color.set(0x7080c0);hemi.groundColor.set(0x20202a);hemi.intensity=.5;sun.color.set(0x8090c0);sun.intensity=.35}else{hemi.color.set(0xffd8a8);hemi.groundColor.set(0x6a4a3a);hemi.intensity=.7;sun.color.set(0xffe0b0);sun.intensity=.9}view.classList.toggle('night',night)}
+let t0=performance.now();const tmp=new THREE.Vector3();
+function frame(){requestAnimationFrame(frame);const now=performance.now(),dt=Math.min(.05,(now-t0)/1000),tt=now/1000;t0=now;if(spin)angle+=dt*.3;const r=14;cam.position.set(Math.sin(angle)*r,r*.95,Math.cos(angle)*r);cam.lookAt(0,0,0);for(const f of TK.ANIM)f(tt,dt);renderer.render(scene,cam);
+  const w=view.clientWidth,h=view.clientHeight;labels.innerHTML='';for(const{e,g}of items){tmp.set(g.position.x,-.35,g.position.z).project(cam);const d=document.createElement('div');d.className='lbl';d.style.left=(tmp.x+1)/2*w+'px';d.style.top=(1-tmp.y)/2*h+'px';d.innerHTML=`${e.name}<small>${e.cover==='none'?'no cover':e.cover+' cover'}</small>`;labels.appendChild(d)}}
+const filt=document.getElementById('filters');for(const k of Object.keys(DIST)){const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=DIST[k];b.setAttribute('aria-pressed',k===district);b.onclick=()=>{district=k;[...filt.children].forEach(x=>x.setAttribute('aria-pressed',x===b));build()};filt.appendChild(b)}
+document.getElementById('night').onclick=e=>{night=!night;e.currentTarget.setAttribute('aria-pressed',night);setLight()};
+document.getElementById('spin').onclick=e=>{spin=!spin;e.currentTarget.setAttribute('aria-pressed',spin)};
+let drag=null;view.addEventListener('pointerdown',e=>{drag={x:e.clientX,a:angle};view.setPointerCapture(e.pointerId)});view.addEventListener('pointermove',e=>{if(drag)angle=drag.a+(e.clientX-drag.x)*.01});view.addEventListener('pointerup',()=>drag=null);
+window.addEventListener('resize',fit);fit();setLight();build();frame();window.TERRAIN_LAB={setDistrict:d=>{district=d;build()},setNight:n=>{night=n;setLight()},setAngle:a=>{angle=a}};
+</script></body></html>
