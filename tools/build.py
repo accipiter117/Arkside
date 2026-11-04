@@ -5,6 +5,7 @@ Usage:  python3 tools/build.py
 
   src/index.template.html            -> index.html
   src/lab/unit-review.template.html  -> lab/unit-review.html
+  src/lab/terrain-review.template.html -> lab/terrain-review.html
 
 Each output is self-contained apart from the pinned three.js scripts and
 Google Fonts, so it runs straight from GitHub Pages. Embedded at build time:
@@ -32,6 +33,7 @@ JS_PARTS = {
     "//__MECH__": "mechanics.js",
     "//__RIVALS__": "rivals.js",
     "//__CONTROL__": "control.js",
+    "//__TERRAIN_KIT__": "terrain-kit.js",
     "//__ENGINE__": "engine.js",
 }
 GLBS = {"sec": "soldier_ct.glb", "res": "soldier_t.glb"}
@@ -40,6 +42,7 @@ MUSIC = (("MUSIC_RES", "theme-resistance.m4a"), ("MUSIC_SEC", "theme-security.m4
 PAGES = [
     (SRC / "index.template.html", ROOT / "index.html"),
     (SRC / "lab" / "unit-review.template.html", ROOT / "lab" / "unit-review.html"),
+    (SRC / "lab" / "terrain-review.template.html", ROOT / "lab" / "terrain-review.html"),
 ]
 
 
