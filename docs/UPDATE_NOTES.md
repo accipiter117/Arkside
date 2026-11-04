@@ -120,3 +120,9 @@ Built in the Claude chat and already playable there. This brings the repo up to 
 
 - **Rivals level at your pace.** Each deployed rival now earns the squad's average XP gain for the mission plus 15 a kill (three quarters if they were downed), instead of a small fixed amount. The bench still gets half, and the catch-up rule still lifts stragglers.
 - **Units pass through each other.** Any unit can move through any other unit, friend or enemy, but nobody can end a move on an occupied tile. Enemy turrets and MG nests still block. The escort bot is unchanged: an enemy standing on its route still stops it.
+
+# Update 15: map visuals pass
+
+- **Ladders** are steel stiles with yellow rungs, sit flush against the face they climb, and carry a hoop over the top edge so they read from any angle. The railing on a raised tile now opens where a ladder or climb step comes up instead of being drawn through it.
+- **Ziplines** have a proper start post behind the rider and a landing post beyond the landing tile, a thicker steel cable running post top to post top, a pulley with a handle on the line, and a cyan chevron at the start.
+- **Shadows** are twice the resolution on High, so edges stop smearing across tiles on the long maps.

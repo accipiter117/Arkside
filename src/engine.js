@@ -478,8 +478,10 @@ function tileMesh(t){const p=W(t.x,t.z),hgt=topY(t)+.45;let topTex,topCol,sideTe
   const top=gm?new THREE.MeshLambertMaterial({map:worldTex()[gm],color:gm==='grateW'?0xffffff:pickC(['#ffffff','#f2ece4','#e8e2da'],t,4)}):lamT(topCol,topTex),side=lamT(sideCol,sideTex);
   const m=new THREE.Mesh(new THREE.BoxGeometry(.98,hgt,.98),[side,side,top,side,side,side]);m.position.set(p.x,topY(t)-hgt/2,p.z);m.userData.tile=t;
   const add=(geo,mat,x,y,z)=>{const c=new THREE.Mesh(geo,mat);c.position.set(x,y,z);c.userData.tile=t;m.add(c);return c};const ty=hgt/2;
+  const lowSide=(t.ladder||t.step)&&typeof mechLowSide==='function'?mechLowSide(t):null;
   for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(!(t.h>=1&&t.type!=='ramp'&&n&&n.h<t.h-.5&&n.type!=='ramp'))continue;
     add(new THREE.BoxGeometry(dx?.06:.98,.03,dz?.06:.98),lamT(TH.edge),dx*.46,ty+.015,dz*.46);
+    if(lowSide&&lowSide.dx===dx&&lowSide.dz===dz){for(const s of[-.42,.42])add(new THREE.BoxGeometry(.05,.34,.05),lamT(TH.glass?'#ffffff':TH.rail),dx*.46+(dz?s:0),ty+.17,dz*.46+(dx?s:0));continue}// opening where the ladder or climb step comes up
     if(TH.glass){add(new THREE.BoxGeometry(dx?.03:.94,.3,dz?.03:.94),lamT('#bfe6ff',null,{transparent:true,opacity:.38}),dx*.47,ty+.17,dz*.47);add(new THREE.BoxGeometry(dx?.05:.96,.03,dz?.05:.96),lamT('#ffffff'),dx*.47,ty+.33,dz*.47)}
     else{for(const s of[-.42,.42])add(new THREE.BoxGeometry(.04,.32,.04),lamT(TH.rail),dx*.46+(dz?s:0),ty+.16,dz*.46+(dx?s:0));add(new THREE.BoxGeometry(dx?.04:.92,.04,dz?.04:.92),lamT(TH.rail),dx*.46,ty+.31,dz*.46)}}
   if(t.h>=1&&TH===THEMES.container&&hsh(t.x,t.z,9)%5===0){for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(n&&n.h<t.h){const d=add(new THREE.PlaneGeometry(.8,.5),lamT('#ffffff','graf',{transparent:true,depthWrite:false}),dx*.495,ty-.35,dz*.495);d.rotation.y=Math.atan2(dx,dz);break}}}
@@ -580,7 +582,7 @@ function buildScene(info){
   applyTime();renderer.setPixelRatio(HI()?Math.min(2,devicePixelRatio||1):1);renderer.shadowMap.enabled=HI();
   scene=new THREE.Scene();scene.fog=new THREE.Fog(TM.fog,40,125);
   scene.add(new THREE.HemisphereLight(...TM.hemi));
-  const sun=new THREE.DirectionalLight(TM.sun[0],TM.sun[1]);sun.position.set(...TM.sun[2]);sun.castShadow=HI();sun.shadow.mapSize.set(1024,1024);const sc=sun.shadow.camera;sc.left=-N*.8;sc.right=N*.8;sc.top=N*.8;sc.bottom=-N*.8;sc.near=1;sc.far=50;sun.shadow.bias=-.0008;scene.add(sun);scene.add(sun.target);
+  const sun=new THREE.DirectionalLight(TM.sun[0],TM.sun[1]);sun.position.set(...TM.sun[2]);sun.castShadow=HI();sun.shadow.mapSize.set(2048,2048);const sc=sun.shadow.camera;sc.left=-N*.8;sc.right=N*.8;sc.top=N*.8;sc.bottom=-N*.8;sc.near=1;sc.far=50;sun.shadow.bias=-.0008;scene.add(sun);scene.add(sun.target);
   const fill=new THREE.DirectionalLight(TM.fill[0],TM.fill[1]);fill.position.set(-8,6,-6);scene.add(fill);
   const seaGeo=new THREE.PlaneGeometry(90,90,64,64);seaGeo.rotateX(-Math.PI/2);const seaMat=new THREE.MeshPhongMaterial({color:TM.sea,specular:TM.lamps?0x1c2a3a:0x6fa8bd,shininess:45,flatShading:true});
   SEA=new THREE.Mesh(seaGeo,seaMat);SEA.position.y=-.34;SEA.receiveShadow=true;scene.add(SEA);SEA.userData.base=Float32Array.from(seaGeo.attributes.position.array);
