@@ -133,13 +133,15 @@ function baseGear(look,cls,tpl,bones,K,col){const{mesh,box,sph}=K,sec=look.facti
   const T=rigHolder(tpl,bones,'Torso');T.userData.attach=true;const[sw,zf,Y0,zb]=tpl.fit[look.body],Y=Y0-.11,vest=shade(c2,-28);
   // Chest shell: a cylinder segment wrapped round the chest, radius from the shoulder half-width, open at the back.
   const shell=(w,h,depth,colr,y,arc=Math.PI*.78,back=false)=>{const r=w;const m=mesh(new THREE.CylinderGeometry(r,r*.96,h,18,1,true,-arc/2,arc),colr,T,0,y,back?-zb+r*.62-depth:zf-r*.62+depth);m.scale.z=.62;if(back)m.rotation.y=Math.PI;return m};
+  const panel=(w,y,colr,arc=Math.PI*.78)=>{const r=w;const m=mesh(new THREE.CylinderGeometry(r*1.012,r*1.012,.012,18,1,true,-arc/2,arc),colr,T,0,y,zf-r*.62+.065);m.scale.z=.62;return m};
+  const seam=(h,y,colr)=>box(.012,h,.01,colr,T,0,y,zf+.07);
   const strap=(x,y,z,len,rot,colr)=>{const s=box(.035,len,.015,colr,T,x,y,z);s.rotation.z=rot;return s};
-  if(look.armour==='carrier'){shell(sw*.98,.34,.06,vest,Y0-.03);shell(sw*.98,.3,.03,vest,Y0-.03,Math.PI*.6,true);// back
+  if(look.armour==='carrier'){shell(sw*.98,.34,.06,vest,Y0-.03);shell(sw*.98,.3,.03,vest,Y0-.03,Math.PI*.6,true);panel(sw*.98,Y0+.06,shade(vest,-30));panel(sw*.98,Y0-.1,shade(vest,-30));seam(.3,Y0-.03,shade(vest,-30));// back
     for(const sd of[-1,0,1]){const p=box(.09,.08,.045,shade(vest,14),T,sd*.12,Y-.1,zf+.03);p.rotation.x=.12}box(.14,.035,.005,'#e6e1d4',T,0,Y+.09,zf+.045);
     for(const sd of[-1,1])strap(sd*sw*.62,Y+.14,zf-.06,.16,sd*.5,shade(vest,-10))}
   if(look.armour==='rig'){const rc=shade(c2,-30);for(const sd of[-1,1]){strap(sd*sw*.38,Y+.02,zf+.01,.4,sd*.14,rc);strap(sd*sw*.38,Y+.02,-zb+.02,.4,-sd*.14,rc)}
     box(sw*1.5,.09,.05,rc,T,0,Y-.13,zf+.01);for(let i=0;i<3;i++){const p=box(.07,.08,.04,'#2f3134',T,-sw*.42+i*sw*.42,Y-.12,zf+.045);p.rotation.x=.1}}
-  if(look.armour==='riot'){const rp='#d4dadf';shell(sw*1.02,.36,.065,rp,Y0-.03,Math.PI*.82);shell(sw*1.0,.32,.03,rp,Y0-.03,Math.PI*.6,true);
+  if(look.armour==='riot'){const rp='#d4dadf';shell(sw*1.02,.36,.065,rp,Y0-.03,Math.PI*.82);shell(sw*1.0,.32,.03,rp,Y0-.03,Math.PI*.6,true);panel(sw*1.02,Y0+.08,'#9aa3aa',Math.PI*.82);panel(sw*1.02,Y0-.09,'#9aa3aa',Math.PI*.82);for(const sd of[-1,1]){const sm=box(.012,.3,.01,'#9aa3aa',T,sd*sw*.45,Y0-.03,zf+.06);sm.rotation.y=sd*.5}
     box(.04,.22,.004,acc,T,0,Y,zf+.055);const ring=mesh(new THREE.TorusGeometry(.07,.015,6,16),'#a7b1b8',T,0,Y0+.16,-.01);ring.rotation.x=Math.PI/2;
     for(const sd of[-1,1]){const g=box(sw*.3,.12,.05,shade(rp,-18),T,sd*sw*.86,Y+.04,zf-.05);g.rotation.y=sd*.6}}
   if(look.armour==='scrap'){const p1=mesh(new THREE.CylinderGeometry(sw*.9,sw*.9,.22,12,1,true,-.9,1.2),'#8b4a2a',T,0,Y+.05,zf-sw*.9+.06);p1.scale.z=.6;p1.rotation.y=.25;
@@ -147,7 +149,7 @@ function baseGear(look,cls,tpl,bones,K,col){const{mesh,box,sph}=K,sec=look.facti
     const sp=box(.05,.42,.015,'#4a3423',T,0,Y,zf+.055);sp.rotation.z=.6;for(const sd of[-1,1])strap(sd*sw*.5,Y+.1,zf-.02,.2,sd*.3,'#3a2a1e')}
   // Pauldrons: a sphere cap sitting on the shoulder.
   if(look.armour==='riot'||look.armour==='scrap')for(const s of['L','R']){const A=rigHolder(tpl,bones,'UpperArm'+s);if(!A)continue;A.userData.attach=true;const sd=s==='L'?1:-1;const po=tpl.gear.pad;
-    if(look.armour==='riot'){const cap=mesh(new THREE.SphereGeometry(.15,16,10,0,Math.PI*2,0,Math.PI*.5),'#d4dadf',A,sd*.02+po[0]*sd,.04+po[1],po[2]);cap.scale.set(1,.75,1.15);box(.12,.015,.025,acc,A,sd*.02+po[0]*sd,.08+po[1],.1+po[2])}
+    if(look.armour==='riot'){const cap=mesh(new THREE.SphereGeometry(.11,16,10,0,Math.PI*2,0,Math.PI*.5),'#d4dadf',A,sd*.035+po[0]*sd,.02+po[1],po[2]);cap.scale.set(1,.7,1.1);box(.12,.015,.025,acc,A,sd*.02+po[0]*sd,.08+po[1],.1+po[2])}
     else{const cap=mesh(new THREE.SphereGeometry(.11,10,8,0,Math.PI*2,0,Math.PI*.55),'#5a4a3a',A,sd*.02+po[0]*sd,.03+po[1],po[2]);cap.scale.set(1,.65,1.1);const bolt=sph(.02,'#262626',A,sd*.02+po[0]*sd,.09+po[1],.04+po[2])}}
   // Kneepads: a dome on the shin's front.
   if(look.legs==='armoured'||look.armour==='riot')for(const s of['L','R']){const L=rigHolder(tpl,bones,'LowerLeg'+s);if(!L)continue;L.userData.attach=true;const ko=tpl.gear.knee;
