@@ -50,17 +50,20 @@ function opHead(look,K){
   box(.032,.06,.04,skinD,hd,0,-.015,ez+.012);
   if(look.expr==='snarl'){box(.07,.025,.01,'#3a1d18',hd,0,-.075,ez-.004);box(.05,.008,.012,'#efe9dc',hd,0,-.07,ez)}else{const mo=box(.06,.012,.01,'#3b2219',hd,0,-.075,ez-.004);if(look.expr==='smirk')mo.rotation.z=.18}}
   const lowShell=(c,o)=>{const m=mesh(new THREE.SphereGeometry(.154,14,8,-Math.PI*.15,Math.PI*1.3,Math.PI*.52,Math.PI*.4),c,hd,0,0,0,o);m.scale.set(...fs);m.rotation.y=Math.PI*.5;return m};
-  if(!gearOnly){if(look.facial==='stubble')lowShell(shade(skin,-28));
-  if(look.facial==='beard'){lowShell(hair);sph(.08,hair,hd,0,-.14,.06,[1.3,.8,1])}
-  if(look.facial==='goatee')box(.05,.06,.03,hair,hd,0,-.13,ez-.01);
-  if(look.facial==='moustache'||look.facial==='goatee')box(.08,.02,.02,hair,hd,0,-.055,ez+.004);
-  if(look.facial==='chops')for(const sd of[-1,1])box(.03,.1,.08,hair,hd,sd*.13*fs[0],-.05,.04);
+  if(!gearOnly){if(look.facial==='stubble')lowShell(shade(skin,-28));}
+  if(!gearOnly||true){
+  if(!gearOnly&&look.facial==='beard'){lowShell(hair);sph(.08,hair,hd,0,-.14,.06,[1.3,.8,1])}
+  if(!gearOnly&&look.facial==='goatee')box(.05,.06,.03,hair,hd,0,-.13,ez-.01);
+  if(look.facial==='moustache'||(!gearOnly&&look.facial==='goatee'))box(.08,.02,.02,hair,hd,0,-.055,ez+.004);
+  if(!gearOnly&&look.facial==='chops')for(const sd of[-1,1])box(.03,.1,.08,hair,hd,sd*.13*fs[0],-.05,.04);
   if(look.mark==='scar'){const sc=box(.008,.09,.006,'#e7ad9d',hd,-.055,.02,ez+.012);sc.rotation.z=.3}
   if(look.mark==='tattoo')for(let i=0;i<3;i++){const tl=box(.008,.05,.006,'#1f2a35',hd,.085+i*.012,-.01-i*.01,ez-.02);tl.rotation.z=-.4}
   if(look.mark==='paint')box(.26*fs[0],.04,.01,sec?'#123a5a':'#151311',hd,0,.02,ez-.004);
   if(look.mark==='patch'){box(.05,.04,.012,ink,hd,-.055,.02,ez+.008);const st=box(.3,.01,.01,ink,hd,0,.05,ez-.03);st.rotation.z=-.25}}
   const covered=['beanie','cap','bandana','helmet','riothelm'].includes(look.headgear);
   const cap=(r,c,ang=.44)=>{const m=mesh(new THREE.SphereGeometry(r,16,10,0,Math.PI*2,0,Math.PI*ang),c,hd,0,.005,-.008);m.scale.set(...fs);m.rotation.x=-.28;return m};
+  if(gearOnly&&look.hair==='mohawk'&&!covered)box(.04,.12,.26,hair,hd,0,.16*fs[1],-.01);
+  if(gearOnly&&look.hair==='spiky'&&!covered)for(let i=0;i<7;i++){const a=i/7*Math.PI*2,c=mesh(new THREE.ConeGeometry(.035,.1,5),hair,hd,Math.cos(a)*.07,.15*fs[1],Math.sin(a)*.07-.01);c.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5)}
   if(!gearOnly&&look.hair!=='shaved'){
     if(covered||look.hair==='buzz')cap(.154,look.hair==='buzz'?shade(hair,35):hair);
     else if(look.hair==='mohawk'){cap(.153,shade(hair,40));box(.04,.12,.26,hair,hd,0,.16*fs[1],-.01)}

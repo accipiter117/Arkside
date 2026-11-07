@@ -73,18 +73,18 @@ function buildBase(look,wkey,cls,opts={}){const tpl=BASE.tpl[look.sex==='female'
   const B=BASE_BUILD[look.body]||BASE_BUILD.medium;
   for(const n of['upperarm_l','upperarm_r','lowerarm_l','lowerarm_r','thigh_l','thigh_r','calf_l','calf_r'])thick(bones[n],B.limb);
   for(const n of['spine_01','spine_02','spine_03','pelvis'])thick(bones[n],B.torso);
-  bones.Head.scale.setScalar(B.head);
+  const FS={long:[.93,1.08,.97],square:[1.04,.98,1.02],angular:[.94,1.04,.96],broad:[1.1,.95,1.05]}[look.face]||[1,1,1];const HS=[B.head*FS[0],B.head*FS[1],B.head*FS[2]];bones.Head.scale.set(HS[0],HS[1],HS[2]);
   // Alias map so the existing gear builders find the bones they expect.
   const al={};for(const[a,b]of Object.entries(BASE_ALIAS))al[a]=bones[b];
   const atpl={bindQ:tpl.bindQ,P:tpl.P,fit:BASE_FIT,gear:BASE_GEAR};
   // Hair, beard, headgear and face gear on the head.
   const H=bones.Head,hairKey=BASE_HAIR[look.hair]&&(look.sex==='female'&&look.hair==='buzz'?'hair_buzzedf':BASE_HAIR[look.hair]);
-  const addHair=(key,colour)=>{const src=BASE.hair[key];if(!src)return;src.updateMatrixWorld(true);src.traverse(o=>{if(o.isMesh){const m=new THREE.Mesh(o.geometry,baseFlatMat(colour));m.castShadow=true;const mw=new THREE.Matrix4().multiplyMatrices(tpl.headInv,o.matrixWorld);mw.decompose(m.position,m.quaternion,m.scale);m.scale.multiplyScalar(1/B.head);m.userData.hairPiece=true;H.add(m)}})};
+  const addHair=(key,colour)=>{const src=BASE.hair[key];if(!src)return;src.updateMatrixWorld(true);src.traverse(o=>{if(o.isMesh){const m=new THREE.Mesh(o.geometry,baseFlatMat(colour));m.castShadow=true;const mw=new THREE.Matrix4().multiplyMatrices(tpl.headInv,o.matrixWorld);mw.decompose(m.position,m.quaternion,m.scale);m.position.set(m.position.x/HS[0],m.position.y/HS[1],m.position.z/HS[2]);m.scale.set(m.scale.x/HS[0],m.scale.y/HS[1],m.scale.z/HS[2]);m.userData.hairPiece=true;H.add(m)}})};
   const covered=['beanie','cap','bandana','helmet','riothelm'].includes(look.headgear);
   if(hairKey&&!(covered&&hairKey!=='hair_buzzed'&&hairKey!=='hair_buzzedf'))addHair(hairKey,HAIRC[look.hairCol]);
   if(['beard','goatee','chops'].includes(look.facial))addHair('hair_beard',HAIRC[look.hairCol]);
-  if(look.headgear!=='none'||look.facegear!=='none'||look.mark!=='none'){const hh=new THREE.Group();const s=tpl.headR/.15*1.08;hh.quaternion.copy(tpl.bindQ.Head).invert();hh.scale.setScalar(s/B.head);
-    const c=tpl.headC.clone().applyMatrix4(tpl.headInv);hh.position.copy(c);hh.position.y+=tpl.headR*.2/B.head;hh.userData.attach=true;const hd=opHead(look,Object.assign({},K,{gearOnly:true}));hh.add(hd);H.add(hh)}
+  if(look.headgear!=='none'||look.facegear!=='none'||look.mark!=='none'||look.facial==='moustache'||look.hair==='mohawk'||look.hair==='spiky'){const hh=new THREE.Group();const s=tpl.headR/.15*1.08;hh.quaternion.copy(tpl.bindQ.Head).invert();hh.scale.set(s/HS[0],s/HS[1],s/HS[2]);
+    const c=tpl.headC.clone().applyMatrix4(tpl.headInv);c.y+=tpl.headR*.2;hh.position.set(c.x/HS[0],c.y/HS[1],c.z/HS[2]);hh.userData.attach=true;const hd=opHead(look,Object.assign({},K,{gearOnly:true}));hh.add(hd);H.add(hh)}
   // Armour, pauldrons, kneepads, class gear.
   rigGear(look,cls,atpl,al,K,col);
   // Weapon in the right hand.

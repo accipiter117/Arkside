@@ -216,17 +216,20 @@ function opHead(look,K){
   box(.032,.06,.04,skinD,hd,0,-.015,ez+.012);
   if(look.expr==='snarl'){box(.07,.025,.01,'#3a1d18',hd,0,-.075,ez-.004);box(.05,.008,.012,'#efe9dc',hd,0,-.07,ez)}else{const mo=box(.06,.012,.01,'#3b2219',hd,0,-.075,ez-.004);if(look.expr==='smirk')mo.rotation.z=.18}}
   const lowShell=(c,o)=>{const m=mesh(new THREE.SphereGeometry(.154,14,8,-Math.PI*.15,Math.PI*1.3,Math.PI*.52,Math.PI*.4),c,hd,0,0,0,o);m.scale.set(...fs);m.rotation.y=Math.PI*.5;return m};
-  if(!gearOnly){if(look.facial==='stubble')lowShell(shade(skin,-28));
-  if(look.facial==='beard'){lowShell(hair);sph(.08,hair,hd,0,-.14,.06,[1.3,.8,1])}
-  if(look.facial==='goatee')box(.05,.06,.03,hair,hd,0,-.13,ez-.01);
-  if(look.facial==='moustache'||look.facial==='goatee')box(.08,.02,.02,hair,hd,0,-.055,ez+.004);
-  if(look.facial==='chops')for(const sd of[-1,1])box(.03,.1,.08,hair,hd,sd*.13*fs[0],-.05,.04);
+  if(!gearOnly){if(look.facial==='stubble')lowShell(shade(skin,-28));}
+  if(!gearOnly||true){
+  if(!gearOnly&&look.facial==='beard'){lowShell(hair);sph(.08,hair,hd,0,-.14,.06,[1.3,.8,1])}
+  if(!gearOnly&&look.facial==='goatee')box(.05,.06,.03,hair,hd,0,-.13,ez-.01);
+  if(look.facial==='moustache'||(!gearOnly&&look.facial==='goatee'))box(.08,.02,.02,hair,hd,0,-.055,ez+.004);
+  if(!gearOnly&&look.facial==='chops')for(const sd of[-1,1])box(.03,.1,.08,hair,hd,sd*.13*fs[0],-.05,.04);
   if(look.mark==='scar'){const sc=box(.008,.09,.006,'#e7ad9d',hd,-.055,.02,ez+.012);sc.rotation.z=.3}
   if(look.mark==='tattoo')for(let i=0;i<3;i++){const tl=box(.008,.05,.006,'#1f2a35',hd,.085+i*.012,-.01-i*.01,ez-.02);tl.rotation.z=-.4}
   if(look.mark==='paint')box(.26*fs[0],.04,.01,sec?'#123a5a':'#151311',hd,0,.02,ez-.004);
   if(look.mark==='patch'){box(.05,.04,.012,ink,hd,-.055,.02,ez+.008);const st=box(.3,.01,.01,ink,hd,0,.05,ez-.03);st.rotation.z=-.25}}
   const covered=['beanie','cap','bandana','helmet','riothelm'].includes(look.headgear);
   const cap=(r,c,ang=.44)=>{const m=mesh(new THREE.SphereGeometry(r,16,10,0,Math.PI*2,0,Math.PI*ang),c,hd,0,.005,-.008);m.scale.set(...fs);m.rotation.x=-.28;return m};
+  if(gearOnly&&look.hair==='mohawk'&&!covered)box(.04,.12,.26,hair,hd,0,.16*fs[1],-.01);
+  if(gearOnly&&look.hair==='spiky'&&!covered)for(let i=0;i<7;i++){const a=i/7*Math.PI*2,c=mesh(new THREE.ConeGeometry(.035,.1,5),hair,hd,Math.cos(a)*.07,.15*fs[1],Math.sin(a)*.07-.01);c.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5)}
   if(!gearOnly&&look.hair!=='shaved'){
     if(covered||look.hair==='buzz')cap(.154,look.hair==='buzz'?shade(hair,35):hair);
     else if(look.hair==='mohawk'){cap(.153,shade(hair,40));box(.04,.12,.26,hair,hd,0,.16*fs[1],-.01)}
@@ -669,18 +672,18 @@ function buildBase(look,wkey,cls,opts={}){const tpl=BASE.tpl[look.sex==='female'
   const B=BASE_BUILD[look.body]||BASE_BUILD.medium;
   for(const n of['upperarm_l','upperarm_r','lowerarm_l','lowerarm_r','thigh_l','thigh_r','calf_l','calf_r'])thick(bones[n],B.limb);
   for(const n of['spine_01','spine_02','spine_03','pelvis'])thick(bones[n],B.torso);
-  bones.Head.scale.setScalar(B.head);
+  const FS={long:[.93,1.08,.97],square:[1.04,.98,1.02],angular:[.94,1.04,.96],broad:[1.1,.95,1.05]}[look.face]||[1,1,1];const HS=[B.head*FS[0],B.head*FS[1],B.head*FS[2]];bones.Head.scale.set(HS[0],HS[1],HS[2]);
   // Alias map so the existing gear builders find the bones they expect.
   const al={};for(const[a,b]of Object.entries(BASE_ALIAS))al[a]=bones[b];
   const atpl={bindQ:tpl.bindQ,P:tpl.P,fit:BASE_FIT,gear:BASE_GEAR};
   // Hair, beard, headgear and face gear on the head.
   const H=bones.Head,hairKey=BASE_HAIR[look.hair]&&(look.sex==='female'&&look.hair==='buzz'?'hair_buzzedf':BASE_HAIR[look.hair]);
-  const addHair=(key,colour)=>{const src=BASE.hair[key];if(!src)return;src.updateMatrixWorld(true);src.traverse(o=>{if(o.isMesh){const m=new THREE.Mesh(o.geometry,baseFlatMat(colour));m.castShadow=true;const mw=new THREE.Matrix4().multiplyMatrices(tpl.headInv,o.matrixWorld);mw.decompose(m.position,m.quaternion,m.scale);m.scale.multiplyScalar(1/B.head);m.userData.hairPiece=true;H.add(m)}})};
+  const addHair=(key,colour)=>{const src=BASE.hair[key];if(!src)return;src.updateMatrixWorld(true);src.traverse(o=>{if(o.isMesh){const m=new THREE.Mesh(o.geometry,baseFlatMat(colour));m.castShadow=true;const mw=new THREE.Matrix4().multiplyMatrices(tpl.headInv,o.matrixWorld);mw.decompose(m.position,m.quaternion,m.scale);m.position.set(m.position.x/HS[0],m.position.y/HS[1],m.position.z/HS[2]);m.scale.set(m.scale.x/HS[0],m.scale.y/HS[1],m.scale.z/HS[2]);m.userData.hairPiece=true;H.add(m)}})};
   const covered=['beanie','cap','bandana','helmet','riothelm'].includes(look.headgear);
   if(hairKey&&!(covered&&hairKey!=='hair_buzzed'&&hairKey!=='hair_buzzedf'))addHair(hairKey,HAIRC[look.hairCol]);
   if(['beard','goatee','chops'].includes(look.facial))addHair('hair_beard',HAIRC[look.hairCol]);
-  if(look.headgear!=='none'||look.facegear!=='none'||look.mark!=='none'){const hh=new THREE.Group();const s=tpl.headR/.15*1.08;hh.quaternion.copy(tpl.bindQ.Head).invert();hh.scale.setScalar(s/B.head);
-    const c=tpl.headC.clone().applyMatrix4(tpl.headInv);hh.position.copy(c);hh.position.y+=tpl.headR*.2/B.head;hh.userData.attach=true;const hd=opHead(look,Object.assign({},K,{gearOnly:true}));hh.add(hd);H.add(hh)}
+  if(look.headgear!=='none'||look.facegear!=='none'||look.mark!=='none'||look.facial==='moustache'||look.hair==='mohawk'||look.hair==='spiky'){const hh=new THREE.Group();const s=tpl.headR/.15*1.08;hh.quaternion.copy(tpl.bindQ.Head).invert();hh.scale.set(s/HS[0],s/HS[1],s/HS[2]);
+    const c=tpl.headC.clone().applyMatrix4(tpl.headInv);c.y+=tpl.headR*.2;hh.position.set(c.x/HS[0],c.y/HS[1],c.z/HS[2]);hh.userData.attach=true;const hd=opHead(look,Object.assign({},K,{gearOnly:true}));hh.add(hd);H.add(hh)}
   // Armour, pauldrons, kneepads, class gear.
   rigGear(look,cls,atpl,al,K,col);
   // Weapon in the right hand.
