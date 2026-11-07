@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arkside: body tuner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+<style>
+:root{--bg:#dde1e0;--panel:#f1f3f2;--ink:#1a2226;--muted:#56626a;--line:#c4cccb;--acc:#c9581c;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#11181c;--panel:#182126;--ink:#e4eaec;--muted:#93a1a8;--line:#2b383f;color-scheme:dark}}
+body[data-f="security"]{--acc:#2a7fbd}
+*,*::before,*::after{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 Barlow,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
+main{max-width:1000px;margin:0 auto;padding:14px 14px 40px}
+h1{font-family:Teko,'Arial Narrow',sans-serif;font-weight:600;font-size:38px;line-height:.9;margin:0}
+.intro{color:var(--muted);margin:6px 0 10px;max-width:64ch}
+button,select,textarea,input{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 11px;font-weight:600;min-height:40px;cursor:pointer}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.lay{display:grid;gap:12px}@media(min-width:760px){.lay{grid-template-columns:1fr 1fr;align-items:start}.view{position:sticky;top:10px}}
+.view{position:relative;aspect-ratio:3/4;max-height:70vh;width:100%;border-radius:6px 18px 6px 6px;overflow:hidden;background:linear-gradient(#3a7fc4,#9fcfe8 55%,#e8dccb);touch-action:pan-y}
+.view canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.who{position:absolute;left:10px;bottom:10px;right:10px;color:#fff;text-shadow:0 1px 3px #000a;font-size:13px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+h2{font:600 22px Teko,sans-serif;margin:4px 0 6px}
+.sl{display:grid;grid-template-columns:7.5em 1fr 3.4em;gap:8px;align-items:center;font-size:13px;margin:3px 0}
+.sl input[type=range]{width:100%;min-height:30px}.sl output{text-align:right;font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
+label.f{display:flex;flex-direction:column;font-size:12px;color:var(--muted);font-weight:600}
+select{margin-top:2px;min-height:38px;border:1px solid var(--line);border-radius:7px;background:var(--bg);padding:4px 6px}
+textarea{width:100%;min-height:90px;border:1px solid var(--line);border-radius:7px;background:var(--bg);padding:6px;font-size:12px}
+.note{font-size:13px;color:var(--muted);margin-top:8px;max-width:70ch}
+</style></head><body data-f="resistance"><main>
+<h1>Body tuner</h1>
+<p class="intro">Limb proportions, weapon size and equipment fit for the new bodies, live. Pick a build and look, drag the sliders, then copy the values at the bottom and send them to me to apply. Drag the model to turn it.</p>
+<div class="lay">
+<div><div class="view" id="view"><div class="who" id="who"></div></div>
+<div class="row" id="anim"></div></div>
+<div>
+<div class="panel"><h2>Unit</h2><div class="grid" id="picks"></div></div>
+<div class="panel"><h2>Build: <span id="bname">medium</span></h2><div id="build"></div><p class="note">Thickness scales the limb or torso across; length stretches it along the bone. Height scales the whole unit.</p></div>
+<div class="panel"><h2>Weapon size</h2><div id="guns"></div><div id="gunoff"></div></div>
+<div class="panel"><h2>Equipment fit (this build)</h2><div id="fit"></div><div id="gear"></div><p class="note">Fit: half shoulder width, chest front, chest height, chest back. Pad and knee are offsets for pauldrons and kneepads (side, up, forward).</p></div>
+<div class="panel"><h2>Values</h2><div class="row"><button type="button" class="btn" id="copy">Copy values</button><button type="button" class="btn" id="reset">Reset to shipped</button><button type="button" class="btn" id="apply">Apply pasted values</button></div><textarea id="code" spellcheck="false"></textarea></div>
+</div></div>
+</main>
+<script>/*__GLB__*/</script>
+<script>
+//__CREATOR_CORE__
+//__MODEL_KIT__
+//__UNITS__
+//__RETARGET__
+//__UNITS_BASE__
+</script>
+<script>
+(function(){
+if(typeof THREE==='undefined'){document.querySelector('main').insertAdjacentHTML('beforeend','<p>The 3D engine couldn’t load. Check your connection and reload.</p>');return}
+const box=document.getElementById('view');
+const r=new THREE.WebGLRenderer({antialias:true,alpha:true});r.setPixelRatio(Math.min(2,devicePixelRatio||1));r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;box.prepend(r.domElement);
+const s=new THREE.Scene();s.add(new THREE.HemisphereLight(0xdcefff,0x8a7a66,.75));const sun=new THREE.DirectionalLight(0xfff3e0,.85);sun.position.set(4,7,5);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-3,right:3,top:3,bottom:-3});s.add(sun);
+const floor=new THREE.Mesh(new THREE.BoxGeometry(8,.2,8),new THREE.MeshLambertMaterial({color:0x8f7462}));floor.position.y=-.1;floor.receiveShadow=true;s.add(floor);
+const pc=new THREE.PerspectiveCamera(28,.75,.05,50);
+const SHIPPED=JSON.parse(JSON.stringify(baseTuneExport()));
+let look=clean({...DEFAULT,armour:'carrier',headgear:'helmet'}),unit=null,rig=null,yaw=.4,drag=null,curAnim='Idle',zoom=1;
+const ANIMS=[['Idle','Idle'],['Walk','Walk'],['Run','Run'],['Shoot','Idle_Shoot'],['Take cover','Duck'],['Down','Death']];
+document.getElementById('anim').innerHTML=ANIMS.map(([l,a])=>`<button type="button" class="btn" data-a="${a}">${l}</button>`).join('');
+const LBL={faction:'Faction',sex:'Sex',body:'Build',cls:'Class',weapon:'Weapon',armour:'Armour',headgear:'Headgear',legs:'Legs',top:'Top'};
+function choices(k){const f=look.faction;
+  if(k==='faction')return Object.entries(FACTIONS).map(([v,o])=>[v,o.label]);if(k==='body')return Object.entries(BODY).map(([v,o])=>[v,o.label]);if(k==='cls')return Object.entries(CLASSES).map(([v,o])=>[v,o.label]);
+  if(k==='weapon')return Object.entries(WEAPONS).filter(([v,o])=>o.bodies.includes(look.body)).map(([v,o])=>[v,o.label]);
+  return OPTS[k].filter(o=>!o[3]||o[3]===f||(k!=='armour'&&k!=='headgear')).filter(o=>!(k==='headgear'&&o[2]&&o[2]!==f)).map(o=>[o[0],o[1]])}
+function picks(){document.getElementById('picks').innerHTML=Object.keys(LBL).map(k=>`<label class="f">${LBL[k]}<select data-k="${k}">${choices(k).map(([v,l])=>`<option value="${v}"${String(look[k])===String(v)?' selected':''}>${l}</option>`).join('')}</select></label>`).join('')}
+document.getElementById('picks').addEventListener('change',e=>{const k=e.target.dataset.k;look=clean({...look,[k]:e.target.value});rebuild()});
+const slider=(host,label,get,set,min,max,step=.01)=>{const d=document.createElement('div');d.className='sl';d.innerHTML=`<span>${label}</span><input type="range" min="${min}" max="${max}" step="${step}" value="${get()}"><output>${(+get()).toFixed(2)}</output>`;const i=d.querySelector('input'),o=d.querySelector('output');i.oninput=()=>{set(+i.value);o.textContent=(+i.value).toFixed(2);rebuild(true)};host.appendChild(d);return d};
+function panels(){const b=look.body,B=BASE_BUILD[b];document.getElementById('bname').textContent=b;
+  const h=document.getElementById('build');h.innerHTML='';
+  for(const[k,l,lo,hi]of[['h','Height',.85,1.2],['torso','Torso thickness',.7,1.6],['limb','Limb thickness',.7,1.6],['head','Head size',.8,1.25],['shoulder','Shoulder width',.8,1.3],['arm','Upper arm length',.8,1.2],['fore','Forearm length',.8,1.2],['thigh','Thigh length',.8,1.2],['calf','Calf length',.8,1.2]])slider(h,l,()=>B[k]??1,v=>B[k]=v,lo,hi);
+  const g=document.getElementById('guns');g.innerHTML='';for(const w of Object.keys(WEAPONS))slider(g,WEAPONS[w].label,()=>BASE_GUN_SCALE[w]??1,v=>BASE_GUN_SCALE[w]=v,.4,1.6);
+  const go=document.getElementById('gunoff');go.innerHTML='';[['x','Gun offset side'],['y','Gun offset up'],['z','Gun offset forward']].forEach(([a,l])=>slider(go,l,()=>BASE_GUN_OFF[a],v=>BASE_GUN_OFF[a]=v,-.15,.15,.005));
+  const f=document.getElementById('fit');f.innerHTML='';const F=BASE_FIT[b];[['Shoulder half width',0,.15,.45],['Chest front',1,.1,.35],['Chest height',2,-.2,.2],['Chest back',3,.08,.3]].forEach(([l,i,lo,hi])=>slider(f,l,()=>F[i],v=>F[i]=v,lo,hi,.005));
+  const ge=document.getElementById('gear');ge.innerHTML='';for(const[k,l]of[['pad','Pauldron'],['knee','Kneepad']])[['side',0],['up',1],['forward',2]].forEach(([a,i])=>slider(ge,`${l} ${a}`,()=>BASE_GEAR[k][i],v=>BASE_GEAR[k][i]=v,-.15,.15,.005));
+  code()}
+function code(){document.getElementById('code').value=JSON.stringify(baseTuneExport())}
+function make(l){return buildRigged(l,l.weapon,l.cls,{outline:true})||capsuleSoldier(l,true)}
+function rebuild(keep){if(unit)s.remove(unit);unit=make(look);unit.traverse(o=>{if(o.isMesh&&!o.userData.isOutline)o.castShadow=true});s.add(unit);rig=unit.userData.rig||null;if(rig)rig.play(curAnim,curAnim==='Death'?{clamp:true}:{});
+  document.body.dataset.f=look.faction;document.getElementById('who').innerHTML=`<b>${esc(look.name)}</b>${BODY[look.body].label.toLowerCase()} ${look.sex} ${look.cls}, ${WEAPONS[look.weapon].label.toLowerCase()}`;
+  if(!keep){picks();panels()}else code();document.querySelectorAll('#anim .btn').forEach(x=>x.setAttribute('aria-pressed',x.dataset.a===curAnim))}
+document.getElementById('anim').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;curAnim=b.dataset.a;if(rig)rig.play(curAnim,curAnim==='Death'?{clamp:true}:{});document.querySelectorAll('#anim .btn').forEach(x=>x.setAttribute('aria-pressed',x===b))});
+document.getElementById('copy').onclick=()=>{const t=document.getElementById('code');code();t.select();try{navigator.clipboard.writeText(t.value)}catch(e){}};
+document.getElementById('reset').onclick=()=>{baseTune(JSON.parse(JSON.stringify(SHIPPED)));rebuild()};
+document.getElementById('apply').onclick=()=>{try{baseTune(JSON.parse(document.getElementById('code').value));rebuild()}catch(e){alert('That doesn’t look like tuner values')}};
+const cv=r.domElement;cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:yaw};cv.setPointerCapture(e.pointerId)});cv.addEventListener('pointermove',e=>{if(drag)yaw=drag.y+(e.clientX-drag.x)*.012});cv.addEventListener('pointerup',()=>drag=null);
+cv.addEventListener('wheel',e=>{zoom=Math.max(.6,Math.min(1.8,zoom*(e.deltaY>0?1.08:.93)));e.preventDefault()},{passive:false});
+function fit(){const w=box.clientWidth,h=box.clientHeight;if(!w||!h)return;r.setSize(w,h,false);pc.aspect=w/h;pc.updateProjectionMatrix()}new ResizeObserver(fit).observe(box);fit();
+const clock=new THREE.Clock();function tick(){requestAnimationFrame(tick);const dt=Math.min(.05,clock.getDelta());if(rig)rig.update(dt);if(unit)unit.rotation.y=yaw;pc.position.set(0,.7,3.5*zoom);pc.lookAt(0,.53,0);r.render(s,pc)}
+window.TUNER={get look(){return look},set look(v){look=clean(v);rebuild()},rebuild,values:baseTuneExport,setYaw:v=>yaw=v};
+RIG.ready.then(()=>{rebuild();tick()});
+})();
+</script></body></html>
