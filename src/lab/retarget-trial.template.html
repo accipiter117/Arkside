@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arkside: retarget trial</title>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+<style>
+:root{--bg:#11181c;--panel:#182126;--ink:#e4eaec;--muted:#93a1a8;--line:#2b383f;color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 Barlow,system-ui,sans-serif;padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
+main{max-width:1100px;margin:0 auto;padding:14px 14px 40px}
+h1{font-family:Teko,sans-serif;font-weight:600;font-size:38px;line-height:.9;margin:0}
+.intro{color:var(--muted);margin:6px 0 10px;max-width:70ch}
+button{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 11px;font-weight:600;min-height:40px;cursor:pointer}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.view{position:relative;width:100%;aspect-ratio:4/3;max-height:80vh;border-radius:6px 18px 6px 6px;overflow:hidden;background:linear-gradient(#3a6aa8,#9fcfe8 55%,#e8dccb);touch-action:none}
+.view canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.lbl{position:absolute;top:10px;color:#fff;font:600 14px Barlow,sans-serif;text-shadow:0 1px 3px #000;width:50%;text-align:center}
+.note{font-size:13px;color:var(--muted);margin-top:12px;max-width:70ch}
+</style></head><body><main>
+<h1>Retarget trial</h1>
+<p class="intro">The current Security soldier (left) and the Quaternius Universal Base Characters male (right) playing the same Toon Shooter clips. The right-hand skeleton has no animations of its own: the clips are baked onto it when the page loads, by carrying each bone's world-space rotation change across the two rigs after aligning their rest poses. Drag to turn.</p>
+<div class="row" id="clips"></div>
+<div class="view" id="view"><canvas id="c"></canvas><div class="lbl" style="left:0">Toon Shooter soldier (current)</div><div class="lbl" style="left:50%">Base character, retargeted</div></div>
+<p class="note" id="status">Loading…</p>
+</main>
+<script>/*__GLB__*/</script>
+<script>
+//__RETARGET__
+</script>
+<script>
+const view=document.getElementById('view'),canvas=document.getElementById('c'),status=document.getElementById('status');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.outputEncoding=THREE.sRGBEncoding;
+const scene=new THREE.Scene();const cam=new THREE.PerspectiveCamera(26,4/3,.1,100);
+scene.add(new THREE.HemisphereLight(0xffffff,0x3a4a5a,.85));const sun=new THREE.DirectionalLight(0xfff0dd,1.1);sun.position.set(3,6,4);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);scene.add(sun);
+const fl=new THREE.Mesh(new THREE.CircleGeometry(4,40),new THREE.MeshLambertMaterial({color:0x9a8a78}));fl.rotation.x=-Math.PI/2;fl.receiveShadow=true;scene.add(fl);
+const L=new THREE.GLTFLoader();let src=null,tgt=null,srcClips=[],tgtClips={},mixS=null,mixT=null,angle=0,cur='Idle';
+const CLIPS=['Idle','Walk','Run','Idle_Shoot','Walk_Shoot','HitReact','Death','Jump','Duck'];
+function norm(root,x,h=1.75){root.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(root);const k=h/(b.max.y-b.min.y);const g=new THREE.Group();g.add(root);root.scale.setScalar(k);root.position.y=-b.min.y*k;g.position.x=x;scene.add(g);root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false}});return g}
+function fit(){const w=view.clientWidth,h=view.clientHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
+function setClip(name){cur=name;[...document.getElementById('clips').children].forEach(b=>b.setAttribute('aria-pressed',b.textContent===name));
+  if(mixS){mixS.stopAllAction();const c=srcClips.find(c=>c.name===name);if(c)mixS.clipAction(c).play()}
+  if(mixT){mixT.stopAllAction();const c=tgtClips[name];if(c)mixT.clipAction(c).play()}}
+for(const n of CLIPS){const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=n;b.onclick=()=>setClip(n);document.getElementById('clips').appendChild(b)}
+const glb=Uint8Array.from(atob(ARK_GLB.sec),c=>c.charCodeAt(0)).buffer;
+L.parse(glb,'',g=>{src=g.scene;srcClips=g.animations;src.traverse(o=>{if(o.isMesh){const ms=[].concat(o.material);for(const m of ms){m.metalness=0}}});for(const w of['AK','Pistol','SMG','Sniper'])src.traverse(o=>{if(o.name===w)o.visible=w==='AK'});rtSaveRest(src);
+  norm(src,-.9);mixS=new THREE.AnimationMixer(src);
+  L.load('ubc/Superhero_Male_FullBody.gltf',t=>{tgt=t.scene;rtSaveRest(tgt);tgt.traverse(o=>{if(o.isMesh&&o.material){o.material.metalness=0;o.material.roughness=.9}});
+    const t0=performance.now();for(const c of srcClips)if(CLIPS.includes(c.name)){try{tgtClips[c.name]=retargetClip(src,tgt,c)}catch(e){console.error(c.name,e)}}
+    norm(tgt,.9);mixT=new THREE.AnimationMixer(tgt);status.textContent=`Baked ${Object.keys(tgtClips).length} clips in ${Math.round(performance.now()-t0)} ms. Rest alignment by limb direction; fingers mapped one to one; root motion scaled by height.`;setClip('Idle');window.TRIAL_READY=true})},undefined,e=>{status.textContent='Could not load: '+e.message});
+let t0=performance.now();function frame(){requestAnimationFrame(frame);const now=performance.now(),dt=Math.min(.05,(now-t0)/1000);t0=now;if(mixS)mixS.update(dt);if(mixT)mixT.update(dt);cam.position.set(Math.sin(angle)*6.5,1.5,Math.cos(angle)*6.5);cam.lookAt(0,.9,0);renderer.render(scene,cam)}
+let drag=null;view.addEventListener('pointerdown',e=>{drag={x:e.clientX,a:angle};view.setPointerCapture(e.pointerId)});view.addEventListener('pointermove',e=>{if(drag)angle=drag.a+(e.clientX-drag.x)*.01});view.addEventListener('pointerup',()=>drag=null);
+window.addEventListener('resize',fit);fit();frame();window.TRIAL={setClip,setAngle:a=>{angle=a},mix:()=>[mixS,mixT]};
+</script></body></html>
