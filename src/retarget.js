@@ -38,18 +38,18 @@ function retargetClip(src,tgt,clip,fps=30){const S=rtBones(src),T=rtBones(tgt);
         const Fs=frame(sd),Ft=frame(td);fix.setFromRotationMatrix(Fs.multiply(Ft.invert()))}}
     const parentRest=tb.parent?rtWorldQ(tb.parent):new THREE.Quaternion();
     pairs.push({tb,sb,sRestInv:sRest.clone().invert(),tRest,fix,parentRest,tn})}
-  const hipS=S.Hips,hipT=T.pelvis,hs=rtWorldP(hipS).y,ht=rtWorldP(hipT).y,ratio=hs>0?ht/hs:1,hipRest=hipT.position.clone(),hipSrcRest=hipS.position.clone();
+  const hipS=S.Hips,hipT=T.pelvis,hs=rtWorldP(hipS).y,ht=rtWorldP(hipT).y,ratio=hs>0?ht/hs:1,hipRest=hipT.position.clone(),hipSrcRestW=rtWorldP(hipS),rootInv=src.matrixWorld.clone().invert();
   const n=Math.max(2,Math.round(clip.duration*fps)),times=new Float32Array(n),qv={},pv=new Float32Array(n*3);
   for(const p of pairs)qv[p.tn]=new Float32Array(n*4);
   const act2=mixer.clipAction(clip);act2.play();
-  for(let i=0;i<n;i++){const t=i/(n-1)*clip.duration;times[i]=t;mixer.setTime(t);src.updateMatrixWorld(true);
+  for(let i=0;i<n;i++){const t=i/(n-1)*clip.duration;times[i]=t;mixer.setTime(Math.min(t,clip.duration-1e-4));// the last frame must not wrap back to the start, or clamped clips (Death) snap uprightsrc.updateMatrixWorld(true);
     for(const p of pairs){const sw=rtWorldQ(p.sb);const delta=sw.multiply(p.sRestInv);// world delta the clip applies
       // target world = delta * (fix applied in world) * tRest  -> local = inv(parentWorld) * world. Parent world is the parent's animated world,
       // so we solve top-down: use parent's current world after we set it this frame.
       const parentW=p.tb.parent?rtWorldQ(p.tb.parent):new THREE.Quaternion();
       const world=delta.clone().multiply(p.fix).multiply(p.tRest);const local=parentW.clone().invert().multiply(world);
       p.tb.quaternion.copy(local);p.tb.updateWorldMatrix(false,false);qv[p.tn].set([local.x,local.y,local.z,local.w],i*4)}
-    const hp=hipS.position.clone().sub(hipSrcRest).multiplyScalar(ratio).add(hipRest);pv.set([hp.x,hp.y,hp.z],i*3)}
+    const hw=rtWorldP(hipS).applyMatrix4(rootInv).sub(hipSrcRestW.clone().applyMatrix4(rootInv)).multiplyScalar(ratio);const hp=hipRest.clone().add(hw);pv.set([hp.x,hp.y,hp.z],i*3)}
   mixer.stopAllAction();
   const tracks=[];for(const p of pairs)tracks.push(new THREE.QuaternionKeyframeTrack(p.tb.name+'.quaternion',times,qv[p.tn]));
   tracks.push(new THREE.VectorKeyframeTrack(hipT.name+'.position',times,pv));
