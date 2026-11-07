@@ -32,6 +32,7 @@ const WEAPONS={
   dmr:{label:'Battle rifle',bodies:['light','medium','heavy'],fore:1}
 };
 const OPTS={
+  sex:[['male','Male'],['female','Female']],
   face:[['long','Long'],['square','Square'],['angular','Angular'],['broad','Broad']],
   expr:[['neutral','Neutral'],['grim','Grim'],['smirk','Smirk'],['snarl','Snarl']],
   facial:[['none','Clean shaven'],['stubble','Stubble'],['moustache','Moustache'],['goatee','Goatee'],['chops','Mutton chops'],['beard','Full beard']],
@@ -49,7 +50,7 @@ const FACES={long:{rx:15,ry:23,j:.6},square:{rx:17,ry:21,j:.86},angular:{rx:16,r
 const COVER=new Set(['beanie','cap','bandana','helmet','riothelm']);
 const NAMES=['Kestrel','Rook','Mako','Juno','Brask','Vex','Tamsin','Okoro','Dace','Halloran','Ines','Petra','Silas','Wren','Yusuf','Moss','Ada','Corin','Bex','Tavi'];
 const CALLSIGNS=['Undertow','Bilge Rat','Breakwater','Gull','Saltwater','Rivet','Static','Ghost Tide','Ballast','Riptide','Barnacle','Lighthouse','Floodgate','Drydock','Squall'];
-const DEFAULT={name:'Kestrel',callsign:'Undertow',faction:'resistance',body:'medium',cls:'soldier',weapon:'rifle',skin:2,face:'square',expr:'grim',facial:'stubble',mark:'none',hair:'buzz',hairCol:1,headgear:'none',facegear:'none',top:'tee',armour:'rig',legs:'cargo',gloves:'fingerless',primary:0,secondary:1};
+const DEFAULT={name:'Kestrel',callsign:'Undertow',faction:'resistance',sex:'male',body:'medium',cls:'soldier',weapon:'rifle',skin:2,face:'square',expr:'grim',facial:'stubble',mark:'none',hair:'buzz',hairCol:1,headgear:'none',facegear:'none',top:'tee',armour:'rig',legs:'cargo',gloves:'fingerless',primary:0,secondary:1};
 
 /* ---------- Helpers ---------- */
 const $=q=>document.querySelector(q);
@@ -60,7 +61,7 @@ function store(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 function load(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}catch(e){return null}}
 function clean(o){const s={...DEFAULT};if(o&&typeof o==='object'){for(const k in DEFAULT){if(k in o&&typeof o[k]===typeof DEFAULT[k])s[k]=o[k]}}
   if(!FACTIONS[s.faction])s.faction=DEFAULT.faction;if(!BODY[s.body])s.body=DEFAULT.body;if(!CLASSES[s.cls])s.cls=DEFAULT.cls;if(!FACES[s.face])s.face=DEFAULT.face;
-  for(const k of ['expr','facial','mark','hair','headgear','facegear','top','armour','legs','gloves']){if(!OPTS[k].some(x=>x[0]===s[k]))s[k]=DEFAULT[k]}
+  for(const k of ['sex','expr','facial','mark','hair','headgear','facegear','top','armour','legs','gloves']){if(!OPTS[k].some(x=>x[0]===s[k]))s[k]=DEFAULT[k]}
   s.skin=Math.min(SKIN.length-1,Math.max(0,s.skin|0));s.hairCol=Math.min(HAIRC.length-1,Math.max(0,s.hairCol|0));s.primary=Math.min(5,Math.max(0,s.primary|0));s.secondary=Math.min(5,Math.max(0,s.secondary|0));
   s.name=String(s.name).slice(0,18);s.callsign=String(s.callsign).slice(0,22);return normalize(s)}
 function normalize(s){

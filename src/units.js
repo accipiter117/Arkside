@@ -38,18 +38,19 @@ function opHead(look,K){
   const c1=F.pal[look.primary],c2=F.pal[look.secondary],skin=SKIN[look.skin],skinD=shade(skin,-18),hair=HAIRC[look.hairCol],acc=F.accent,ink='#16120e';
   const hd=new THREE.Group();
   const fs={long:[.86,1.16,.95],square:[1,1.02,1],angular:[.88,1.1,.95],broad:[1.1,.97,1.02]}[look.face]||[1,1,1];
+  const gearOnly=!!K.gearOnly;
   // Brink faces: a little longer, with a wider, squarer jaw.
-  sph(.15,skin,hd,0,.01,0,[fs[0],fs[1]*1.1,fs[2]]);
-  if(look.face==='square'||look.face==='broad')box(.235*fs[0],.1,.18,skin,hd,0,-.11,.02);else box(.185*fs[0],.095,.165,skin,hd,0,-.11,.02);
-  for(const sd of[-1,1])sph(.035,skinD,hd,sd*.15*fs[0],0,0,[.6,1,1]);
+  if(!gearOnly)sph(.15,skin,hd,0,.01,0,[fs[0],fs[1]*1.1,fs[2]]);
   const ez=.142*fs[2];
+  if(!gearOnly){if(look.face==='square'||look.face==='broad')box(.235*fs[0],.1,.18,skin,hd,0,-.11,.02);else box(.185*fs[0],.095,.165,skin,hd,0,-.11,.02);
+  for(const sd of[-1,1])sph(.035,skinD,hd,sd*.15*fs[0],0,0,[.6,1,1]);
   for(const sd of[-1,1]){box(.05,.024,.01,'#f1ece2',hd,sd*.055,.02,ez);box(.028,.028,.012,ink,hd,sd*.055,.02,ez+.003)}
   const er={neutral:0,grim:.28,smirk:0,snarl:.45}[look.expr]||0;
   for(const sd of[-1,1]){const b=box(.065,.02,.012,shade(hair,-10),hd,sd*.055,.062+(look.expr==='smirk'&&sd>0?.014:0),ez+.002);b.rotation.z=-sd*er}
   box(.032,.06,.04,skinD,hd,0,-.015,ez+.012);
-  if(look.expr==='snarl'){box(.07,.025,.01,'#3a1d18',hd,0,-.075,ez-.004);box(.05,.008,.012,'#efe9dc',hd,0,-.07,ez)}else{const mo=box(.06,.012,.01,'#3b2219',hd,0,-.075,ez-.004);if(look.expr==='smirk')mo.rotation.z=.18}
+  if(look.expr==='snarl'){box(.07,.025,.01,'#3a1d18',hd,0,-.075,ez-.004);box(.05,.008,.012,'#efe9dc',hd,0,-.07,ez)}else{const mo=box(.06,.012,.01,'#3b2219',hd,0,-.075,ez-.004);if(look.expr==='smirk')mo.rotation.z=.18}}
   const lowShell=(c,o)=>{const m=mesh(new THREE.SphereGeometry(.154,14,8,-Math.PI*.15,Math.PI*1.3,Math.PI*.52,Math.PI*.4),c,hd,0,0,0,o);m.scale.set(...fs);m.rotation.y=Math.PI*.5;return m};
-  if(look.facial==='stubble')lowShell(shade(skin,-28));
+  if(!gearOnly){if(look.facial==='stubble')lowShell(shade(skin,-28));
   if(look.facial==='beard'){lowShell(hair);sph(.08,hair,hd,0,-.14,.06,[1.3,.8,1])}
   if(look.facial==='goatee')box(.05,.06,.03,hair,hd,0,-.13,ez-.01);
   if(look.facial==='moustache'||look.facial==='goatee')box(.08,.02,.02,hair,hd,0,-.055,ez+.004);
@@ -57,10 +58,10 @@ function opHead(look,K){
   if(look.mark==='scar'){const sc=box(.008,.09,.006,'#e7ad9d',hd,-.055,.02,ez+.012);sc.rotation.z=.3}
   if(look.mark==='tattoo')for(let i=0;i<3;i++){const tl=box(.008,.05,.006,'#1f2a35',hd,.085+i*.012,-.01-i*.01,ez-.02);tl.rotation.z=-.4}
   if(look.mark==='paint')box(.26*fs[0],.04,.01,sec?'#123a5a':'#151311',hd,0,.02,ez-.004);
-  if(look.mark==='patch'){box(.05,.04,.012,ink,hd,-.055,.02,ez+.008);const st=box(.3,.01,.01,ink,hd,0,.05,ez-.03);st.rotation.z=-.25}
+  if(look.mark==='patch'){box(.05,.04,.012,ink,hd,-.055,.02,ez+.008);const st=box(.3,.01,.01,ink,hd,0,.05,ez-.03);st.rotation.z=-.25}}
   const covered=['beanie','cap','bandana','helmet','riothelm'].includes(look.headgear);
   const cap=(r,c,ang=.44)=>{const m=mesh(new THREE.SphereGeometry(r,16,10,0,Math.PI*2,0,Math.PI*ang),c,hd,0,.005,-.008);m.scale.set(...fs);m.rotation.x=-.28;return m};
-  if(look.hair!=='shaved'){
+  if(!gearOnly&&look.hair!=='shaved'){
     if(covered||look.hair==='buzz')cap(.154,look.hair==='buzz'?shade(hair,35):hair);
     else if(look.hair==='mohawk'){cap(.153,shade(hair,40));box(.04,.12,.26,hair,hd,0,.16*fs[1],-.01)}
     else{cap(.16,hair);
@@ -91,7 +92,7 @@ function opHead(look,K){
    creator head, armour and gear to bones, and drive it with the model's clips.
    Attachments are built in "procedural units" (the same numbers as
    the old procedural body), held by a group that converts them to the rig's scale. */
-const RIG={ok:false,failed:false,tpl:{},mats:new Map()};
+const RIG={ok:false,failed:false,tpl:{},raw:{},mats:new Map()};
 const RIG_SCALE=.52;               // rig units -> world units (neck height matches the procedural body)
 const RIG_P=.5/RIG_SCALE;          // procedural units -> rig units
 const RIG_WEAPON={rifle:'AK',smg:'SMG',mpistol:'Pistol',sniper:'Sniper'};
@@ -122,7 +123,7 @@ RIG.ready=new Promise(res=>{
   const fail=e=>{if(!RIG.failed){RIG.failed=true;console.warn('Unit models unavailable, using procedural units',e||'')}res(false)};
   if(typeof THREE==='undefined'||!THREE.GLTFLoader||!THREE.SkeletonUtils||typeof ARK_GLB==='undefined')return fail();
   const keys=Object.keys(ARK_GLB);let n=0;
-  for(const k of keys){try{new THREE.GLTFLoader().parse(b64buf(ARK_GLB[k]),'',g=>{try{RIG.tpl[k]=prepRig(g,k)}catch(e){return fail(e)}if(++n===keys.length){RIG.ok=true;res(true)}},fail)}catch(e){fail(e)}}
+  for(const k of keys){try{new THREE.GLTFLoader().parse(b64buf(ARK_GLB[k]),'',g=>{try{if(k==='sec'||k==='res')RIG.tpl[k]=prepRig(g,k);else RIG.raw[k]=g}catch(e){return fail(e)}if(++n===keys.length){try{if(typeof prepBase==='function')prepBase()}catch(e){console.warn('Base characters unavailable',e)}RIG.ok=true;res(true)}},fail)}catch(e){fail(e)}}
 });
 RIG.wait=ms=>Promise.race([RIG.ready,new Promise(r=>setTimeout(()=>r(false),ms))]);
 
@@ -136,7 +137,7 @@ function prepRig(g,key){
   // type bone scaling survives playback.
   for(const c of g.animations){c.tracks=c.tracks.filter(t=>!t.name.endsWith('.scale')&&!(t.name.endsWith('.position')&&!RIG_POS_ANIMATED.has(t.name.split('.')[0])));clips[c.name]=c}
   const tpl={key,root,clips,bones:{},weapons:{},geoms:new Set()};
-  root.traverse(o=>{if(o.isBone){tpl.bones[o.name]=o;o.userData.rest=o.position.toArray()}if(RIG_WEAPONS.includes(o.name))tpl.weapons[o.name]=o;if(o.geometry)tpl.geoms.add(o.geometry);
+  root.traverse(o=>{if(o.isBone){tpl.bones[o.name]=o;o.userData.rest=o.position.toArray();o.userData.rtRest={p:o.position.toArray(),q:o.quaternion.toArray()}}if(RIG_WEAPONS.includes(o.name))tpl.weapons[o.name]=o;if(o.geometry)tpl.geoms.add(o.geometry);
     if(o.isMesh){let a=o,head=false;while(a&&!head){head=(!a.isBone&&/^Head(_\d+)?$/.test(a.name))||/^Character_Enemy_Head/.test(a.name);a=a.parent}if(head)o.userData.rigHead=true;
       for(const m of[].concat(o.material)){m.userData.role=rigRole(m.name,key);m.userData.orig=m.color.clone().convertLinearToSRGB()}}});
   // Bind-pose world rotation of each bone we attach to, so attachments can be
@@ -167,7 +168,7 @@ function rigColours(look){const F=FACTIONS[look.faction],sec=look.faction==='sec
   return{main:c1,pants:c2,pads:sec?shade(c2,-35):shade(c2,-20),skin:SKIN[look.skin]}}
 
 // Holder that lets us write attachments in procedural units and body space.
-function rigHolder(tpl,bones,name,x=0,y=0,z=0){const bone=bones[name];if(!bone)return null;const h=new THREE.Group();h.quaternion.copy(tpl.bindQ[name]).invert();h.scale.setScalar(RIG_P);h.userData.off=new THREE.Vector3(x,y,z);h.position.set(x,y,z).applyQuaternion(h.quaternion).multiplyScalar(RIG_P);bone.add(h);return h}
+function rigHolder(tpl,bones,name,x=0,y=0,z=0){const bone=bones[name];if(!bone)return null;const P=tpl.P||RIG_P;const h=new THREE.Group();h.quaternion.copy(tpl.bindQ[name]).invert();h.scale.setScalar(P);h.userData.off=new THREE.Vector3(x,y,z);h.position.set(x,y,z).applyQuaternion(h.quaternion).multiplyScalar(P);bone.add(h);return h}
 
 // Give a holder an absolute size (procedural units x k) and offset whatever
 // scale its bone inherits from the body type or the collapsed head.
@@ -176,7 +177,7 @@ function fixHolder(root,h,k){root.updateMatrixWorld(true);const ws=h.parent.getW
 // Build a rigged operative. Returns null if the models aren't loaded.
 // opts.outline (default true) adds inverted-hull outlines.
 function buildRigged(look,wkey,cls,opts={}){
-  if(!RIG.ok)return null;
+  if(!RIG.ok)return null;if(UNIT_STYLE==='base'&&typeof BASE!=='undefined'&&BASE.ok)return buildBase(look,wkey,cls,opts);
   const sec=look.faction==='security',tpl=RIG.tpl[look.model||(sec?'sec':'res')]||RIG.tpl[sec?'sec':'res'];
   const root=THREE.SkeletonUtils.clone(tpl.root),bones={},meshes=[],weapons={};
   root.traverse(o=>{if(o.isBone)bones[o.name]=o;if(RIG_WEAPONS.includes(o.name))weapons[o.name]=o;if(o.isMesh)meshes.push(o)});
@@ -245,7 +246,7 @@ function rigGear(look,cls,tpl,bones,K,col){const{mesh,box,sph}=K,sec=look.factio
   // height, chest back]. Security's own chest pouches sit further forward, so
   // its plates sit further out. The Torso bone carries the build's scale.
   const FIT={'resistance-light':[.29,.205,.15,.17],'resistance-medium':[.3,.215,.15,.17],'resistance-heavy':[.3,.245,.14,.22],
-    'security-light':[.29,.295,.15,.17],'security-medium':[.3,.295,.15,.17],'security-heavy':[.3,.385,.14,.22]}[look.faction+'-'+look.body]||[.3,.2,.15,.17],[sw,zf,Y,zb]=FIT,vest=shade(c2,-42);
+    'security-light':[.29,.295,.15,.17],'security-medium':[.3,.295,.15,.17],'security-heavy':[.3,.385,.14,.22]}[look.faction+'-'+look.body]||[.3,.2,.15,.17],[sw,zf,Y,zb]=(tpl.fit&&tpl.fit[look.body])||FIT,vest=shade(c2,-42);
   // Front plates keep their outer face just off the chest and grow deeper
   // where the chest sits further out, so there's no gap behind them.
   const pd=.06+Math.max(0,zf-.21),pz=zf+.05-pd/2;
@@ -255,9 +256,9 @@ function rigGear(look,cls,tpl,bones,K,col){const{mesh,box,sph}=K,sec=look.factio
   if(look.armour==='scrap'){const p1=box(sw*.9,.24,.05,'#8b4a2a',T,-sw*.32,Y+.04,zf+.03);p1.rotation.z=.12;const p2=box(sw*.75,.2,.05,'#7f858b',T,sw*.36,Y,zf+.035);p2.rotation.z=-.1;const sp=box(.06,.42,.02,'#4a3423',T,0,Y,zf+.06);sp.rotation.z=.6}
   // Pauldrons (riot and scrap) on the upper arms.
   if(look.armour==='riot'||look.armour==='scrap')for(const s of['L','R']){const A=rigHolder(tpl,bones,'UpperArm'+s);if(!A)continue;A.userData.attach=true;const sd=s==='L'?1:-1;
-    if(look.armour==='riot'){sph(.13,'#d4dadf',A,sd*.03,.06,0,[1,.7,1.1]);box(.15,.02,.03,acc,A,sd*.03,.1,.1)}else{const ty=mesh(new THREE.TorusGeometry(.09,.04,6,12),'#262626',A,sd*.02,.04,0);ty.rotation.z=Math.PI/2}}
+    const po=tpl.gear?tpl.gear.pad:[0,0,0];if(look.armour==='riot'){sph(.13,'#d4dadf',A,sd*.03+po[0]*sd,.06+po[1],po[2],[1,.7,1.1]);box(.15,.02,.03,acc,A,sd*.03+po[0]*sd,.1+po[1],.1+po[2])}else{const ty=mesh(new THREE.TorusGeometry(.09,.04,6,12),'#262626',A,sd*.02+po[0]*sd,.04+po[1],po[2]);ty.rotation.z=Math.PI/2}}
   // Kneepads with armoured legs, riot and carrier armour.
-  if(look.legs==='armoured'||look.armour==='riot')for(const s of['L','R']){const L=rigHolder(tpl,bones,'LowerLeg'+s);if(!L)continue;L.userData.attach=true;box(.13,.13,.07,look.armour==='riot'?'#d4dadf':'#2b2d30',L,0,0,.1)}
+  if(look.legs==='armoured'||look.armour==='riot')for(const s of['L','R']){const L=rigHolder(tpl,bones,'LowerLeg'+s);if(!L)continue;L.userData.attach=true;const ko=tpl.gear?tpl.gear.knee:[0,0,0];box(.13,.13,.07,look.armour==='riot'?'#d4dadf':'#2b2d30',L,ko[0],ko[1],.1+ko[2])}
   // Class gear on the back (and a chest bandolier for soldiers).
   const back=-zb-.06;
   if(cls==='soldier'){const bd=box(.06,.5,.03,'#5a4128',T,0,Y,zf+.075);bd.rotation.z=-.62;for(let i=-3;i<=3;i++){const s=box(.03,.05,.02,'#c9a046',T,Math.sin(.62)*i*.06,Y+Math.cos(.62)*i*.06,zf+.09);s.rotation.z=-.62}
@@ -326,7 +327,7 @@ function bakeGroup(h,outline,t=.014){
 // Free a unit model's own GPU data (merged attachments, procedural parts).
 // Shared body geometry and shared materials are left alone.
 function disposeUnitModel(m){if(!m)return;const rig=m.userData.rig;if(rig){rig.mixer.stopAllAction();rig.mixer.uncacheRoot(rig.mixer.getRoot())}
-  m.traverse(o=>{if(!o.isMesh||o.isSkinnedMesh)return;const shared=o.geometry&&RIG.tpl&&Object.values(RIG.tpl).some(t=>t.geoms&&t.geoms.has(o.geometry));
+  m.traverse(o=>{if(!o.isMesh||o.isSkinnedMesh)return;const shared=o.geometry&&((RIG.tpl&&Object.values(RIG.tpl).some(t=>t.geoms&&t.geoms.has(o.geometry)))||(typeof BASE!=='undefined'&&Object.values(BASE.tpl).some(t=>t.geoms&&t.geoms.has(o.geometry)))||o.userData.hairPiece);
     if(!shared&&!(o.parent&&RIG_WEAPONS.includes(o.parent.name)))o.geometry&&o.geometry.dispose()})}
 
 /* ---------- 3D portraits ----------
