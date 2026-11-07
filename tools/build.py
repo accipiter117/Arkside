@@ -34,6 +34,7 @@ JS_PARTS = {
     "//__RIVALS__": "rivals.js",
     "//__CONTROL__": "control.js",
     "//__TERRAIN_KIT__": "terrain-kit.js",
+    "//__RETARGET__": "retarget.js",
     "//__ENGINE__": "engine.js",
 }
 GLBS = {"sec": "soldier_ct.glb", "res": "soldier_t.glb"}
@@ -43,6 +44,7 @@ PAGES = [
     (SRC / "index.template.html", ROOT / "index.html"),
     (SRC / "lab" / "unit-review.template.html", ROOT / "lab" / "unit-review.html"),
     (SRC / "lab" / "terrain-review.template.html", ROOT / "lab" / "terrain-review.html"),
+    (SRC / "lab" / "retarget-trial.template.html", ROOT / "lab" / "retarget-trial.html"),
 ]
 
 
