@@ -18,7 +18,8 @@ const BASE_HAIR={shaved:null,buzz:'hair_buzzed',crop:'hair_parted',mohawk:'hair_
 // Builds: thickness scale of limbs and torso (the bone's length axis is left alone), head scale, overall height.
 const BASE_BUILD={light:{limb:.9,torso:.93,head:1,h:.97,arm:1,fore:1,thigh:1,calf:1,shoulder:1},medium:{limb:1,torso:1,head:1,h:1,arm:1,fore:1,thigh:1,calf:1,shoulder:1},heavy:{limb:1.16,torso:1.2,head:1.03,h:1.03,arm:1,fore:1,thigh:1,calf:1,shoulder:1}};
 // Tuner hook (lab/body-tuner.html): replaces the tables above with the values pasted back from the tuner.
-function baseTune(t){if(!t)return;if(t.BASE_ARM){for(const k of['aim','carry','yaw','ik','poleOut','poleDown'])if(t.BASE_ARM[k]!=null)BASE_ARM[k]=t.BASE_ARM[k];for(const sd of['l','r'])if(t.BASE_ARM[sd])Object.assign(BASE_ARM[sd],t.BASE_ARM[sd])}for(const k of['BASE_BUILD','BASE_GUN_SCALE','BASE_FIT','BASE_GEAR'])if(t[k]){const tgt={BASE_BUILD,BASE_GUN_SCALE,BASE_FIT,BASE_GEAR}[k];for(const b in t[k])tgt[b]=typeof t[k][b]==='object'&&!Array.isArray(t[k][b])?Object.assign({},tgt[b]||{},t[k][b]):t[k][b]}if(t.BASE_GUN_OFF)BASE_GUN_OFF.fromArray(t.BASE_GUN_OFF)}
+function baseTune(t,build){if(!t)return;if(t.BASE_ARM){const src=t.BASE_ARM,flat=src.l||src.aim!=null,put=(dst,v)=>{for(const k of['aim','carry','yaw','ik','poleOut','poleDown'])if(v[k]!=null)dst[k]=v[k];for(const sd of['l','r'])if(v[sd])Object.assign(dst[sd],v[sd])};
+    if(flat){for(const b of(build?[build]:Object.keys(BASE_ARM)))put(BASE_ARM[b],src)}else for(const b in src)if(BASE_ARM[b])put(BASE_ARM[b],src[b])}for(const k of['BASE_BUILD','BASE_GUN_SCALE','BASE_FIT','BASE_GEAR'])if(t[k]){const tgt={BASE_BUILD,BASE_GUN_SCALE,BASE_FIT,BASE_GEAR}[k];for(const b in t[k])tgt[b]=typeof t[k][b]==='object'&&!Array.isArray(t[k][b])?Object.assign({},tgt[b]||{},t[k][b]):t[k][b]}if(t.BASE_GUN_OFF)BASE_GUN_OFF.fromArray(t.BASE_GUN_OFF)}
 function baseTuneExport(){return{BASE_BUILD,BASE_GUN_SCALE,BASE_FIT,BASE_GEAR,BASE_ARM,BASE_GUN_OFF:BASE_GUN_OFF.toArray()}}
 // Clothing regions by dominant bone: 0 skin, 1 torso, 2 legs, 3 upper arm, 4 forearm, 5 hands, 6 feet
 const BASE_REGION={pelvis:2,spine_01:1,spine_02:1,spine_03:1,clavicle_l:1,clavicle_r:1,upperarm_l:3,upperarm_r:3,lowerarm_l:4,lowerarm_r:4,hand_l:5,hand_r:5,thigh_l:2,thigh_r:2,calf_l:2,calf_r:2,foot_l:6,foot_r:6,ball_l:6,ball_r:6};
@@ -105,15 +106,15 @@ function buildBase(look,wkey,cls,opts={}){const tpl=BASE.tpl[look.sex==='female'
   if(outline)for(const m of[...H.children])if(m.userData.hairPiece){const ol=new THREE.Mesh(m.geometry,rigOutlineMat(false));ol.position.copy(m.position);ol.quaternion.copy(m.quaternion);ol.scale.copy(m.scale);ol.userData.isOutline=true;H.add(ol)}
   root.traverse(o=>{if(o.isSkinnedMesh)o.frustumCulled=false});
   const holder=new THREE.Group();holder.add(root);root.scale.setScalar(tpl.scale);holder.scale.set(1,B.h,1);
-  const rig=new BaseAnim(root,tpl.clips,{bones,gun,fore:W.fore.clone(),fwd:tpl.fwd.clone()});rig.gun=gun;rig.muzzle=muzzle;rig.barrels=W.barrels||null;rig.bones=bones;
+  const rig=new BaseAnim(root,tpl.clips,{bones,gun,fore:W.fore.clone(),fwd:tpl.fwd.clone(),body:look.body});rig.gun=gun;rig.muzzle=muzzle;rig.barrels=W.barrels||null;rig.bones=bones;
   holder.userData.rig=rig;return holder}
 const BASE_GUN_OFF=new THREE.Vector3(0,0,0);
 // Offsets (procedural units, body space) for pauldrons and kneepads on the new bones.
-const BASE_GEAR={pad:[-.01,-.03,0],knee:[0,-.06,-.03]};
+const BASE_GEAR={pad:[.025,-.03,0],knee:[0,-.06,-.03]};
 // Weapon size on the new hands (multiplies the procedural model's own units).
 const BASE_GUN_SCALE={rifle:.85,smg:.8,mpistol:.75,shotgun:.85,lmg:.9,minigun:.85,dmr:.9,sniper:.9};
 // Chest fit for the gear builder, in procedural units: [half shoulder width, chest front, chest centre height, chest back].
-const BASE_FIT={light:[.23,.19,.05,.15],medium:[.25,.2,.05,.16],heavy:[.29,.24,.04,.19]};
+const BASE_FIT={light:[.23,.19,.05,.15],medium:[.27,.1,.05,.16],heavy:[.29,.24,.04,.19]};
 
 /* Two-bone IK: pin the left hand to the weapon's foregrip after each animation update. */
 // Arm settings (tuner: Arms panel). ik: how strongly the left hand is pinned to the foregrip (0 = animation only).
@@ -122,17 +123,22 @@ const BASE_FIT={light:[.23,.19,.05,.15],medium:[.25,.2,.05,.16],heavy:[.29,.24,.
 // after the animation (raise = out from the body, fwd = forward swing, twist = roll about the upper arm, bend = elbow).
 // aim: barrel pitch in degrees when firing (0 = level, negative = down); carry: pitch when idle or moving (low ready);
 // yaw: barrel turned across the body (degrees, positive = towards the left hand).
-const BASE_ARM={aim:0,carry:-30,yaw:8,ik:1,poleOut:1,poleDown:.7,l:{raise:12,fwd:0,twist:0,bend:0},r:{raise:6,fwd:0,twist:0,bend:0}};
+// Per build: light and medium share Matthew's first set, heavy has its own.
+const BASE_ARM={light:{aim:-2,carry:-19,yaw:-1,ik:.4,poleOut:.54,poleDown:.24,l:{raise:17,fwd:-14,twist:-5,bend:34},r:{raise:-3,fwd:19,twist:0,bend:-12}},
+  medium:{aim:-2,carry:-19,yaw:-1,ik:.4,poleOut:.54,poleDown:.24,l:{raise:17,fwd:-14,twist:-5,bend:34},r:{raise:-3,fwd:19,twist:0,bend:-12}},
+  heavy:{aim:5,carry:-19,yaw:-1,ik:0,poleOut:1.79,poleDown:-1,l:{raise:1,fwd:-14,twist:-5,bend:34},r:{raise:-26,fwd:19,twist:-90,bend:-22}}};
+const armFor=b=>BASE_ARM[b]||BASE_ARM.medium;
 class BaseAnim extends RigAnim{
   constructor(root,clips,ik){super(root,clips);this.ik=ik;this.root=root;this._v=[0,1,2,3,4,5,6,7].map(()=>new THREE.Vector3());this._q=[0,1,2,3,4].map(()=>new THREE.Quaternion())}
   // The mixer only rewrites a bone when its animated value changes, so put back the pose it last wrote before
   // updating; otherwise the arm adjustments would stack up frame after frame on held poses.
+  arm(){return armFor(this.ik.body)}
   update(dt){const B=this.ik.bones,arm=this._arm||(this._arm=['upperarm_l','lowerarm_l','upperarm_r','lowerarm_r','hand_l','hand_r'].map(n=>B[n]).filter(Boolean));
     if(this._pose)arm.forEach((b,i)=>b.quaternion.copy(this._pose[i]));super.update(dt);this._pose=arm.map(b=>b.quaternion.clone());this.solve()}
   // rotate a bone by a world-space rotation q
   rotW(bone,q){const w=bone.getWorldQuaternion(this._q[3]),pw=bone.parent.getWorldQuaternion(this._q[4]);w.premultiply(q);bone.quaternion.copy(pw.invert().multiply(w));bone.updateWorldMatrix(false,true)}
   axes(){const B=this.ik.bones,fwd=this._v[5].copy(this.ik.fwd).applyQuaternion(this.root.getWorldQuaternion(this._q[0])).setY(0).normalize(),down=this._v[6].set(0,-1,0);return{fwd,down,B}}
-  offsets(side){const o=BASE_ARM[side];if(!o)return;const{fwd,down,B}=this.axes(),sfx=side==='l'?'_l':'_r',ua=B['upperarm'+sfx],la=B['lowerarm'+sfx];if(!ua||!la)return;
+  offsets(side){const o=this.arm()[side];if(!o)return;const{fwd,down,B}=this.axes(),sfx=side==='l'?'_l':'_r',ua=B['upperarm'+sfx],la=B['lowerarm'+sfx];if(!ua||!la)return;
     const sh=ua.getWorldPosition(new THREE.Vector3()),sp=(B.spine_03||ua.parent).getWorldPosition(new THREE.Vector3()),out=sh.clone().sub(sp).setY(0).normalize(),q=new THREE.Quaternion(),d=Math.PI/180;
     if(o.raise){q.setFromAxisAngle(new THREE.Vector3().crossVectors(down,out).normalize(),o.raise*d);this.rotW(ua,q)}
     if(o.fwd){q.setFromAxisAngle(new THREE.Vector3().crossVectors(down,fwd).normalize(),o.fwd*d);this.rotW(ua,q)}
@@ -142,7 +148,7 @@ class BaseAnim extends RigAnim{
   // gun's fixed grip frame lines up; the clips alone point the barrel at the sky on these long-armed bodies.
   aimGun(){const{bones,gun}=this.ik,hd=bones.hand_r;if(!hd||!gun)return;const n=this.curName||'',firing=/Shoot|Gun/.test(n)||n==='Duck';
     const{fwd}=this.axes(),up=new THREE.Vector3(0,1,0),right=new THREE.Vector3().crossVectors(fwd,up).normalize(),d=Math.PI/180;
-    const dir=fwd.clone().applyAxisAngle(up,(BASE_ARM.yaw||0)*d).applyAxisAngle(right,(firing?BASE_ARM.aim:BASE_ARM.carry)*d).normalize();
+    const A=this.arm(),dir=fwd.clone().applyAxisAngle(up,(A.yaw||0)*d).applyAxisAngle(right,(firing?A.aim:A.carry)*d).normalize();
     const xA=new THREE.Vector3().crossVectors(up,dir).normalize(),yA=new THREE.Vector3().crossVectors(dir,xA);
     const gunW=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(xA,yA,dir));
     // the gun's own frame is (x side, y up, z barrel) after gun.quaternion; hand world = gunW * inverse(gun local)
@@ -152,7 +158,7 @@ class BaseAnim extends RigAnim{
     this.root.updateMatrixWorld(true);
     // right arm first (it carries the gun), then the left arm's own offsets, then pin the left hand to the gun
     this.offsets('r');this.aimGun();this.offsets('l');
-    const k=Math.max(0,Math.min(1,BASE_ARM.ik));if(!gun.visible||k<=0)return;
+    const k=Math.max(0,Math.min(1,this.arm().ik));if(!gun.visible||k<=0)return;
     const q0u=ua.quaternion.clone(),q0l=la.quaternion.clone();
     const[a,b,c,t,tmp]=this._v,[q1,q2,pw]=this._q;gun.updateWorldMatrix(true,false);t.copy(fore).applyMatrix4(gun.matrixWorld);
     for(let it=0;it<3;it++){ua.getWorldPosition(a);la.getWorldPosition(b);hd.getWorldPosition(c);
@@ -162,7 +168,7 @@ class BaseAnim extends RigAnim{
       hd.getWorldPosition(c);const from=tmp.copy(c).sub(a).normalize(),to=c.clone().copy(t).sub(a).normalize();q1.setFromUnitVectors(from,to);ua.getWorldQuaternion(q2);q2.premultiply(q1);ua.parent.getWorldQuaternion(pw);ua.quaternion.copy(pw.invert().multiply(q2));ua.updateWorldMatrix(false,true)}
     // elbow pole: swing the arm about the shoulder-to-hand line so the elbow points out and down, away from the ribs
     {const sp=(bones.spine_03||ua.parent).getWorldPosition(new THREE.Vector3());ua.getWorldPosition(a);la.getWorldPosition(b);
-      const L1=a.distanceTo(b),out=a.clone().sub(sp).setY(0).normalize(),pole=a.clone().addScaledVector(out,BASE_ARM.poleOut*L1).add(new THREE.Vector3(0,-BASE_ARM.poleDown*L1,0));
+      const L1=a.distanceTo(b),out=a.clone().sub(sp).setY(0).normalize(),pole=a.clone().addScaledVector(out,this.arm().poleOut*L1).add(new THREE.Vector3(0,-this.arm().poleDown*L1,0));
       const ax=t.clone().sub(a).normalize(),pe=b.clone().sub(a),pp=pole.clone().sub(a);pe.addScaledVector(ax,-pe.dot(ax));pp.addScaledVector(ax,-pp.dot(ax));
       if(pe.lengthSq()>1e-8&&pp.lengthSq()>1e-8){pe.normalize();pp.normalize();let ang=Math.acos(Math.max(-1,Math.min(1,pe.dot(pp))));if(new THREE.Vector3().crossVectors(pe,pp).dot(ax)<0)ang=-ang;q1.setFromAxisAngle(ax,ang);this.rotW(ua,q1)}}
     if(k<1){ua.quaternion.slerpQuaternions?ua.quaternion.slerpQuaternions(q0u,ua.quaternion.clone(),k):THREE.Quaternion.slerp(q0u,ua.quaternion.clone(),ua.quaternion,k);la.quaternion.slerpQuaternions?la.quaternion.slerpQuaternions(q0l,la.quaternion.clone(),k):THREE.Quaternion.slerp(q0l,la.quaternion.clone(),la.quaternion,k);ua.updateWorldMatrix(false,true)}}}
