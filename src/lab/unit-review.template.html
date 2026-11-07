@@ -54,6 +54,8 @@ h2{font:600 22px Teko,sans-serif;margin:10px 0 2px}
 //__CREATOR_CORE__
 //__MODEL_KIT__
 //__UNITS__
+//__RETARGET__
+//__UNITS_BASE__
 </script>
 <script>
 (function(){
@@ -71,7 +73,7 @@ const RIG_TUNED={...RIG_BUILD};let prev=false;
 let look=clean({...DEFAULT}),wkey=look.weapon,classic=false,game=false,crowd=false,lineup=false,unit=null,rig=null,crowdUnits=[],yaw=.4,drag=null,curAnim='Idle';
 const ANIMS=[['Idle','Idle'],['Walk','Walk'],['Run','Run'],['Shoot','Idle_Shoot'],['Walk + shoot','Walk_Shoot'],['Hit','HitReact'],['Take cover','Duck'],['Down','Death'],['Jump','Jump'],['Wave','Wave'],['Yes','Yes'],['No','No']];
 document.getElementById('anim').innerHTML=ANIMS.map(([l,a])=>`<button type="button" class="btn" data-a="${a}">${l}</button>`).join('');
-const LBL={faction:'Faction',body:'Build',cls:'Class',weapon:'Weapon',skin:'Skin',face:'Face',expr:'Expression',facial:'Facial hair',mark:'Markings',hair:'Hair',hairCol:'Hair colour',headgear:'Headgear',facegear:'Face gear',top:'Top',armour:'Armour',legs:'Legs',gloves:'Gloves',primary:'Main colour',secondary:'Second colour'};
+const LBL={faction:'Faction',sex:'Sex',body:'Build',cls:'Class',weapon:'Weapon',skin:'Skin',face:'Face',expr:'Expression',facial:'Facial hair',mark:'Markings',hair:'Hair',hairCol:'Hair colour',headgear:'Headgear',facegear:'Face gear',top:'Top',armour:'Armour',legs:'Legs',gloves:'Gloves',primary:'Main colour',secondary:'Second colour'};
 function choices(k){const f=look.faction;
   if(k==='faction')return Object.entries(FACTIONS).map(([v,o])=>[v,o.label]);
   if(k==='body')return Object.entries(BODY).map(([v,o])=>[v,o.label]);

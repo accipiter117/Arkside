@@ -35,9 +35,12 @@ JS_PARTS = {
     "//__CONTROL__": "control.js",
     "//__TERRAIN_KIT__": "terrain-kit.js",
     "//__RETARGET__": "retarget.js",
+    "//__UNITS_BASE__": "units-base.js",
     "//__ENGINE__": "engine.js",
 }
-GLBS = {"sec": "soldier_ct.glb", "res": "soldier_t.glb"}
+GLBS = {"sec": "soldier_ct.glb", "res": "soldier_t.glb", "bm": "base_m.glb", "bf": "base_f.glb",
+        "hair_buzzed": "hair_buzzed.glb", "hair_buzzedf": "hair_buzzedf.glb", "hair_parted": "hair_parted.glb", "hair_long": "hair_long.glb",
+        "hair_buns": "hair_buns.glb", "hair_beard": "hair_beard.glb", "hair_browsm": "hair_browsm.glb", "hair_browsf": "hair_browsf.glb"}
 MUSIC = (("MUSIC_RES", "theme-resistance.m4a"), ("MUSIC_SEC", "theme-security.m4a"))
 
 PAGES = [

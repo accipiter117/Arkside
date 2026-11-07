@@ -1,5 +1,11 @@
 # Credits and licences
 
+## Quaternius, Universal Base Characters (CC0 1.0)
+
+The unit bodies (`assets/models/base_m.glb`, `base_f.glb`) and hair pieces (`hair_*.glb`) are the Standard
+[Universal Base Characters](https://quaternius.com/packs/universalbasecharacters.html) pack, repacked with
+downscaled textures by `tools/pack_ubc.py`.
+
 ## Quaternius, Toon Shooter Game Kit (CC0 1.0)
 
 `assets/models/soldier_ct.glb` and `assets/models/soldier_t.glb` are derived from the

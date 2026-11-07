@@ -51,6 +51,7 @@ node tools/screens.mjs                      # phone-size screenshots into shots/
 node tools/perf.mjs                         # frame rate and draw calls, High vs Low
 python3 tools/maps/validate_long.py         # every operation map: all bodies reach every objective
 python3 tools/maps/sync.py                  # copy map layers from tools/maps into src/engine.js
+python3 tools/pack_ubc.py <pack dir>        # repack the base character GLBs from the Quaternius download
 ```
 
 Where the three.js CDNs and Google Fonts are blocked (as in the cloud sandbox), the tools serve the same files from npm packages cached in `tools/.cache`. See `tools/browser.mjs`.

@@ -126,3 +126,13 @@ Built in the Claude chat and already playable there. This brings the repo up to 
 - **Ladders** are steel stiles with yellow rungs, sit flush against the face they climb, and carry a hoop over the top edge so they read from any angle. The railing on a raised tile now opens where a ladder or climb step comes up instead of being drawn through it.
 - **Ziplines** have a proper start post behind the rider and a landing post beyond the landing tile, a thicker steel cable running post top to post top, a pulley with a handle on the line, and a cyan chevron at the start.
 - **Shadows** are twice the resolution on High, so edges stop smearing across tiles on the long maps.
+
+# Update 16: new unit bodies (Quaternius Universal Base Characters)
+
+- **Every unit now uses the Universal Base Characters bodies** (CC0, male and female) in place of the Toon Shooter soldiers: operatives, rivals, grunts, militia and civilians. The Toon Shooter clips are carried onto the new skeleton when the game loads (`src/retarget.js`), so Idle, Walk, Run, Shoot, Hit, Death, Jump and Take cover all play as before.
+- **Toon shaded with outlines**, as agreed. Skin tones tint the body texture; tops, sleeves, gloves, trousers and boots are painted by body region in the shader so every creator clothing option still shows, and the chest rigs, plate carriers, riot and scrap armour, pauldrons, kneepads, class packs, helmets, caps, beanies, goggles, masks and visors are the existing 3D pieces fitted to the new body.
+- **Builds and sexes:** the creator gains Male / Female (random for recruits, enemies, rivals, militia and civilians; older saves default to male), and Light, Medium and Heavy scale the limbs and torso.
+- **Hair** comes from the pack: buzz, parted, long and buns meshes plus a beard, mapped from the creator's hair and facial hair options and tinted with the hair colour.
+- **The left hand is pinned to the weapon's foregrip** every frame by a small two-bone solve, so aimed poses hold the gun on the long-armed bodies.
+- **Known gaps for the next pass:** face shapes, expressions and markings (scar, tattoo, paint) do not yet show on the new faces; mohawk, spiky, slick, top knot and dreads fall back to the nearest pack hair; the female body has no chest piece under the rigs yet. Draw calls fell (about 1,390 on High in Container City, was 1,540) but triangles rose (about 410k, was 164k), so Low graphics matter more on older phones.
+- `tools/pack_ubc.py` packs the GLBs from the downloaded pack; `lab/retarget-trial.html` shows the old and new bodies side by side.

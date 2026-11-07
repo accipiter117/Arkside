@@ -19,7 +19,7 @@ function crtFix(l){if(!crtWeapons(l.body).includes(l.weapon))l.weapon=crtWeapons
 function crtRandom(f,body){const b=body||pick(Object.keys(BODY));
   const ids=k=>OPTS[k].filter(o=>{const fac=k==='armour'?o[3]:o[2];return !fac||fac===f}).map(o=>o[0]);
   return crtFix(clean({faction:f,body:b,cls:pick(Object.keys(CLASSES)),weapon:pick(crtWeapons(b)),
-    skin:Math.floor(Math.random()*SKIN.length),face:pick(ids('face')),expr:pick(ids('expr')),facial:pick(ids('facial')),mark:Math.random()<.55?'none':pick(ids('mark')),
+    sex:pick(ids('sex')),skin:Math.floor(Math.random()*SKIN.length),face:pick(ids('face')),expr:pick(ids('expr')),facial:pick(ids('facial')),mark:Math.random()<.55?'none':pick(ids('mark')),
     hair:pick(ids('hair')),hairCol:Math.random()<.85?Math.floor(Math.random()*7):7+Math.floor(Math.random()*2),headgear:Math.random()<.35?'none':pick(ids('headgear')),
     facegear:Math.random()<.6?'none':pick(ids('facegear')),top:pick(ids('top')),armour:pick(ids('armour')),legs:pick(ids('legs')),gloves:pick(ids('gloves')),
     primary:Math.floor(Math.random()*6),secondary:Math.floor(Math.random()*6),name:pick(NAMES),callsign:pick(CALLSIGNS)}))}
@@ -72,6 +72,7 @@ function crtPanel(){const L=CRT.look,F=FACTIONS[CRT.faction],editing=!!CRT.op;le
   const facOk=o=>!o||o===CRT.faction;
   if(CRT.tab==='role'){
     h+=`<div class="crt-group crt-fields"><label><span>Name</span><input id="crtName" maxlength="18" autocomplete="off" value="${esc(L.name)}"></label><label><span>Callsign</span><input id="crtCall" maxlength="22" autocomplete="off" value="${esc(L.callsign)}"></label></div>`;
+    h+=chips('sex','Build',OPTS.sex,'');
     h+=cards('body','Body type',Object.entries(BODY).map(([id,b])=>[id,b.label,`${EB[id]?EB[id].hp:b.hp} health, move ${EB[id]?EB[id].move:b.move}`]),editing?'Fixed once recruited':'Can’t be changed later',
       `<p class="crt-note" data-tip="move:${L.body}">${MOVE_TIP[L.body]||''}</p>`,editing,'move');
     h+=cards('cls','Class',Object.entries(CLASSES).map(([id,c])=>[id,c.label,CLASS_AB[id].map(a=>AB[a].name).join(', ')]),'Swappable at command posts',
