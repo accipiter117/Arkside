@@ -685,7 +685,7 @@ function buildBase(look,wkey,cls,opts={}){const tpl=BASE.tpl[look.sex==='female'
   if(look.headgear!=='none'||look.facegear!=='none'||look.mark!=='none'||look.facial==='moustache'||look.hair==='mohawk'||look.hair==='spiky'){const hh=new THREE.Group();const s=tpl.headR/.15*1.08;hh.quaternion.copy(tpl.bindQ.Head).invert();hh.scale.set(s/HS[0],s/HS[1],s/HS[2]);
     const c=tpl.headC.clone().applyMatrix4(tpl.headInv);c.y+=tpl.headR*.2;hh.position.set(c.x/HS[0],c.y/HS[1],c.z/HS[2]);hh.userData.attach=true;const hd=opHead(look,Object.assign({},K,{gearOnly:true}));hh.add(hd);H.add(hh)}
   // Armour, pauldrons, kneepads, class gear.
-  rigGear(look,cls,atpl,al,K,col);
+  baseGear(look,cls,atpl,al,K,col);
   // Weapon in the right hand.
   const wk=wkey||'rifle',sec=look.faction==='security',fur=sec?'#3a4048':'#7a5331',W=weaponModel(wk,fur,'#2b2e32','#4a4f55',K.box,K.cylZ,K.mesh,FACTIONS[look.faction].accent);
   const gun=new THREE.Group();gun.add(W.g);gun.quaternion.copy(tpl.gunQ);gun.scale.setScalar(tpl.gunScale*(BASE_GUN_SCALE[wk]||1)*(look.body==='heavy'?1.05:look.body==='light'?.95:1));gun.position.set(0,0,0).add(BASE_GUN_OFF.clone().multiplyScalar(tpl.P));bones.hand_r.add(gun);gun.userData.proc=true;
@@ -705,7 +705,7 @@ const BASE_GEAR={pad:[-.01,-.03,0],knee:[0,-.06,-.03]};
 // Weapon size on the new hands (multiplies the procedural model's own units).
 const BASE_GUN_SCALE={rifle:.85,smg:.8,mpistol:.75,shotgun:.85,lmg:.9,minigun:.85,dmr:.9,sniper:.9};
 // Chest fit for the gear builder, in procedural units: [half shoulder width, chest front, chest centre height, chest back].
-const BASE_FIT={light:[.25,.19,.05,.16],medium:[.27,.2,.05,.17],heavy:[.32,.24,.04,.2]};
+const BASE_FIT={light:[.23,.19,.05,.15],medium:[.25,.2,.05,.16],heavy:[.29,.24,.04,.19]};
 
 /* Two-bone IK: pin the left hand to the weapon's foregrip after each animation update. */
 class BaseAnim extends RigAnim{
@@ -721,6 +721,44 @@ class BaseAnim extends RigAnim{
       const axis=tmp.copy(a).sub(b).cross(c.clone().sub(b));if(axis.lengthSq()>1e-8){axis.normalize();q1.setFromAxisAngle(axis,want-cur);la.getWorldQuaternion(q2);q2.premultiply(q1);la.parent.getWorldQuaternion(pw);la.quaternion.copy(pw.invert().multiply(q2));la.updateWorldMatrix(false,false);hd.updateWorldMatrix(false,false)}
       // aim the whole arm at the target
       hd.getWorldPosition(c);const from=tmp.copy(c).sub(a).normalize(),to=c.clone().copy(t).sub(a).normalize();q1.setFromUnitVectors(from,to);ua.getWorldQuaternion(q2);q2.premultiply(q1);ua.parent.getWorldQuaternion(pw);ua.quaternion.copy(pw.invert().multiply(q2));ua.updateWorldMatrix(false,false);la.updateWorldMatrix(false,false);hd.updateWorldMatrix(false,false)}}}
+
+/* ---------- gear built for the new bodies ----------
+   Curved shells instead of boxes: chest plates are cylinder segments that
+   follow the ribcage, pauldrons are sphere caps, kneepads are domes, class
+   packs are small rounded cases. Sizes come from BASE_FIT per build; the
+   torso and limb bones carry the build's thickness so heavies fill out
+   without the gear growing into slabs. */
+function baseGear(look,cls,tpl,bones,K,col){const{mesh,box,sph}=K,sec=look.faction==='security',acc=FACTIONS[look.faction].accent,c2=col.pants,c1=col.main;
+  const T=rigHolder(tpl,bones,'Torso');T.userData.attach=true;const[sw,zf,Y0,zb]=tpl.fit[look.body],Y=Y0-.11,vest=shade(c2,-28);
+  // Chest shell: a cylinder segment wrapped round the chest, radius from the shoulder half-width, open at the back.
+  const shell=(w,h,depth,colr,y,arc=Math.PI*.78,back=false)=>{const r=w;const m=mesh(new THREE.CylinderGeometry(r,r*.96,h,18,1,true,-arc/2,arc),colr,T,0,y,back?-zb+r*.62-depth:zf-r*.62+depth);m.scale.z=.62;if(back)m.rotation.y=Math.PI;return m};
+  const strap=(x,y,z,len,rot,colr)=>{const s=box(.035,len,.015,colr,T,x,y,z);s.rotation.z=rot;return s};
+  if(look.armour==='carrier'){shell(sw*.98,.34,.06,vest,Y0-.03);shell(sw*.98,.3,.03,vest,Y0-.03,Math.PI*.6,true);// back
+    for(const sd of[-1,0,1]){const p=box(.09,.08,.045,shade(vest,14),T,sd*.12,Y-.1,zf+.03);p.rotation.x=.12}box(.14,.035,.005,'#e6e1d4',T,0,Y+.09,zf+.045);
+    for(const sd of[-1,1])strap(sd*sw*.62,Y+.14,zf-.06,.16,sd*.5,shade(vest,-10))}
+  if(look.armour==='rig'){const rc=shade(c2,-30);for(const sd of[-1,1]){strap(sd*sw*.38,Y+.02,zf+.01,.4,sd*.14,rc);strap(sd*sw*.38,Y+.02,-zb+.02,.4,-sd*.14,rc)}
+    box(sw*1.5,.09,.05,rc,T,0,Y-.13,zf+.01);for(let i=0;i<3;i++){const p=box(.07,.08,.04,'#2f3134',T,-sw*.42+i*sw*.42,Y-.12,zf+.045);p.rotation.x=.1}}
+  if(look.armour==='riot'){const rp='#d4dadf';shell(sw*1.02,.36,.065,rp,Y0-.03,Math.PI*.82);shell(sw*1.0,.32,.03,rp,Y0-.03,Math.PI*.6,true);
+    box(.04,.22,.004,acc,T,0,Y,zf+.055);const ring=mesh(new THREE.TorusGeometry(.07,.015,6,16),'#a7b1b8',T,0,Y0+.16,-.01);ring.rotation.x=Math.PI/2;
+    for(const sd of[-1,1]){const g=box(sw*.3,.12,.05,shade(rp,-18),T,sd*sw*.86,Y+.04,zf-.05);g.rotation.y=sd*.6}}
+  if(look.armour==='scrap'){const p1=mesh(new THREE.CylinderGeometry(sw*.9,sw*.9,.22,12,1,true,-.9,1.2),'#8b4a2a',T,0,Y+.05,zf-sw*.9+.06);p1.scale.z=.6;p1.rotation.y=.25;
+    const p2=mesh(new THREE.CylinderGeometry(sw*.9,sw*.9,.18,12,1,true,.3,1.0),'#7f858b',T,0,Y-.03,zf-sw*.9+.065);p2.scale.z=.6;p2.rotation.y=-.3;
+    const sp=box(.05,.42,.015,'#4a3423',T,0,Y,zf+.055);sp.rotation.z=.6;for(const sd of[-1,1])strap(sd*sw*.5,Y+.1,zf-.02,.2,sd*.3,'#3a2a1e')}
+  // Pauldrons: a sphere cap sitting on the shoulder.
+  if(look.armour==='riot'||look.armour==='scrap')for(const s of['L','R']){const A=rigHolder(tpl,bones,'UpperArm'+s);if(!A)continue;A.userData.attach=true;const sd=s==='L'?1:-1;const po=tpl.gear.pad;
+    if(look.armour==='riot'){const cap=mesh(new THREE.SphereGeometry(.15,16,10,0,Math.PI*2,0,Math.PI*.5),'#d4dadf',A,sd*.02+po[0]*sd,.04+po[1],po[2]);cap.scale.set(1,.75,1.15);box(.12,.015,.025,acc,A,sd*.02+po[0]*sd,.08+po[1],.1+po[2])}
+    else{const cap=mesh(new THREE.SphereGeometry(.11,10,8,0,Math.PI*2,0,Math.PI*.55),'#5a4a3a',A,sd*.02+po[0]*sd,.03+po[1],po[2]);cap.scale.set(1,.65,1.1);const bolt=sph(.02,'#262626',A,sd*.02+po[0]*sd,.09+po[1],.04+po[2])}}
+  // Kneepads: a dome on the shin's front.
+  if(look.legs==='armoured'||look.armour==='riot')for(const s of['L','R']){const L=rigHolder(tpl,bones,'LowerLeg'+s);if(!L)continue;L.userData.attach=true;const ko=tpl.gear.knee;
+    const d=mesh(new THREE.SphereGeometry(.075,12,8,0,Math.PI*2,0,Math.PI*.5),look.armour==='riot'?'#d4dadf':'#2b2d30',L,ko[0],ko[1],.06+ko[2]);d.rotation.x=Math.PI/2;d.scale.set(1,1.2,.8);
+    box(.12,.02,.02,'#1f2124',L,ko[0],ko[1],.03+ko[2])}
+  // Class gear on the back, smaller and rounded.
+  const back=-zb-.04,rc=(w,h,d,colr,x,y,z)=>{const g=box(w,h,d,colr,T,x,y,z);const e=mesh(new THREE.CylinderGeometry(d/2,d/2,w,8),colr,T,x,y+h/2,z);e.rotation.z=Math.PI/2;const e2=mesh(new THREE.CylinderGeometry(d/2,d/2,w,8),colr,T,x,y-h/2,z);e2.rotation.z=Math.PI/2;return g};
+  if(cls==='soldier'){rc(.22,.16,.1,sec?'#3a4048':'#5a4128',0,Y-.04,back-.02);const bd=box(.045,.44,.02,'#5a4128',T,0,Y,zf+.05);bd.rotation.z=-.62;for(let i=-3;i<=3;i++){const s=box(.025,.04,.015,'#c9a046',T,Math.sin(.62)*i*.055,Y+Math.cos(.62)*i*.055,zf+.062);s.rotation.z=-.62}}
+  if(cls==='medic'){rc(.24,.22,.11,'#e8e6df',0,Y,back-.03);box(.1,.03,.005,'#2c9d68',T,0,Y+.02,back-.09);box(.03,.1,.005,'#2c9d68',T,0,Y+.02,back-.09)}
+  if(cls==='engineer'){rc(.24,.2,.09,'#4a4f55',0,Y,back-.02);for(const sd of[-1,1])mesh(new THREE.CylinderGeometry(.04,.04,.3,10),'#d9771f',T,sd*.08,Y+.02,back-.08);sph(.028,'#ffe08a',T,-sw*.7,Y+.16,.06)}
+  if(cls==='operative'){rc(.2,.18,.08,'#25292d',0,Y,back-.02);mesh(new THREE.CylinderGeometry(.007,.007,.4,5),'#25292d',T,.08,Y+.3,back-.02);sph(.018,'#38e0ff',T,.08,Y+.52,back-.02)}
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(.1,.07),new THREE.MeshBasicMaterial({color:acc,side:THREE.DoubleSide}));fl.position.set(0,Y+.16,back-.005);T.add(fl)}
 
 </script>
 <script>
