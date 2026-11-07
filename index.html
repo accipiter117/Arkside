@@ -1043,7 +1043,10 @@ const BASE_ALIAS={Torso:'spine_03',Head:'Head',Hips:'pelvis',UpperArmL:'upperarm
 // creator hair option -> hair piece (female gets the female buzz)
 const BASE_HAIR={shaved:null,buzz:'hair_buzzed',crop:'hair_parted',mohawk:'hair_buzzed',spiky:'hair_parted',slick:'hair_parted',topknot:'hair_buns',dreads:'hair_long'};
 // Builds: thickness scale of limbs and torso (the bone's length axis is left alone), head scale, overall height.
-const BASE_BUILD={light:{limb:.9,torso:.93,head:1,h:.97},medium:{limb:1,torso:1,head:1,h:1},heavy:{limb:1.16,torso:1.2,head:1.03,h:1.03}};
+const BASE_BUILD={light:{limb:.9,torso:.93,head:1,h:.97,arm:1,fore:1,thigh:1,calf:1,shoulder:1},medium:{limb:1,torso:1,head:1,h:1,arm:1,fore:1,thigh:1,calf:1,shoulder:1},heavy:{limb:1.16,torso:1.2,head:1.03,h:1.03,arm:1,fore:1,thigh:1,calf:1,shoulder:1}};
+// Tuner hook (lab/body-tuner.html): replaces the tables above with the values pasted back from the tuner.
+function baseTune(t){if(!t)return;for(const k of['BASE_BUILD','BASE_GUN_SCALE','BASE_FIT','BASE_GEAR'])if(t[k]){const tgt={BASE_BUILD,BASE_GUN_SCALE,BASE_FIT,BASE_GEAR}[k];for(const b in t[k])tgt[b]=typeof t[k][b]==='object'&&!Array.isArray(t[k][b])?Object.assign({},tgt[b]||{},t[k][b]):t[k][b]}if(t.BASE_GUN_OFF)BASE_GUN_OFF.fromArray(t.BASE_GUN_OFF)}
+function baseTuneExport(){return{BASE_BUILD,BASE_GUN_SCALE,BASE_FIT,BASE_GEAR,BASE_GUN_OFF:BASE_GUN_OFF.toArray()}}
 // Clothing regions by dominant bone: 0 skin, 1 torso, 2 legs, 3 upper arm, 4 forearm, 5 hands, 6 feet
 const BASE_REGION={pelvis:2,spine_01:1,spine_02:1,spine_03:1,clavicle_l:1,clavicle_r:1,upperarm_l:3,upperarm_r:3,lowerarm_l:4,lowerarm_r:4,hand_l:5,hand_r:5,thigh_l:2,thigh_r:2,calf_l:2,calf_r:2,foot_l:6,foot_r:6,ball_l:6,ball_r:6};
 const regionOf=n=>{if(BASE_REGION[n]!=null)return BASE_REGION[n];if(/^(index|middle|ring|pinky|thumb)_/.test(n))return 5;if(/ball_/.test(n))return 6;return 0};
@@ -1090,7 +1093,9 @@ function baseFlatMat(col){const k='flat|'+col;let m=BASE.mats.get(k);if(!m){m=to
 function baseEyeMat(map){let m=BASE.mats.get('eyes');if(!m){m=new THREE.MeshToonMaterial({map,gradientMap:unitTex(),skinning:true});BASE.mats.set('eyes',m)}return m}
 
 // Scale a bone's thickness (the two axes that are not its length axis).
-function thick(bone,k){const c=bone.children.find(o=>o.isBone);const s=[k,k,k];if(c){const p=c.position,ax=Math.abs(p.x)>=Math.abs(p.y)&&Math.abs(p.x)>=Math.abs(p.z)?0:Math.abs(p.y)>=Math.abs(p.z)?1:2;s[ax]=1}bone.scale.set(s[0],s[1],s[2])}
+function lenAxis(bone){const c=bone.children.find(o=>o.isBone);if(!c)return 1;const p=c.position;return Math.abs(p.x)>=Math.abs(p.y)&&Math.abs(p.x)>=Math.abs(p.z)?0:Math.abs(p.y)>=Math.abs(p.z)?1:2}
+function thick(bone,k,len=1){const ax=lenAxis(bone),s=[k,k,k];s[ax]=len;bone.scale.set(s[0],s[1],s[2]);// children must not inherit the length stretch
+  for(const c of bone.children)if(c.isBone){const cs=[1,1,1];cs[ax]=1/len;c.scale.set(cs[0],cs[1],cs[2]);c.userData.inv=cs}}
 
 function buildBase(look,wkey,cls,opts={}){const tpl=BASE.tpl[look.sex==='female'?'f':'m']||BASE.tpl.m;if(!tpl)return null;
   const root=THREE.SkeletonUtils.clone(tpl.root),bones={},meshes=[],outline=opts.outline!==false,K=opKit(),col=rigColours(look);
@@ -1098,8 +1103,10 @@ function buildBase(look,wkey,cls,opts={}){const tpl=BASE.tpl[look.sex==='female'
   for(const m of meshes){const role=m.userData.role,src=m.material;if(role==='Skin')m.material=baseClothMat(look,src.map);else if(role==='Eyes')m.material=baseEyeMat(src.map);else m.material=new THREE.MeshToonMaterial({color:HAIRC[look.hairCol],gradientMap:unitTex(),skinning:true});m.castShadow=true;m.receiveShadow=true}
   // Builds.
   const B=BASE_BUILD[look.body]||BASE_BUILD.medium;
-  for(const n of['upperarm_l','upperarm_r','lowerarm_l','lowerarm_r','thigh_l','thigh_r','calf_l','calf_r'])thick(bones[n],B.limb);
   for(const n of['spine_01','spine_02','spine_03','pelvis'])thick(bones[n],B.torso);
+  for(const n of['clavicle_l','clavicle_r'])thick(bones[n],1,B.shoulder||1);
+  for(const n of['upperarm_l','upperarm_r'])thick(bones[n],B.limb,B.arm||1);for(const n of['lowerarm_l','lowerarm_r'])thick(bones[n],B.limb,B.fore||1);
+  for(const n of['thigh_l','thigh_r'])thick(bones[n],B.limb,B.thigh||1);for(const n of['calf_l','calf_r'])thick(bones[n],B.limb,B.calf||1);
   const FS={long:[.93,1.08,.97],square:[1.04,.98,1.02],angular:[.94,1.04,.96],broad:[1.1,.95,1.05]}[look.face]||[1,1,1];const HS=[B.head*FS[0],B.head*FS[1],B.head*FS[2]];bones.Head.scale.set(HS[0],HS[1],HS[2]);
   // Alias map so the existing gear builders find the bones they expect.
   const al={};for(const[a,b]of Object.entries(BASE_ALIAS))al[a]=bones[b];

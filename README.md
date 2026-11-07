@@ -8,7 +8,7 @@ Unofficial and non-commercial. Brink and its setting belong to their owners.
 
 - **Game:** `index.html` (GitHub Pages: https://accipiter117.github.io/Arkside/)
 - **Operative Creator:** in the game: Roster, then Recruit operative or Edit look, with a live 3D preview. Share operatives on the title screen exports and imports operative codes. `creator.html` now just points players to the game.
-- **Lab:** experiments and art reviews in `lab/` (unit model review, terrain review of proposed tile types, art style tests).
+- **Lab:** experiments and art reviews in `lab/` (unit model review, body tuner for limb proportions and gear fit, terrain review of proposed tile types, retarget trial, art style tests).
 
 ## How it's built
 

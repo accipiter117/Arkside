@@ -48,6 +48,7 @@ PAGES = [
     (SRC / "lab" / "unit-review.template.html", ROOT / "lab" / "unit-review.html"),
     (SRC / "lab" / "terrain-review.template.html", ROOT / "lab" / "terrain-review.html"),
     (SRC / "lab" / "retarget-trial.template.html", ROOT / "lab" / "retarget-trial.html"),
+    (SRC / "lab" / "body-tuner.template.html", ROOT / "lab" / "body-tuner.html"),
 ]
 
 
