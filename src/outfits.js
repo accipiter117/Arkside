@@ -21,7 +21,9 @@ function ofMat(kind,col){const k=kind+'|'+col;let m=OF_MATS.get(k);if(m)return m
 // like straps and trim cut cleanly. Skin weights of a new vertex are the
 // average of its two parents, keeping the four strongest bones.
 const OF_SUB=new WeakMap();
-function ofSub(body){const g00=body.geometry,lv=(typeof HI==='function'&&!HI())?1:2;let c=OF_SUB.get(g00);if(!c){c={};OF_SUB.set(g00,c)}if(!c[lv])c[lv]=lv===1?ofSub1(g00):ofSub1(c[1]||(c[1]=ofSub1(g00)));return c[lv]}
+// Detail: 0 in the game (units are small on screen), 1 in the creator and portraits, 2 in the preview lab.
+let OF_DETAIL=0;
+function ofSub(body){const g00=body.geometry,lv=OF_DETAIL;if(!lv)return g00;let c=OF_SUB.get(g00);if(!c){c={};OF_SUB.set(g00,c)}if(!c[lv])c[lv]=lv===1?ofSub1(g00):ofSub1(c[1]||(c[1]=ofSub1(g00)));return c[lv]}
 // Finished shell geometry is shared between units with the same look (key set by ofOutfit).
 const OF_GEO=new Map();let OF_KEY=null,OF_N=0;
 function ofSub1(g0){let g;
@@ -137,8 +139,8 @@ function ofTorso(K,{col,colD,off=.005,sleeves='long',open=0,collar=true,hood=fal
     if(open&&v.z>0&&v.ax<(v.h<L.chest.h?open:open*.4))return false;
     const cuff=sleeves!=='none'&&v.ax>lim-.025&&v.r>=3,hem=v.h<L.belt+.012,col2=collar&&v.h>L.neck.h-.026,z=zip&&v.z>0&&v.ax<.006,y=yoke&&v.h>L.shoulder.h-.03&&v.ax<K.sh+.03;
     return{off:cuff?off+.004:col2?off+.007:off,col:z?zip:y?yoke:(cuff||hem||col2)?colD:col}},{smooth:true})}
-function ofLegs(K,{col,colD,off=.0045,stripe=null,patch=null,pads=null}){const{L}=K;
-  K.S(v=>{if(v.r<1||v.r>2||v.h<K.L.ankle.h+.04||v.h>L.belt+.006)return false;const st=stripe&&Math.abs(v.nx)>.85&&v.r===2,pt=patch&&v.x>0&&v.z>L.knee.z-.01&&Math.abs(v.h-L.knee.h)<.03,hem=v.h<L.ankle.h+.055;return{off:hem?off+.002:off,col:st?stripe:pt?patch:hem?colD:col}},{smooth:true});
+function ofLegs(K,{col,colD,off=.0045,stripe=null,patch=null,pads=null,padsOnly=false}){const{L}=K;
+  if(!padsOnly)K.S(v=>{if(v.r<1||v.r>2||v.h<K.L.ankle.h+.04||v.h>L.belt+.006)return false;const st=stripe&&Math.abs(v.nx)>.85&&v.r===2,pt=patch&&v.x>0&&v.z>L.knee.z-.01&&Math.abs(v.h-L.knee.h)<.03,hem=v.h<L.ankle.h+.055;return{off:hem?off+.002:off,col:st?stripe:pt?patch:hem?colD:col}},{smooth:true});
   if(pads)K.S(v=>{if(v.r!==2||v.z<L.knee.z+.005||v.h<L.knee.h-.028||v.h>L.knee.h+.03)return false;return{off:.009,col:(v.h<L.knee.h-.02||v.h>L.knee.h+.022)?pads[1]:pads[0]}},{smooth:true})}
 function ofBoots(K,col,sole){K.S(v=>{if(!(v.r===6||(v.r===2&&v.h<K.L.ankle.h+.06)))return false;return{off:.0065,col:v.h<.016?sole:col}})}
 function ofGloves(K,kind,col){if(kind==='none')return;const{wr}=K;
@@ -236,17 +238,20 @@ function ofFacegear(K){const{look,sec,St,ctx}=K,f=look.facegear;if(f==='none')re
 
 // ---------- the whole outfit ----------
 function ofOutfit(ctx){const K=ofKit(ctx);if(!K)return;const{look,sec,St,c1,c2,L}=K;
-  OF_KEY=[ctx.tpl.key,(typeof HI==='function'&&!HI())?1:2,look.faction,look.top,look.armour,look.legs,look.gloves,look.headgear,look.facegear,look.primary,look.secondary].join('|');OF_N=0;try{ofOutfitParts(K)}finally{OF_KEY=null}}
+  OF_KEY=[ctx.tpl.key,OF_DETAIL,look.faction,look.top,look.armour,look.legs,look.gloves,look.headgear,look.facegear,look.primary,look.secondary].join('|');OF_N=0;try{ofOutfitParts(K)}finally{OF_KEY=null}}
 function ofOutfitParts(K){const{look,sec,St,c1,c2,L,ctx}=K;
+  // In the game (detail 0) the close-fitting layers (suit, shirt, trousers, boots, gloves) are painted on the body, as before;
+  // only pieces that stand proud of it are built, which keeps a unit near its old triangle count.
+  const paint=OF_DETAIL===0;
   // legs
   const legC=sec?(look.legs==='armoured'?c1:c1):(look.legs==='jeans'?'#3b4a63':c2);
-  ofLegs(K,{col:legC,colD:shade(legC,-18),stripe:sec&&look.legs==='jeans'?St.acc:null,patch:!sec&&look.legs==='armoured'?'#6b5a3a':null,pads:look.legs==='armoured'?(sec?[St.plate,St.plateE]:['#3a3330','#2a2420']):null});
+  ofLegs(K,{col:legC,colD:shade(legC,-18),stripe:sec&&look.legs==='jeans'?St.acc:null,patch:!sec&&look.legs==='armoured'?'#6b5a3a':null,pads:look.legs==='armoured'?(sec?[St.plate,St.plateE]:['#3a3330','#2a2420']):null,padsOnly:paint});
   if(look.legs==='cargo'){const ps=[];for(const sd of['thigh_l','thigh_r']){const fr=K.F(sd),sx=sd==='thigh_l'?1:-1,hh=(L.hip.h+L.knee.h)/2;ofBox(fr,.012,.05,.05,ofMat('rigid',shade(legC,-12)),sx*(L.hip.x+.05),hh,L.hip.z+.005);K.done(fr)}}
-  ofBoots(K,St.dark,sec?'#121416':'#1a120c');
-  ofGloves(K,look.gloves,St.dark);
+  if(!paint){ofBoots(K,St.dark,sec?'#121416':'#1a120c');ofGloves(K,look.gloves,St.dark)}
   // top
   const t=look.top,col=c1,colD=shade(c1,-22);
-  if(t==='tee')ofTorso(K,{col,colD,sleeves:'short'});
+  if(paint){if(t==='jacket')ofSkirt(K,col,colD,sec)}
+  else if(t==='tee')ofTorso(K,{col,colD,sleeves:'short'});
   else if(t==='tank')ofTorso(K,{col,colD,sleeves:'none',collar:false});
   else if(t==='long')ofTorso(K,{col,colD,sleeves:sec?'long':'elbow',zip:sec?St.acc:null});
   else if(t==='hoodie')ofTorso(K,{col,colD,sleeves:'long',off:.008,zip:sec?'#22272c':null,yoke:sec?shade(c1,-12):null});
@@ -276,7 +281,8 @@ function ofWeapon(k,look,K){if(k!=='rifle')return null;const sec=look.faction===
   return{g,fore:new THREE.Vector3(0,-.04,.3),barrels:null}}
 
 // Build a unit in the new outfit (preview).
-function buildOutfit(look,wkey,cls,opts={}){const sec=look.faction==='security';
-  return buildBase(look,wkey,cls,Object.assign({},opts,{bare:true,noGear:true,coverHair:OF_HAIRCOVER.has(look.headgear)||(!sec&&look.top==='hoodie'&&look.headgear==='none'),
+function buildOutfit(look,wkey,cls,opts={}){const sec=look.faction==='security',d0=OF_DETAIL;OF_DETAIL=opts.detail??0;try{
+  const pl=(opts.detail??0)>0||!sec?look:Object.assign({},look,{secondary:look.primary});
+  return buildBase(pl,wkey,cls,Object.assign({},opts,{bare:(opts.detail??0)>0,noGear:true,coverHair:OF_HAIRCOVER.has(look.headgear)||(!sec&&look.top==='hoodie'&&look.headgear==='none'),
     weapon:(k,l,K)=>ofWeapon(k,l,K)||weaponModel(k,sec?'#3a4048':'#7a5331','#2b2e32','#4a4f55',K.box,K.cylZ,K.mesh,FACTIONS[l.faction].accent),
-    after:ctx=>{ctx.outline=opts.outline!==false;ofOutfit(ctx)}}))}
+    after:ctx=>{ctx.outline=opts.outline!==false;ofOutfit(ctx)}}))}finally{OF_DETAIL=d0}}
