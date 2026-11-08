@@ -159,3 +159,5 @@ Built in the Claude chat and already playable there. This brings the repo up to 
 - Map sources `tools/maps/tidewater.py` and `foundry.py`; the reachability checker follows the new movement rules.
 - **Clearer move range.** The tiles a selected unit can reach are a little stronger, with a bright line round the edge of the area.
 - **No permanent climb markings.** The chevrons on climb steps, ladders, rails, gaps, vents and ziplines are switched off (`MECH_MARKS` in `src/mechanics.js`). The ladders, rails and gaps themselves still show, and the move preview still draws jump arcs and climb markers for the selected unit.
+- **Hunker down:** a new action for every operative, next to Overwatch. It ends their turn, and until your next turn enemies get an extra −20 to hit them while they're in half or full cover (no help in the open). Shown as "Hunkered" on their tag.
+- **Credits** for Quaternius, Tiny Strike and the sound sources are now in Settings on the title screen.
