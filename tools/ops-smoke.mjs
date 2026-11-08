@@ -3,7 +3,7 @@
 // overwatch, then the enemy and the escort bot move), and fail on any
 // console error. Saves shots/ops-<id>.png.
 //
-//   node tools/ops-smoke.mjs [--turns N]
+//   node tools/ops-smoke.mjs [--turns N] [--only x4,x5] [--faction resistance]
 import path from 'node:path';
 import fs from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -13,12 +13,14 @@ import {launch} from './browser.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2), ANIM = args.includes('--animated');
 const TURNS = +(args[args.indexOf('--turns') + 1] || 0) || 3;
+const ONLY = args.includes('--only') ? args[args.indexOf('--only') + 1].split(',') : null;
+const FACTIONS = args.includes('--faction') ? [args[args.indexOf('--faction') + 1]] : ['resistance', 'security'];
 fs.mkdirSync(path.join(ROOT, 'shots'), {recursive: true});
 const {url, close} = await serve(ROOT);
 const {browser, newPage} = await launch();
 const errors = [];
 try {
-  for (const faction of ['resistance', 'security']) {
+  for (const faction of FACTIONS) {
     const page = await newPage();
     page.on('console', m => { if (m.type() === 'error') errors.push(`[${faction}] ${m.text()}`) });
     page.on('pageerror', e => errors.push(`[${faction}] ${e.message}`));
@@ -27,7 +29,7 @@ try {
     await page.evaluate(a => { SAVE.settings.sound = false; SAVE.settings.units = 'animated' }, ANIM);
     await page.evaluate(() => { SAVE.opProg = {resistance: 9, security: 9} });
     await page.click(`.fac.${faction}`);
-    const ids = await page.$$eval('.mis.op', b => b.map(x => x.dataset.op));
+    const ids = (await page.$$eval('.mis.op', b => b.map(x => x.dataset.op))).filter(id => !ONLY || ONLY.includes(id));
     if (!ids.length) throw new Error(`no Operations section on the ${faction} campaign`);
     for (const id of ids) {
       if (!(await page.isVisible(`.mis.op[data-op="${id}"]`))) await page.click('#v-camp .bk, #v-camp .btn.ghost');
