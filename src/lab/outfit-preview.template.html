@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arkside: outfit preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+<style>
+:root{--bg:#dde1e0;--panel:#f1f3f2;--ink:#1a2226;--muted:#56626a;--line:#c4cccb;--acc:#c9581c;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#11181c;--panel:#182126;--ink:#e4eaec;--muted:#93a1a8;--line:#2b383f;color-scheme:dark}}
+body[data-f="security"]{--acc:#2a7fbd}
+*,*::before,*::after{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 Barlow,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
+main{max-width:1000px;margin:0 auto;padding:14px 14px 40px}
+h1{font-family:Teko,'Arial Narrow',sans-serif;font-weight:600;font-size:34px;line-height:.9;margin:0}
+.intro{color:var(--muted);margin:6px 0 8px;max-width:64ch;font-size:14px}
+button{font:inherit;color:inherit}
+.seg{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin:6px 0}.seg::-webkit-scrollbar{display:none}
+.seg button{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 11px;font-weight:600;font-size:14px;min-height:38px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--acc);color:#fff;border-color:var(--acc)}
+.view{position:relative;width:100%;height:58vh;min-height:320px;border-radius:6px 18px 6px 6px;overflow:hidden;background:linear-gradient(#3a7fc4,#9fcfe8 55%,#e8dccb);touch-action:pan-y}
+.view canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.lbl{position:absolute;bottom:10px;color:#fff;text-shadow:0 1px 3px #000a;font:600 13px Barlow,sans-serif;transform:translateX(-50%);white-space:nowrap}
+.note{font-size:13px;color:var(--muted);margin-top:10px;max-width:70ch}
+.note b{color:var(--ink)}
+@media(max-width:600px){h1{font-size:28px}.view{height:52vh}}
+</style></head><body data-f="security"><main>
+<h1>Outfit preview</h1>
+<p class="intro">New faction clothing and rifles on the new bodies, not in the game yet. Compare them with what the game uses now, in every build. Drag to turn.</p>
+<div class="seg" id="fac"><button type="button" data-v="security" aria-pressed="true">Security</button><button type="button" data-v="resistance">Resistance</button></div>
+<div class="seg" id="mode"><button type="button" data-v="lineup" aria-pressed="true">New: all builds</button><button type="button" data-v="compare">Current vs new</button><button type="button" data-v="close">New: close-up</button></div>
+<div class="seg" id="build"><button type="button" data-v="light">Light</button><button type="button" data-v="medium" aria-pressed="true">Medium</button><button type="button" data-v="heavy">Heavy</button><button type="button" data-v="female">Female</button></div>
+<div class="view" id="view"><div id="lbls"></div></div>
+<div class="seg" id="anim"></div>
+<p class="note"><b>Security, Ark Authority trooper:</b> navy undersuit, white hard plates with a blue stripe, black belt, gloves and boots, visored helmet, chest badge and radio. Rifle in matte black with an optic and a light.<br><b>Resistance, scavenger:</b> work shirt with rolled sleeves, patched trousers, worn boots, scarf, bandolier, scrap plates strapped on, wrist wraps and goggles. Rifle with wooden furniture, tape and a rag on the barrel.<br>Clothing is fitted to the body, so it bends with the limbs.</p>
+</main>
+<script>/*__GLB__*/</script>
+<script>
+//__CREATOR_CORE__
+//__MODEL_KIT__
+//__UNITS__
+//__RETARGET__
+//__UNITS_BASE__
+//__OUTFITS__
+</script>
+<script>
+(function(){
+if(typeof THREE==='undefined'){document.querySelector('main').insertAdjacentHTML('beforeend','<p>The 3D engine couldn’t load. Check your connection and reload.</p>');return}
+const box=document.getElementById('view'),lbls=document.getElementById('lbls');
+const r=new THREE.WebGLRenderer({antialias:true,alpha:true});r.setPixelRatio(Math.min(2,devicePixelRatio||1));r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;box.prepend(r.domElement);
+const s=new THREE.Scene();s.add(new THREE.HemisphereLight(0xdcefff,0x8a7a66,.75));const sun=new THREE.DirectionalLight(0xfff3e0,.85);sun.position.set(4,7,5);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-4,right:4,top:4,bottom:-4});s.add(sun);
+const floor=new THREE.Mesh(new THREE.BoxGeometry(12,.2,8),new THREE.MeshLambertMaterial({color:0x8f7462}));floor.position.y=-.1;floor.receiveShadow=true;s.add(floor);
+const pc=new THREE.PerspectiveCamera(26,1,.05,60);
+let CAM=null,fac='security',mode='lineup',build='medium',units=[],yaw=.35,drag=null,anim='Idle',spin=false;
+const ANIMS=[['Idle','Idle'],['Walk','Walk'],['Run','Run'],['Shoot','Idle_Shoot'],['Hit','HitReact'],['Take cover','Duck']];
+document.getElementById('anim').innerHTML=ANIMS.map(([l,a],i)=>`<button type="button" data-a="${a}"${i?'':' aria-pressed="true"'}>${l}</button>`).join('');
+const LOOK={security:{name:'Trooper',faction:'security',primary:0,secondary:1,skin:1,hair:'buzz',hairCol:1,face:'square',expr:'neutral',facial:'none',weapon:'rifle',cls:'soldier'},
+  resistance:{name:'Scavenger',faction:'resistance',primary:0,secondary:1,skin:3,hair:'crop',hairCol:0,face:'long',expr:'grim',facial:'stubble',weapon:'rifle',cls:'soldier'}};
+function lookFor(b,old){const L={...DEFAULT,...LOOK[fac]};const fem=b==='female';L.body=fem?'medium':b;L.sex=fem?'female':'male';
+  if(old){Object.assign(L,fac==='security'?{armour:'carrier',headgear:'helmet',top:'long',legs:'armoured',gloves:'tactical'}:{armour:'scrap',headgear:'none',facegear:'none',top:'tee',legs:'cargo',gloves:'fingerless'})}
+  if(fem&&L.hair==='buzz')L.hair='crop';return clean(L)}
+function make(l,old){const u=old?buildBase(l,l.weapon,l.cls,{outline:true}):buildOutfit(l,l.weapon,l.cls,{outline:true});u.traverse(o=>{if(o.isMesh&&!o.userData.isOutline)o.castShadow=true});return u}
+function layout(){for(const u of units)s.remove(u.obj);units=[];
+  let list;if(mode==='lineup')list=['light','medium','heavy','female'].map(b=>({b,old:false,label:b==='female'?'Medium, female':b[0].toUpperCase()+b.slice(1)}));
+  else if(mode==='compare')list=[{b:build,old:true,label:'Current'},{b:build,old:false,label:'New'}];else list=[{b:build,old:false,label:''}];
+  const gap=mode==='lineup'?1.05:1.3;list.forEach((e,i)=>{const o=make(lookFor(e.b,e.old),e.old);o.position.x=(i-(list.length-1)/2)*gap;s.add(o);const rig=o.userData.rig||null;if(rig)rig.play(anim);units.push({obj:o,rig,label:e.label})});
+  lbls.innerHTML=units.map(u=>`<div class="lbl">${u.label}</div>`).join('');document.body.dataset.f=fac;fit()}
+function seg(id,cb){const el=document.getElementById(id);el.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));cb(b.dataset.v||b.dataset.a)})}
+seg('fac',v=>{fac=v;layout()});seg('mode',v=>{mode=v;document.getElementById('build').style.display=v==='lineup'?'none':'';layout()});seg('build',v=>{build=v;layout()});
+seg('anim',a=>{anim=a;for(const u of units)if(u.rig)u.rig.play(a)});document.getElementById('build').style.display='none';
+const cv=r.domElement;cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:yaw};cv.setPointerCapture(e.pointerId)});cv.addEventListener('pointermove',e=>{if(drag)yaw=drag.y+(e.clientX-drag.x)*.012});cv.addEventListener('pointerup',()=>drag=null);
+function fit(){const w=box.clientWidth,h=box.clientHeight;if(!w||!h)return;r.setSize(w,h,false);pc.aspect=w/h;pc.updateProjectionMatrix()}new ResizeObserver(fit).observe(box);
+const tmp=new THREE.Vector3();
+const clock=new THREE.Clock();function tick(){requestAnimationFrame(tick);const dt=Math.min(.05,clock.getDelta());if(spin)yaw+=dt*.5;
+  const n=units.length,wide=CAM?CAM[1]:mode==='lineup'?4.4:mode==='compare'?2.6:1.1,dist=wide/(2*Math.tan(13*Math.PI/180))/Math.min(1,pc.aspect)*1.05,ty=CAM?CAM[0]:mode==='close'?.6:.5;
+  pc.position.set(0,ty+.25,dist);pc.lookAt(0,ty,0);
+  units.forEach((u,i)=>{if(u.rig)u.rig.update(dt);u.obj.rotation.y=yaw;const el=lbls.children[i];if(el){tmp.set(u.obj.position.x,0,0).project(pc);el.style.left=((tmp.x+1)/2*100)+'%'}});r.render(s,pc)}
+window.OUTFIT={cam:(ty,w)=>{CAM=ty==null?null:[ty,w]},setYaw:v=>yaw=v,set:(f,m,b)=>{fac=f||fac;mode=m||mode;build=b||build;layout()},anim:a=>{anim=a;for(const u of units)if(u.rig)u.rig.play(a)}};
+RIG.ready.then(()=>{layout();tick();window.OUTFIT_READY=true});
+})();
+</script></body></html>

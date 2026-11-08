@@ -53,7 +53,7 @@ function prepBase(){const src=RIG.tpl.sec;if(!src||!RIG.raw.bm)return;
 // Toon material with the skin texture tinted and clothing painted by region.
 function baseClothMat(look,map){const F=FACTIONS[look.faction],c1=F.pal[look.primary],c2=F.pal[look.secondary],skin=SKIN[look.skin];
   const longS=['long','hoodie','jacket'].includes(look.top),sleeve=longS?c1:null,fore=longS?c1:(look.gloves==='tactical'?'#2b2d30':null),hands=look.gloves==='tactical'?'#2b2d30':look.gloves==='fingerless'?'#3a3330':null;
-  const legs=look.legs==='jeans'?'#3b4a63':look.legs==='armoured'?shade(c2,-25):c2,boots='#2a2622',top=look.top==='tank'?shade(c1,-10):c1;
+  const bare=look.top==='bare',legs=bare?null:look.legs==='jeans'?'#3b4a63':look.legs==='armoured'?shade(c2,-25):c2,boots=bare?null:'#2a2622',top=bare?null:look.top==='tank'?shade(c1,-10):c1;
   const key=[skin,top,sleeve,fore,hands,legs,boots].join('|');let m=BASE.mats.get(key);if(m)return m;
   const base=new THREE.Color(SKIN[0]),tint=new THREE.Color(skin);tint.r=Math.min(1.2,tint.r/base.r);tint.g=Math.min(1.2,tint.g/base.g);tint.b=Math.min(1.2,tint.b/base.b);const lum=.3*tint.r+.59*tint.g+.11*tint.b,soft=.35;tint.r=tint.r+(lum-tint.r)*soft;tint.g=tint.g+(lum-tint.g)*soft;tint.b=tint.b+(lum-tint.b)*soft;const lift=look.skin>=4?1.25:look.skin===3?1.1:1;tint.multiplyScalar(lift);
   m=new THREE.MeshToonMaterial({color:tint,map,gradientMap:unitTex(),skinning:true});
@@ -74,7 +74,7 @@ function thick(bone,k,len=1){const ax=lenAxis(bone),s=[k,k,k];s[ax]=len;bone.sca
 function buildBase(look,wkey,cls,opts={}){const tpl=BASE.tpl[look.sex==='female'?'f':'m']||BASE.tpl.m;if(!tpl)return null;
   const root=THREE.SkeletonUtils.clone(tpl.root),bones={},meshes=[],outline=opts.outline!==false,K=opKit(),col=rigColours(look);
   root.traverse(o=>{if(o.isBone)bones[o.name]=o;if(o.isMesh)meshes.push(o)});
-  for(const m of meshes){const role=m.userData.role,src=m.material;if(role==='Skin')m.material=baseClothMat(look,src.map);else if(role==='Eyes')m.material=baseEyeMat(src.map);else m.material=new THREE.MeshToonMaterial({color:HAIRC[look.hairCol],gradientMap:unitTex(),skinning:true});m.castShadow=true;m.receiveShadow=true}
+  for(const m of meshes){const role=m.userData.role,src=m.material;if(role==='Skin')m.material=baseClothMat(opts.bare?Object.assign({},look,{top:'bare',legs:'bare',gloves:'none'}):look,src.map);else if(role==='Eyes')m.material=baseEyeMat(src.map);else m.material=new THREE.MeshToonMaterial({color:HAIRC[look.hairCol],gradientMap:unitTex(),skinning:true});m.castShadow=true;m.receiveShadow=true}
   // Builds.
   const B=BASE_BUILD[look.body]||BASE_BUILD.medium;
   for(const n of['spine_01','spine_02','spine_03','pelvis'])thick(bones[n],B.torso);
@@ -88,15 +88,15 @@ function buildBase(look,wkey,cls,opts={}){const tpl=BASE.tpl[look.sex==='female'
   // Hair, beard, headgear and face gear on the head.
   const H=bones.Head,hairKey=BASE_HAIR[look.hair]&&(look.sex==='female'&&look.hair==='buzz'?'hair_buzzedf':BASE_HAIR[look.hair]);
   const addHair=(key,colour)=>{const src=BASE.hair[key];if(!src)return;src.updateMatrixWorld(true);src.traverse(o=>{if(o.isMesh){const m=new THREE.Mesh(o.geometry,baseFlatMat(colour));m.castShadow=true;const mw=new THREE.Matrix4().multiplyMatrices(tpl.headInv,o.matrixWorld);mw.decompose(m.position,m.quaternion,m.scale);m.position.set(m.position.x/HS[0],m.position.y/HS[1],m.position.z/HS[2]);m.scale.set(m.scale.x/HS[0],m.scale.y/HS[1],m.scale.z/HS[2]);m.userData.hairPiece=true;H.add(m)}})};
-  const covered=['beanie','cap','bandana','helmet','riothelm'].includes(look.headgear);
+  const covered=['beanie','cap','bandana','helmet','riothelm'].includes(look.headgear)||!!opts.coverHair;
   if(hairKey&&!(covered&&hairKey!=='hair_buzzed'&&hairKey!=='hair_buzzedf'))addHair(hairKey,HAIRC[look.hairCol]);
   if(['beard','goatee','chops'].includes(look.facial))addHair('hair_beard',HAIRC[look.hairCol]);
-  if(look.headgear!=='none'||look.facegear!=='none'||look.mark!=='none'||look.facial==='moustache'||look.hair==='mohawk'||look.hair==='spiky'){const hh=new THREE.Group();const s=tpl.headR/.15*1.08;hh.quaternion.copy(tpl.bindQ.Head).invert();hh.scale.set(s/HS[0],s/HS[1],s/HS[2]);
+  if(!opts.noGear&&(look.headgear!=='none'||look.facegear!=='none'||look.mark!=='none'||look.facial==='moustache'||look.hair==='mohawk'||look.hair==='spiky')){const hh=new THREE.Group();const s=tpl.headR/.15*1.08;hh.quaternion.copy(tpl.bindQ.Head).invert();hh.scale.set(s/HS[0],s/HS[1],s/HS[2]);
     const c=tpl.headC.clone().applyMatrix4(tpl.headInv);c.y+=tpl.headR*.2;hh.position.set(c.x/HS[0],c.y/HS[1],c.z/HS[2]);hh.userData.attach=true;const hd=opHead(look,Object.assign({},K,{gearOnly:true}));hh.add(hd);H.add(hh)}
   // Armour, pauldrons, kneepads, class gear.
-  baseGear(look,cls,atpl,al,K,col);
+  if(!opts.noGear)baseGear(look,cls,atpl,al,K,col);
   // Weapon in the right hand.
-  const wk=wkey||'rifle',sec=look.faction==='security',fur=sec?'#3a4048':'#7a5331',W=weaponModel(wk,fur,'#2b2e32','#4a4f55',K.box,K.cylZ,K.mesh,FACTIONS[look.faction].accent);
+  const wk=wkey||'rifle',sec=look.faction==='security',fur=sec?'#3a4048':'#7a5331',W=opts.weapon?opts.weapon(wk,look,K):weaponModel(wk,fur,'#2b2e32','#4a4f55',K.box,K.cylZ,K.mesh,FACTIONS[look.faction].accent);
   const gun=new THREE.Group();gun.add(W.g);gun.quaternion.copy(tpl.gunQ);gun.scale.setScalar(tpl.gunScale*(BASE_GUN_SCALE[wk]||1)*(look.body==='heavy'?1.05:look.body==='light'?.95:1));gun.position.set(0,0,0).add(BASE_GUN_OFF.clone().multiplyScalar(tpl.P));bones.hand_r.add(gun);gun.userData.proc=true;
   const bb=new THREE.Box3();W.g.updateMatrixWorld(true);W.g.traverse(o=>{if(o.isMesh){o.geometry.computeBoundingBox();bb.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrix))}});const muzzle=new THREE.Vector3(0,(bb.max.y+bb.min.y)/2,bb.max.z);
   // Outlines: skinned hulls share the skeleton; hair pieces get scaled hulls through bakeGroup.
@@ -107,6 +107,7 @@ function buildBase(look,wkey,cls,opts={}){const tpl=BASE.tpl[look.sex==='female'
   root.traverse(o=>{if(o.isSkinnedMesh)o.frustumCulled=false});
   const holder=new THREE.Group();holder.add(root);root.scale.setScalar(tpl.scale);holder.scale.set(1,B.h,1);
   const rig=new BaseAnim(root,tpl.clips,{bones,gun,fore:W.fore.clone(),fwd:tpl.fwd.clone(),body:look.body});rig.gun=gun;rig.muzzle=muzzle;rig.barrels=W.barrels||null;rig.bones=bones;
+  if(opts.after)opts.after({look,root,bones,meshes,tpl,K,outline,HS});
   holder.userData.rig=rig;return holder}
 const BASE_GUN_OFF=new THREE.Vector3(0,0,0);
 // Offsets (procedural units, body space) for pauldrons and kneepads on the new bones.
