@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arkside: outfit preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+<style>
+:root{--bg:#dde1e0;--panel:#f1f3f2;--ink:#1a2226;--muted:#56626a;--line:#c4cccb;--acc:#c9581c;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#11181c;--panel:#182126;--ink:#e4eaec;--muted:#93a1a8;--line:#2b383f;color-scheme:dark}}
+body[data-f="security"]{--acc:#2a7fbd}
+*,*::before,*::after{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 Barlow,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
+main{max-width:1000px;margin:0 auto;padding:14px 14px 40px}
+h1{font-family:Teko,'Arial Narrow',sans-serif;font-weight:600;font-size:34px;line-height:.9;margin:0}
+.intro{color:var(--muted);margin:6px 0 8px;max-width:64ch;font-size:14px}
+button{font:inherit;color:inherit}
+.seg{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin:6px 0}.seg::-webkit-scrollbar{display:none}
+.seg button{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 11px;font-weight:600;font-size:14px;min-height:38px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--acc);color:#fff;border-color:var(--acc)}
+.view{position:relative;width:100%;height:58vh;min-height:320px;border-radius:6px 18px 6px 6px;overflow:hidden;background:linear-gradient(#3a7fc4,#9fcfe8 55%,#e8dccb);touch-action:pan-y}
+.view canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.lbl{position:absolute;bottom:10px;color:#fff;text-shadow:0 1px 3px #000a;font:600 13px Barlow,sans-serif;transform:translateX(-50%);white-space:nowrap}
+.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px 10px;margin-top:6px}
+label.f{display:flex;flex-direction:column;font-size:12px;color:var(--muted);font-weight:600}
+select{margin-top:2px;min-height:38px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);padding:4px 6px;font:inherit;font-size:14px}
+.note{font-size:13px;color:var(--muted);margin-top:10px;max-width:70ch}
+.note b{color:var(--ink)}
+@media(max-width:600px){h1{font-size:28px}.view{height:52vh}}
+</style></head><body data-f="security"><main>
+<h1>Outfit preview</h1>
+<p class="intro">New faction clothing and rifles on the new bodies, not in the game yet. Compare them with what the game uses now, in every build. Drag to turn.</p>
+<div class="seg" id="fac"><button type="button" data-v="security" aria-pressed="true">Security</button><button type="button" data-v="resistance">Resistance</button></div>
+<div class="seg" id="mode"><button type="button" data-v="squad" aria-pressed="true">Squad</button><button type="button" data-v="close">Close-up</button><button type="button" data-v="builds">All builds</button><button type="button" data-v="compare">Current vs new</button></div>
+<div class="seg" id="presets"></div>
+<div class="view" id="view"><div id="lbls"></div></div>
+<div class="seg" id="anim"></div>
+<div class="picks" id="picks"></div>
+<p class="note">Pick a ready-made look, then change any slot below, or tap Random. Squad shows the four ready-made looks together; Close-up shows the one you are editing. Security is issued kit in crisp blocks with one blue accent; Resistance is scavenged kit in bold blocks with one teal accent. Hood is a new Resistance headgear option.</p>
+</main>
+<script>/*__GLB__*/</script>
+<script>
+//__CREATOR_CORE__
+//__MODEL_KIT__
+//__UNITS__
+//__RETARGET__
+//__UNITS_BASE__
+//__OUTFITS__
+</script>
+<script>
+(function(){
+if(typeof THREE==='undefined'){document.querySelector('main').insertAdjacentHTML('beforeend','<p>The 3D engine couldn’t load. Check your connection and reload.</p>');return}
+const box=document.getElementById('view'),lbls=document.getElementById('lbls');
+const r=new THREE.WebGLRenderer({antialias:true,alpha:true});r.setPixelRatio(Math.min(2,devicePixelRatio||1));r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;box.prepend(r.domElement);
+const s=new THREE.Scene();s.add(new THREE.HemisphereLight(0xdcefff,0x8a7a66,.75));const sun=new THREE.DirectionalLight(0xfff3e0,.85);sun.position.set(4,7,5);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-4,right:4,top:4,bottom:-4});s.add(sun);
+const floor=new THREE.Mesh(new THREE.BoxGeometry(12,.2,8),new THREE.MeshLambertMaterial({color:0x8f7462}));floor.position.y=-.1;floor.receiveShadow=true;s.add(floor);
+const pc=new THREE.PerspectiveCamera(26,1,.05,60);
+let CAM=null,fac='security',mode='squad',build='medium',units=[],yaw=.35,drag=null,anim='Idle',spin=false;
+const ANIMS=[['Idle','Idle'],['Walk','Walk'],['Run','Run'],['Shoot','Idle_Shoot'],['Hit','HitReact'],['Take cover','Duck']];
+document.getElementById('anim').innerHTML=ANIMS.map(([l,a],i)=>`<button type="button" data-a="${a}"${i?'':' aria-pressed="true"'}>${l}</button>`).join('');
+const BASEL={security:{name:'Trooper',faction:'security',skin:1,hair:'buzz',hairCol:1,face:'square',expr:'neutral',facial:'none',weapon:'rifle'},resistance:{name:'Scavenger',faction:'resistance',skin:3,hair:'crop',hairCol:0,face:'long',expr:'grim',facial:'stubble',weapon:'rifle'}};
+const PRESETS={security:[['Riot trooper',{top:'long',armour:'riot',legs:'armoured',gloves:'tactical',headgear:'helmet',facegear:'none',cls:'soldier',primary:0,secondary:2,body:'medium'}],
+    ['Patrol officer',{top:'jacket',armour:'none',legs:'jeans',gloves:'none',headgear:'cap',facegear:'shades',cls:'operative',primary:0,secondary:2,body:'light'}],
+    ['Breacher',{top:'long',armour:'carrier',legs:'cargo',gloves:'tactical',headgear:'riothelm',facegear:'none',cls:'engineer',primary:3,secondary:2,body:'heavy'}],
+    ['Field medic',{top:'hoodie',armour:'rig',legs:'cargo',gloves:'tactical',headgear:'headset',facegear:'none',cls:'medic',primary:1,secondary:2,body:'medium',sex:'female'}]],
+  resistance:[['Scavenger',{top:'jacket',armour:'scrap',legs:'cargo',gloves:'tactical',headgear:'hood',facegear:'mask',cls:'soldier',primary:0,secondary:1,body:'medium'}],
+    ['Runner',{top:'tank',armour:'rig',legs:'jeans',gloves:'fingerless',headgear:'bandana',facegear:'shades',cls:'operative',primary:2,secondary:1,body:'light',sex:'female'}],
+    ['Mechanic',{top:'long',armour:'carrier',legs:'armoured',gloves:'tactical',headgear:'goggles',facegear:'respirator',cls:'engineer',primary:3,secondary:1,body:'heavy'}],
+    ['Street medic',{top:'hoodie',armour:'none',legs:'cargo',gloves:'fingerless',headgear:'none',facegear:'mask',cls:'medic',primary:4,secondary:1,body:'medium'}]]};
+const SLOTS=[['top','Top'],['armour','Armour'],['legs','Legs'],['gloves','Gloves'],['headgear','Headgear'],['facegear','Face'],['cls','Class kit'],['primary','Main colour'],['secondary','Second colour'],['body','Build'],['sex','Body']];
+function slotOpts(k){const f=fac;if(k==='cls')return Object.entries(CLASSES).map(([v,o])=>[v,o.label]);if(k==='body')return Object.entries(BODY).map(([v,o])=>[v,o.label]);
+  if(k==='primary'||k==='secondary')return FACTIONS[f].names.map((n,i)=>[i,n]);
+  let o=OPTS[k].filter(x=>!x[3]||x[3]===f).filter(x=>!(k==='headgear'&&x[2]&&x[2]!==f)).map(x=>[x[0],x[1]]);
+  if(k==='headgear'&&f==='resistance')o.push(['hood','Hood']);if(k==='armour')o=o.map(([v,l])=>[v,v==='riot'?'Riot plates':v==='scrap'?'Scrap armour':l]);return o}
+let cur={...PRESETS.security[0][1]},sel=0;
+function lookFor(p,old){const L={...DEFAULT,...BASEL[fac],...p};if(!L.sex)L.sex='male';if(L.sex==='female'&&L.hair==='buzz')L.hair='crop';
+  const hood=L.headgear==='hood';if(old&&hood)L.headgear='none';const c=clean(L);if(hood&&!old)c.headgear='hood';return c}
+function make(l,old){const u=old?buildBase(l,l.weapon,l.cls,{outline:true}):buildOutfit(l,l.weapon,l.cls,{outline:true,detail:2});u.traverse(o=>{if(o.isMesh&&!o.userData.isOutline)o.castShadow=true});return u}
+function picks(){document.getElementById('picks').innerHTML=SLOTS.map(([k,l])=>`<label class="f">${l}<select data-k="${k}">${slotOpts(k).map(([v,t])=>`<option value="${v}"${String(cur[k]??(k==='sex'?'male':''))===String(v)?' selected':''}>${t}</option>`).join('')}</select></label>`).join('')+'<label class="f">&nbsp;<button type="button" class="rnd" id="rnd" style="min-height:38px;border:1px solid var(--line);border-radius:7px;background:var(--acc);color:#fff;font-weight:600">Random</button></label>';
+  document.getElementById('rnd').onclick=()=>{for(const[k]of SLOTS){const o=slotOpts(k);cur[k]=o[Math.floor(Math.random()*o.length)][0]}if(cur.secondary===cur.primary)cur.secondary=(+cur.primary+1)%6;sel=-1;mode=mode==='squad'?'close':mode;syncSeg();presets();picks();layout()}}
+document.getElementById('picks').addEventListener('change',e=>{const k=e.target.dataset.k;let v=e.target.value;if(k==='primary'||k==='secondary')v=+v;cur[k]=v;sel=-1;if(mode==='squad')mode='close';syncSeg();presets();layout()});
+function presets(){document.getElementById('presets').innerHTML=PRESETS[fac].map(([n],i)=>`<button type="button" data-i="${i}" aria-pressed="${i===sel}">${n}</button>`).join('')}
+document.getElementById('presets').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;sel=+b.dataset.i;cur={...PRESETS[fac][sel][1]};if(mode==='squad')mode='close';syncSeg();presets();picks();layout()});
+function syncSeg(){document.querySelectorAll('#mode button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===mode))}
+function layout(){for(const u of units)s.remove(u.obj);units=[];let list;
+  if(mode==='squad')list=PRESETS[fac].map(([n,p])=>({p,old:false,label:n}));
+  else if(mode==='builds')list=[['light','male','Light'],['medium','male','Medium'],['heavy','male','Heavy'],['medium','female','Female']].map(([b,sx,l])=>({p:{...cur,body:b,sex:sx},old:false,label:l}));
+  else if(mode==='compare')list=[{p:cur,old:true,label:'Current'},{p:cur,old:false,label:'New'}];else list=[{p:cur,old:false,label:''}];
+  const gap=list.length>2?1.05:1.3;list.forEach((e,i)=>{const o=make(lookFor(e.p,e.old),e.old);o.position.x=(i-(list.length-1)/2)*gap;s.add(o);const rig=o.userData.rig||null;if(rig)rig.play(anim);units.push({obj:o,rig,label:e.label})});
+  lbls.innerHTML=units.map(u=>`<div class="lbl">${u.label}</div>`).join('');document.body.dataset.f=fac;fit()}
+function seg(id,cb){const el=document.getElementById(id);el.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));cb(b.dataset.v||b.dataset.a)})}
+seg('fac',v=>{fac=v;sel=0;cur={...PRESETS[fac][0][1]};presets();picks();layout()});seg('mode',v=>{mode=v;layout()});
+seg('anim',a=>{anim=a;for(const u of units)if(u.rig)u.rig.play(a)});presets();picks();
+const cv=r.domElement;cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:yaw};cv.setPointerCapture(e.pointerId)});cv.addEventListener('pointermove',e=>{if(drag)yaw=drag.y+(e.clientX-drag.x)*.012});cv.addEventListener('pointerup',()=>drag=null);
+function fit(){const w=box.clientWidth,h=box.clientHeight;if(!w||!h)return;r.setSize(w,h,false);pc.aspect=w/h;pc.updateProjectionMatrix()}new ResizeObserver(fit).observe(box);
+const tmp=new THREE.Vector3();
+const clock=new THREE.Clock();function tick(){requestAnimationFrame(tick);const dt=Math.min(.05,clock.getDelta());if(spin)yaw+=dt*.5;
+  const n=units.length,wide=CAM?CAM[1]:(mode==='squad'||mode==='builds')?4.4:mode==='compare'?2.6:1.1,dist=wide/(2*Math.tan(13*Math.PI/180))/Math.min(1,pc.aspect)*1.05,ty=CAM?CAM[0]:mode==='close'?.6:.5;
+  pc.position.set(0,ty+.25,dist);pc.lookAt(0,ty,0);
+  units.forEach((u,i)=>{if(u.rig)u.rig.update(dt);u.obj.rotation.y=yaw;const el=lbls.children[i];if(el){tmp.set(u.obj.position.x,0,0).project(pc);el.style.left=((tmp.x+1)/2*100)+'%'}});r.render(s,pc)}
+window.OUTFIT={cam:(ty,w)=>{CAM=ty==null?null:[ty,w]},setYaw:v=>yaw=v,set:(f,m,i)=>{if(f&&f!==fac){fac=f;cur={...PRESETS[fac][0][1]}}mode=m||mode;if(i!=null&&PRESETS[fac][+i]){sel=+i;cur={...PRESETS[fac][sel][1]}}presets();picks();layout()},look:p=>{cur={...cur,...p};layout()},anim:a=>{anim=a;for(const u of units)if(u.rig)u.rig.play(a)}};
+RIG.ready.then(()=>{layout();tick();window.OUTFIT_READY=true});
+})();
+</script></body></html>

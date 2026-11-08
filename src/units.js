@@ -180,7 +180,7 @@ function fixHolder(root,h,k){root.updateMatrixWorld(true);const ws=h.parent.getW
 // Build a rigged operative. Returns null if the models aren't loaded.
 // opts.outline (default true) adds inverted-hull outlines.
 function buildRigged(look,wkey,cls,opts={}){
-  if(!RIG.ok)return null;if(UNIT_STYLE==='base'&&typeof BASE!=='undefined'&&BASE.ok)return buildBase(look,wkey,cls,opts);
+  if(!RIG.ok)return null;if(UNIT_STYLE==='base'&&typeof BASE!=='undefined'&&BASE.ok)return typeof buildOutfit==='function'?buildOutfit(look,wkey,cls,opts):buildBase(look,wkey,cls,opts);
   const sec=look.faction==='security',tpl=RIG.tpl[look.model||(sec?'sec':'res')]||RIG.tpl[sec?'sec':'res'];
   const root=THREE.SkeletonUtils.clone(tpl.root),bones={},meshes=[],weapons={};
   root.traverse(o=>{if(o.isBone)bones[o.name]=o;if(RIG_WEAPONS.includes(o.name))weapons[o.name]=o;if(o.isMesh)meshes.push(o)});
@@ -355,7 +355,7 @@ function portraitRender(look){
   if(!PORTRAIT.r){const r=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});r.setPixelRatio(1);r.setSize(PORTRAIT.size,PORTRAIT.size,false);PORTRAIT.r=r;
     const sc=new THREE.Scene();sc.add(new THREE.HemisphereLight(0xdcefff,0x6a5a4a,.8));const sun=new THREE.DirectionalLight(0xfff1dc,.85);sun.position.set(-2,3,4);sc.add(sun);const rim=new THREE.DirectionalLight(0xbfe4ff,.55);rim.position.set(3,2,-3);sc.add(rim);
     PORTRAIT.scene=sc;PORTRAIT.cam=new THREE.PerspectiveCamera(20,1,.05,20)}
-  const m=buildRigged(look,look.weapon,look.cls,{outline:true})||capsuleSoldier(look,true);m.rotation.y=-.38;PORTRAIT.scene.add(m);
+  const m=buildRigged(look,look.weapon,look.cls,{outline:true,detail:1})||capsuleSoldier(look,true);m.rotation.y=-.38;PORTRAIT.scene.add(m);
   const rig=m.userData.rig;if(rig){rig.play('Idle');rig.update(.35)}m.updateMatrixWorld(true);
   const head=new THREE.Vector3();if(rig&&rig.bones.Neck)rig.bones.Neck.getWorldPosition(head);else head.set(0,.8,0);head.y+=.1;
   const cam=PORTRAIT.cam;cam.position.set(head.x+.18,head.y+.1,head.z+1.6);cam.lookAt(head.x,head.y-.05,head.z);

@@ -694,7 +694,7 @@ function turretModel(team){const g=new THREE.Group(),col=team==='p'?FACTIONS[CUR
 function disguiseLook(u){const f=typeof civFaction==='function'?civFaction():ENEMY_OF[CUR.faction],sec=f==='security',L=u.look;
   return LOOK({faction:f,sex:L.sex,body:L.body==='heavy'?'medium':L.body,cls:'soldier',weapon:'rifle',skin:L.skin,face:L.face,facial:L.facial,hair:L.hair,hairCol:L.hairCol,expr:L.expr,
     headgear:sec?'cap':'beanie',facegear:'none',armour:'none',top:sec?'jacket':'hoodie',legs:sec?'cargo':'jeans',gloves:'none',primary:sec?2:1,secondary:sec?5:3,mark:'none'})}
-function unitModel(u){u.rig=null;u.anim=null;u.disgShown=u.disg>0;const look=u.disg>0&&u.op?disguiseLook(u):u.look;const m=buildRigged({...look,cls:u.cls},u.wkey,u.cls,{outline:HI()});if(m){u.rig=m.userData.rig;if(u.disgShown&&u.rig.gun)u.rig.gun.visible=false;return m}return capsuleSoldier({...u.look,cls:u.cls},HI())}
+function unitModel(u){u.rig=null;u.anim=null;u.disgShown=u.disg>0;const look=u.disg>0&&u.op?disguiseLook(u):u.look;const kc=u.disgShown?'civ':u.cls,m=buildRigged({...look,cls:kc},u.wkey,kc,{outline:HI()});if(m){u.rig=m.userData.rig;if(u.disgShown&&u.rig.gun)u.rig.gun.visible=false;return m}return capsuleSoldier({...u.look,cls:u.cls},HI())}
 function makeUnitMesh(u){
   let model;if(u.cls==='bot')model=botModel();else if(u.cls==='turret')model=turretModel(u.team);else model=unitModel(u);u.model=model;if(u.cls==='bot')u.rig=null
   const lie=new THREE.Group();lie.add(model);const g=new THREE.Group();g.add(lie);

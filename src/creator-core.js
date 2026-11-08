@@ -38,7 +38,7 @@ const OPTS={
   facial:[['none','Clean shaven'],['stubble','Stubble'],['moustache','Moustache'],['goatee','Goatee'],['chops','Mutton chops'],['beard','Full beard']],
   mark:[['none','None'],['scar','Scar'],['tattoo','Face tattoo'],['paint','War paint'],['patch','Eye patch']],
   hair:[['shaved','Shaved'],['buzz','Buzz cut'],['crop','Crop'],['mohawk','Mohawk'],['spiky','Spiky'],['slick','Slicked'],['topknot','Top knot'],['dreads','Dreads']],
-  headgear:[['none','None'],['beanie','Beanie'],['cap','Cap'],['bandana','Bandana'],['helmet','Combat helmet'],['riothelm','Riot helmet','security'],['headset','Headset'],['goggles','Goggles']],
+  headgear:[['none','None'],['beanie','Beanie'],['cap','Cap'],['bandana','Bandana'],['helmet','Combat helmet'],['riothelm','Riot helmet','security'],['hood','Hood','resistance'],['headset','Headset'],['goggles','Goggles']],
   facegear:[['none','None'],['mask','Bandana mask'],['respirator','Respirator'],['shades','Shades'],['hud','HUD visor']],
   top:[['tee','T-shirt'],['tank','Tank top'],['long','Long sleeve'],['hoodie','Hoodie'],['jacket','Jacket']],
   armour:[['none','None','No bonus'],['rig','Chest rig','+5 health'],['carrier','Plate carrier','+10 health'],['riot','Riot armour','+25 health, −1 move','security'],['scrap','Scrap armour','+15 health','resistance']],
@@ -47,7 +47,7 @@ const OPTS={
 };
 const ARMOUR_MOD={none:{hp:0,move:0},rig:{hp:5,move:0},carrier:{hp:10,move:0},riot:{hp:25,move:-1},scrap:{hp:15,move:0}};
 const FACES={long:{rx:15,ry:23,j:.6},square:{rx:17,ry:21,j:.86},angular:{rx:16,ry:22,j:.42},broad:{rx:19,ry:20,j:.92}};
-const COVER=new Set(['beanie','cap','bandana','helmet','riothelm']);
+const COVER=new Set(['beanie','cap','bandana','helmet','riothelm','hood']);
 const NAMES=['Kestrel','Rook','Mako','Juno','Brask','Vex','Tamsin','Okoro','Dace','Halloran','Ines','Petra','Silas','Wren','Yusuf','Moss','Ada','Corin','Bex','Tavi'];
 const CALLSIGNS=['Undertow','Bilge Rat','Breakwater','Gull','Saltwater','Rivet','Static','Ghost Tide','Ballast','Riptide','Barnacle','Lighthouse','Floodgate','Drydock','Squall'];
 const DEFAULT={name:'Kestrel',callsign:'Undertow',faction:'resistance',sex:'male',body:'medium',cls:'soldier',weapon:'rifle',skin:2,face:'square',expr:'grim',facial:'stubble',mark:'none',hair:'buzz',hairCol:1,headgear:'none',facegear:'none',top:'tee',armour:'rig',legs:'cargo',gloves:'fingerless',primary:0,secondary:1};

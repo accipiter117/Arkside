@@ -37,6 +37,7 @@ JS_PARTS = {
     "//__RETARGET__": "retarget.js",
     "//__UNITS_BASE__": "units-base.js",
     "//__ENGINE__": "engine.js",
+    "//__OUTFITS__": "outfits.js",
 }
 GLBS = {"sec": "soldier_ct.glb", "res": "soldier_t.glb", "bm": "base_m.glb", "bf": "base_f.glb",
         "hair_buzzed": "hair_buzzed.glb", "hair_buzzedf": "hair_buzzedf.glb", "hair_parted": "hair_parted.glb", "hair_long": "hair_long.glb",
@@ -49,6 +50,7 @@ PAGES = [
     (SRC / "lab" / "terrain-review.template.html", ROOT / "lab" / "terrain-review.html"),
     (SRC / "lab" / "retarget-trial.template.html", ROOT / "lab" / "retarget-trial.html"),
     (SRC / "lab" / "body-tuner.template.html", ROOT / "lab" / "body-tuner.html"),
+    (SRC / "lab" / "outfit-preview.template.html", ROOT / "lab" / "outfit-preview.html"),
 ]
 
 

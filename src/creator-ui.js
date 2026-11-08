@@ -115,7 +115,7 @@ function crt3Init(){crt3Free();const st=$('#crtStage');if(!st||typeof THREE==='u
   CRT3.last=performance.now();CRT3.raf=requestAnimationFrame(crt3Loop)}
 function crt3Model(){if(!CRT3.scene)return;const L=CRT.look,k=portraitKey(L);if(k===CRT3.key)return;CRT3.key=k;
   if(CRT3.model){CRT3.scene.remove(CRT3.model);disposeUnitModel(CRT3.model)}
-  const m=buildRigged(L,L.weapon,L.cls,{outline:HI()})||capsuleSoldier(L,HI());m.traverse(o=>{if(o.isMesh&&!o.userData.isOutline)o.castShadow=true});
+  const m=buildRigged(L,L.weapon,L.cls,{outline:HI(),detail:1})||capsuleSoldier(L,HI());m.traverse(o=>{if(o.isMesh&&!o.userData.isOutline)o.castShadow=true});
   CRT3.scene.add(m);CRT3.model=m;CRT3.rig=m.userData.rig||null;
   if(CRT3.rig){CRT3.rig.play('Idle');if(CRT3.wpn&&CRT3.wpn!==L.weapon)CRT3.rig.play('Idle_Shoot',{once:true,speed:.55})}CRT3.wpn=L.weapon}
 function crt3Loop(now){if(document.body.dataset.view!=='creator'||!CRT3.r){crt3Free();return}CRT3.raf=requestAnimationFrame(crt3Loop);
