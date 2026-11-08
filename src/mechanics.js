@@ -84,7 +84,10 @@ function mechTex(){if(MECH_TX)return MECH_TX;MECH_TX={};
   MECH_TX.smash=cvTex((g,s)=>{g.clearRect(0,0,s,s);g.translate(s/2,s/2);g.fillStyle='#ff7a3a';g.strokeStyle='#2a1208';g.lineWidth=5;g.beginPath();for(let i=0;i<16;i++){const r=i%2?s*.18:s*.44,a=i/16*Math.PI*2;g.lineTo(Math.cos(a)*r,Math.sin(a)*r)}g.closePath();g.stroke();g.fill();g.fillStyle='#fff3d0';g.beginPath();g.arc(0,0,s*.1,0,7);g.fill()});
   MECH_TX.chev=chev('#f3b33d');MECH_TX.chevW=chev('#f4f6f8');MECH_TX.chevC=chev('#5fe8ff');
   return MECH_TX}
-function mechDecal(x,z,y,rot,sz=.7,tex='chev'){const d=new THREE.Mesh(new THREE.PlaneGeometry(sz,sz),new THREE.MeshLambertMaterial({map:mechTex()[tex],transparent:true,depthWrite:false}));d.rotation.x=-Math.PI/2;d.rotation.z=rot;const p=W(x,z);d.position.set(p.x,y+.02,p.z);scene.add(d);return d}
+// Permanent chevrons on climbable edges, rails, gaps, vents and ziplines. Off since update 18 (too busy to look at);
+// the move preview still shows jump arcs and climb markers for the selected unit.
+const MECH_MARKS=false;
+function mechDecal(x,z,y,rot,sz=.7,tex='chev'){if(!MECH_MARKS)return null;const d=new THREE.Mesh(new THREE.PlaneGeometry(sz,sz),new THREE.MeshLambertMaterial({map:mechTex()[tex],transparent:true,depthWrite:false}));d.rotation.x=-Math.PI/2;d.rotation.z=rot;const p=W(x,z);d.position.set(p.x,y+.02,p.z);scene.add(d);return d}
 // Move preview mark on a barricade or sheet wall a heavy can charge through.
 function smashMark(t){const p=W(t.x,t.z),m=new THREE.Mesh(new THREE.PlaneGeometry(.5,.5),new THREE.MeshBasicMaterial({map:mechTex().smash,transparent:true,depthTest:false}));m.rotation.x=-Math.PI/2;m.position.set(p.x,topY(t)+(t.obj==='sheet'?1.45:.62),p.z);m.renderOrder=5;m.userData.tile=t;hl.add(m)}
 // Ladders, rails, step chevrons, gap edges and zipline cables.

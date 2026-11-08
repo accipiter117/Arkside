@@ -847,6 +847,11 @@ const pipGeo=new THREE.BoxGeometry(.12,.06,.12),pipMat=new THREE.MeshBasicMateri
 function pips(t,n){const p=W(t.x,t.z);for(let i=0;i<n;i++){const m=new THREE.Mesh(pipGeo,pipMat);m.position.set(p.x-.3+i*.17,topY(t)+.06,p.z-.3);m.userData.tile=t;hl.add(m)}}
 const climbGeo=new THREE.ConeGeometry(.09,.18,4),climbMat=new THREE.MeshBasicMaterial({color:0xffb347});
 function climbMark(t){const p=W(t.x,t.z),m=new THREE.Mesh(climbGeo,climbMat);m.position.set(p.x+.3,topY(t)+.14,p.z+.3);m.userData.tile=t;hl.add(m)}
+// A bright line round the edge of the move area, so its reach reads at a glance.
+const edgeMat=new THREE.MeshBasicMaterial({color:0xd8f6ff,transparent:true,opacity:.95,depthWrite:false});
+function reachOutline(d,u){const inA=(x,z)=>(x===u.x&&z===u.z)||d.has(key(x,z));
+  for(const k of [...d.keys(),key(u.x,u.z)]){const[x,z]=k.split(',').map(Number),t=G[z][x],p=W(x,z),y=topY(t)+.045;
+    for(const[dx,dz]of D4){if(inA(x+dx,z+dz))continue;const m=new THREE.Mesh(new THREE.BoxGeometry(dx?.05:.98,.02,dz?.05:.98),edgeMat);m.position.set(p.x+dx*.47,y,p.z+dz*.47);m.userData.tile=t;m.renderOrder=3;hl.add(m)}}}
 function hlTile(t,col,op){const m=new THREE.Mesh(new THREE.PlaneGeometry(.9,.9),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false}));m.rotation.x=-Math.PI/2;const p=W(t.x,t.z);m.position.set(p.x,topY(t)+.03,p.z);m.userData.tile=t;hl.add(m)}
 /* ---------- map-first HUD (overhaul stage B) ----------
    Everything floats over the map in small translucent pieces: an
@@ -889,7 +894,7 @@ function refresh(){
   hl.clear();$('#hud').querySelectorAll('.tg').forEach(e=>e.remove());const u=S.sel;S.reach=null;selRing.visible=!!u&&!u.down&&S.phase==='player';
   if(u&&S.phase==='player'&&!u.down){
     if(S.mode){for(const t of abilityTargets(u,S.mode))hlTile(t,0xffc04a,.45);if(AB[S.mode].tgt==='build')for(const t of buildBlocked(u))hlTile(t,0x555555,.5)}
-    else{if(!u.moved){S.reach=reach(u);const seenE=living('e').filter(e=>e.seen);for(const k of S.reach.d.keys()){const[x,z]=k.split(',').map(Number);if(x===u.x&&z===u.z)continue;const t=G[z][x];let cv=-1;if(seenE.length){cv=2;for(const e of seenE)cv=Math.min(cv,coverOf(t,G[e.z][e.x]))}hlTile(t,cv===2?0x3aa0ff:0x5fc8ff,cv===2?.5:cv===1?.4:.26);if(cv>0)pips(t,cv);if(S.reach.climb.has(k))climbMark(t);if(t.obj&&smashable(t))smashMark(t)}mechArcs(S.reach)}
+    else{if(!u.moved){S.reach=reach(u);const seenE=living('e').filter(e=>e.seen);for(const k of S.reach.d.keys()){const[x,z]=k.split(',').map(Number);if(x===u.x&&z===u.z)continue;const t=G[z][x];let cv=-1;if(seenE.length){cv=2;for(const e of seenE)cv=Math.min(cv,coverOf(t,G[e.z][e.x]))}hlTile(t,cv===2?0x3aa0ff:0x5fc8ff,cv===2?.55:cv===1?.46:.36);if(cv>0)pips(t,cv);if(S.reach.climb.has(k))climbMark(t);if(t.obj&&smashable(t))smashMark(t)}reachOutline(S.reach.d,u);mechArcs(S.reach)}
       if(!u.acted)for(const e of living('e')){if(!e.seen)continue;const c=hitChance(u,e);if(!c)continue;const r=new THREE.Mesh(new THREE.RingGeometry(.36,.46,28),new THREE.MeshBasicMaterial({color:0xff4a3a,side:THREE.DoubleSide}));r.rotation.x=-Math.PI/2;const p=W(e.x,e.z);r.position.set(p.x,topY(G[e.z][e.x])+.04,p.z);r.userData.unit=e;r.userData.pulse=true;hl.add(r);
         const fl=e.cls!=='turret'&&coverOf(G[e.z][e.x],G[u.z][u.x])===0,mm=fl?1.2:1,lo=Math.round(u.weapon.dmg*.85*mm),hi=Math.round(u.weapon.dmg*1.15*mm);const lab=document.createElement('div');lab.className='tg'+(S.aim===e?' aim':'');lab.innerHTML=S.aim===e?`${c}% · ${lo}–${hi} dmg`:`${c}%`;lab._u=e;$('#hud').appendChild(lab)}}}
   $('#roster').innerHTML=railHTML(u);
