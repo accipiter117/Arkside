@@ -32,9 +32,10 @@ Map sources and a reachability validator live in `tools/maps/` (`python3 tools/m
 ## Rules
 - Each operative gets one move and one action per turn. Every move can be undone, several moves back within a turn, along with anything it set off (overwatch shots, being spotted, new contacts, picking up the item): each move saves a full snapshot of the board. Shooting, abilities, objective work and ending the turn clear the undo history, and a move that completes an objective (starting the next stage) or ends the mission can't be undone.
 - **Body types** (`EB`), inspired by Brink's SMART movement:
-  - Light: 80 HP, move 7, vision 7. Climbs one level for 1 move, wall-hops two levels for 2, drops two levels, fits through vents and gaps.
-  - Medium: 110 HP, move 5, vision 6. Climbs one level for 2 moves, drops two levels, fits through gaps.
-  - Heavy: 150 HP, move 4, vision 5. Stairs only, drops one level, no vents or gaps.
+  - Light: 80 HP, move 7, vision 7. Wall-hops, vaults free, jumps gaps, drops three levels, fits through vents and gaps.
+  - Medium: 110 HP, move 5, vision 6. Wall-climbs two levels, grabs ledges across gaps, drop-rolls three levels, fits through gaps.
+  - Heavy: 150 HP, move 4, vision 5. Mantles one level, shoulder-charges through barricades and sheet walls, drops two levels, no vents or gaps.
+  - Full table under Climbing, parkour, traps and civilians below.
 - **Difficulty** (`DIFF`): Easy, Normal, Hard scale enemy accuracy, damage and health, the size of reinforcement waves, and (on Easy) squad health.
 - **Hit chance:** weapon accuracy, minus range falloff past optimal range, minus 20 (half cover) or 40 (full cover), plus 15 for height (minus 10 if lower), plus 20 against unaware enemies, plus 10 against spotted enemies. Flanked targets take 20% more damage.
 - **Fog of war:** you see what your squad sees. Missions mostly start undetected. Last known enemy positions show as markers.
@@ -69,10 +70,16 @@ All operatives and enemies are the animated Quaternius Toon Shooter soldiers (`s
 Clothing shapes come from the base models, so tops (tee, tank, hoodie, jacket) don't change the silhouette yet; gloves recolour the hands.
 
 ## Operations
-Long multi-stage missions (`OPERATIONS`), see `docs/OPERATIONS_PLAN.md`. Map sources live in `tools/maps/` (x1 in `long.py`, `tower.py`, `terminal.py`); `validate_long.py` checks reachability and `sync.py` copies the layers into `engine.js`. Attack versions move your drop point forward as stages fall; defence versions (`defend:true`, e.g. `x1d`) flip the roles. Campaign order: Resistance x1, x1d, x2, x3d; Security x1, x1d, x2d, x3 (Container City, Security Tower, Terminal), with the attacker AI assigning pushers, escorts and flankers each turn. Downed operatives can redeploy at the drop point (by choice, or automatically after 3 turns) or wait for a medic.
+Long multi-stage missions (`OPERATIONS`), see `docs/OPERATIONS_PLAN.md`. Map sources live in `tools/maps/` (x1 in `long.py`, `tower.py`, `terminal.py`, `tidewater.py`, `foundry.py`); `validate_long.py` checks reachability and `sync.py` copies the layers into `engine.js`. Attack versions move your drop point forward as stages fall; defence versions (`defend:true`, e.g. `x1d`) flip the roles. Campaign order: Resistance x1, x1d, x2, x3d, x4, x4d, x5, x5d; Security x1, x1d, x2d, x3, x4, x4d, x5, x5d (Container City, Security Tower, Terminal, Tidewater, Service Lift), with the attacker AI assigning pushers, escorts and flankers each turn. Downed operatives can redeploy at the drop point (by choice, or automatically after 3 turns) or wait for a medic.
 
 ## Climbing, parkour, traps and civilians (`src/mechanics.js`)
-- Movement by body type: ladders (light and medium 1 a level, heavy 2), climb steps (light and medium 1, no heavies), vault rails (lights free, mediums +1, heavies walk round), gap jumps (lights; mediums on marked gaps only), wall-hops (lights, two levels), one-way ziplines (light and medium), drops (two levels, heavies one), crawl vents (lights). Map data: `feat` rows (`L` ladder, `s` step, `r` rail, `_` gap, `=` marked gap) and `zips`. The move preview draws a dotted arc for jumps, vaults and ziplines. Enemy AI plans with the same rules.
+- Movement by body type (update 18, every build gets its own way round):
+  - Light: ladders 1 a level, climbs one level for 1 move, wall-hops two levels for 2, vaults rails free, jumps any one-tile gap (and lands a level up or down), drops three levels, crawl vents and narrow gaps.
+  - Medium: ladders 1 a level, climbs one level for 2 (1 on a climb step or with Climber), wall-climbs two levels for 3 (2 with Climber), vaults rails for 1 extra move, jumps any gap for 3 (marked gaps 2, +1 to grab a ledge a level up), drop-rolls three levels, narrow gaps.
+  - Heavy: ladders 2 a level, mantles up one level for 2, shoulder-charges through barricades `w` and sheet walls `F` for 2 moves (1 with the Breacher perk), smashing them flat for everyone, drops two levels.
+  - Ziplines for lights and mediums. On maps with `channels: true`, lights and mediums can also jump one-tile water channels.
+  - Map data: `feat` rows (`L` ladder, `s` step, `r` rail, `_` gap, `=` marked gap) and `zips`; map letter `F` is a sheet wall (full cover, blocks sight, grenades flatten it). The move preview draws a dotted arc for jumps, vaults and ziplines, a climb marker on climbs and an orange burst over cover a heavy can charge through. Enemy AI plans with the same rules, so enemy heavies smash through too.
+- Mixed districts: `themeRows: [[z0, z1, theme]]` gives a band of rows another district's look (Service Lift climbs from the industrial decks into the Founders' atrium).
 - Interactive points (`points`): supply station (once: heal 30 or refresh), searchlight (spots and calls one reinforcement; hack to switch off; in defence it lights attackers for you), ladder hatch, deployable bridge, zipline anchor.
 - Traps (`traps`, one use, enemies use them too): crane cargo, explosive barrels (chain), steam pipe (blocks sight, scalds), fuel spill, gantry collapse, floodgate, shutters, drawbridge (cuts off a reinforcement boat). Shoot the shootable ones (aim at them like a target); work the others from an adjacent tile. Press and hold shows the danger area in red.
 - Civilians: unarmed people in muted clothes, more in shanty areas than Security ones (`civ` on a mission overrides), halved on Low. They wander, then flee or hide once shooting starts. Stray shots, blasts and traps can down them, with no penalty. They block movement.

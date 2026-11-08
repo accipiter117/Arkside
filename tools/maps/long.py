@@ -63,3 +63,8 @@ L['x3'] = TERMINAL
 # Harbour Row: Control (built in control.py)
 from control import CONTROL
 L['c1'] = CONTROL
+
+from tidewater import TIDEWATER
+L['x4'] = TIDEWATER
+from foundry import INDUSTRIAL
+L['x5'] = INDUSTRIAL

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Copy the map layers from tools/maps (long.py: x1, x2, x3) into src/engine.js
+"""Copy the map layers from tools/maps (long.py: x1 to x5) into src/engine.js
 so the game ships exactly what the validator checked. Replaces the h, map,
 feat, zips, points and traps arrays of each operation in place; briefs,
 stages and everything else in engine.js are left alone. Run after editing
@@ -45,6 +45,9 @@ for mid, d in L.items():
     assert m, mid
     block = m.group(0)
     layers = dict(h=d['h'], map=d['m'], feat=d['feat'], zips=d.get('zips', []), points=d.get('points', []), traps=d.get('traps', []))
+    if 'mat' in d: layers['mat'] = d['mat']
+    if 'themeRows' in d: layers['themeRows'] = d['themeRows']
+    if 'stages' in d and mid in ('x4', 'x5'): layers['stages'] = d['stages']
     done = []
     for key, val in layers.items():
         block, ok = replace_key(block, key, val, quoted)

@@ -3,12 +3,18 @@
 
    Feature                          Light      Medium                 Heavy
    Ladder, one level                1 move     1 move                 2 moves
-   Climb step (marked ledge)        1 move     1 move                 No
+   Climb step (marked ledge)        1 move     1 move                 2 moves (mantle)
+   Climb one level, anywhere        1 move     2 moves (Climber 1)    2 moves (mantle)
+   Wall climb, two levels           2 moves    3 moves (Climber 2)    No
    Vault rail                       Free       1 move                 Walk round
-   Gap jump, one tile, same height  1 move     2 moves, marked only   No
-   Wall-hop, two levels             2 moves    No                     No
+   Gap jump, one tile (or a one-    1 move     2 moves, marked 1      No
+     tile water channel, on maps
+     with channels: true)
+     (ledge grab: may land one level up or down)
    Zipline, one way                 1 move     1 move                 No
-   Drop down                        Two levels Two levels             One level
+   Drop down                        Three      Three (drop roll)      Two levels
+   Shoulder charge (barricade,      No         No                     2 moves (Breacher 1):
+     sheet wall)                                                      smashes it flat
    Crawl vent                       Yes        No                     No
 
    Map data (all optional, per mission or operation):
@@ -29,35 +35,58 @@ function parseFeat(m){S.zips=(m.zips||[]).map(z=>({x1:z[0],z1:z[1],x2:z[2],z2:z[
   for(let z=0;z<NZ;z++)for(let x=0;x<NX;x++){const c=(m.feat[z]||'')[x],t=G[z][x];if(!c||c==='.'||c===' ')continue;
     if(c==='L')t.ladder=true;else if(c==='s')t.step=true;else if(c==='r'){t.obj='rail'}else if(c==='_'||c==='='){t.type='gap';t.markedGap=c==='=';t.obj=null}}}
 
+// Who can use the parkour moves at all (not civilians, bots or turrets).
+const freeRunner=u=>u.cls!=='civ'&&u.cls!=='bot'&&u.body!=='turret';
+// Flimsy cover a heavy can shoulder-charge through: barricades and sheet walls.
+const smashable=t=>t.obj==='wall'||t.obj==='sheet';
 // Cost of one orthogonal step from a to b for unit u, or 0 if not allowed.
-function moveCost(u,a,b){if(b.type==='water'||b.type==='gap'||b.obj||b.flood)return 0;if(b.pass==='light'&&u.body!=='light')return 0;if(b.pass==='nonheavy'&&u.body==='heavy')return 0;
-  const up=b.h-a.h,P=u.perks;if(Math.abs(up)<=.5)return 1;
+function moveCost(u,a,b){if(b.type==='water'||b.type==='gap'||b.flood)return 0;const up=b.h-a.h,P=u.perks,fr=freeRunner(u);
+  if(b.obj){// heavies charge straight through flimsy cover on the same level
+    if(fr&&u.body==='heavy'&&smashable(b)&&Math.abs(up)<=.5)return P&&P.has('breacher')?1:2;return 0}
+  if(b.pass==='light'&&u.body!=='light')return 0;if(b.pass==='nonheavy'&&u.body==='heavy')return 0;
+  if(Math.abs(up)<=.5)return 1;
   if(up>0){// ladder: any body, per level
     if(b.ladder){const lv=Math.ceil(up-.01);return u.body==='heavy'?2*lv:lv}
-    if(u.body==='heavy')return 0;
+    if(!fr)return 0;
+    if(u.body==='heavy')return up<=1?2:0;// mantle one level
     if(up<=1){if(b.step)return 1;return(u.body==='light'||(P&&P.has('climber')))?1:2}
-    if(up<=2&&u.body==='light')return P&&P.has('parkour')?1:2;return 0}
-  const dn=-up;if(dn<=1)return 1;if(dn<=2&&u.body!=='heavy')return 1;
+    if(up<=2){if(u.body==='light')return P&&P.has('parkour')?1:2;return P&&P.has('climber')?2:3}// wall-hop or wall climb
+    return 0}
+  const dn=-up;if(dn<=1)return 1;if(dn<=2&&(fr||u.body!=='heavy'))return 1;if(dn<=3&&fr&&u.body!=='heavy')return 1;// drop roll
   if(a.ladder||b.ladder)return u.body==='heavy'?2*Math.ceil(dn-.01):Math.ceil(dn-.01);return 0}
 
 // Extra links from (x,z): vaults, gap jumps and ziplines. [nx,nz,cost,kind]
-function moveLinks(u,x,z){const out=[],a=G[z][x];if(u.body==='turret'||u.cls==='bot'||u.cls==='civ')return out;
+function moveLinks(u,x,z){const out=[],a=G[z][x];if(!freeRunner(u))return out;
   for(const[dx,dz]of D4){const m=tileAt(x+dx,z+dz),b=tileAt(x+2*dx,z+2*dz);if(!m||!b)continue;
-    if(b.type==='water'||b.type==='gap'||b.obj||Math.abs(b.h-a.h)>.5)continue;if(b.pass==='light'&&u.body!=='light')continue;if(b.pass==='nonheavy'&&u.body==='heavy')continue;
-    if(m.obj==='rail'&&Math.abs(m.h-a.h)<=.5){if(u.body==='light')out.push([b.x,b.z,2,'vault']);else if(u.body==='medium')out.push([b.x,b.z,3,'vault'])}
-    if(m.type==='gap'){if(u.body==='light')out.push([b.x,b.z,2,'jump']);else if(u.body==='medium'&&m.markedGap)out.push([b.x,b.z,3,'jump'])}}
+    if(b.type==='water'||b.type==='gap'||b.obj)continue;if(b.pass==='light'&&u.body!=='light')continue;if(b.pass==='nonheavy'&&u.body==='heavy')continue;const dh=b.h-a.h;
+    if(m.obj==='rail'&&Math.abs(m.h-a.h)<=.5&&Math.abs(dh)<=.5){if(u.body==='light')out.push([b.x,b.z,2,'vault']);else if(u.body==='medium')out.push([b.x,b.z,3,'vault'])}
+    // gap jump (or across a one-tile water channel); a ledge grab lands up to one level higher or lower
+    if((m.type==='gap'||(m.type==='water'&&M.channels&&!m.flood&&Math.abs(m.h-a.h)<=.5))&&Math.abs(dh)<=1){if(u.body==='light')out.push([b.x,b.z,2,'jump']);else if(u.body==='medium')out.push([b.x,b.z,(m.markedGap?2:3)+(dh>.5?1:0),'jump'])}}
   if(u.body!=='heavy')for(const zp of S.zips||[])if(zp.x1===x&&zp.z1===z){const b=G[zp.z2][zp.x2];if(b&&!b.obj)out.push([zp.x2,zp.z2,1,'zip'])}
   return out}
 // Vault and gap costs above include the tile walked into (2 = one step plus
-// the free vault for lights; 3 = one step plus 1 for mediums).
+// the free vault for lights; 3 = one step plus 1 for mediums; a medium's
+// ledge grab onto a higher landing costs 1 more).
+
+// Shoulder charge: a heavy stepping into a barricade or sheet wall smashes it
+// flat (the tile becomes open floor, so the cover is gone for both sides).
+function mechSmash(u,t,show){if(!smashable(t))return;const kind=t.obj==='sheet'?'sheet wall':'barricade';
+  if(t.objMesh){tileGroup.remove(t.objMesh);t.objMesh=null}t.obj=null;t.fort=false;t.built=null;
+  if(show){const p=W(t.x,t.z);p.y=topY(t)+.4;burst(p,14,t.sheetCol||0x8a7a66,2.4,.7,-7,1.3,.8);sfx('debris',p);sfx('boom',p);shake(.18);
+    if(u.rig)u.rig.once('Punch',1.4/SPD);log(`${u.team==='p'?u.name:'An enemy heavy'} charges through the ${kind}.`)}
+  else log(`You hear something heavy smash through a ${kind}.`)}
+
 
 // ---------- markers on the map ----------
 let MECH_TX=null;
 function mechTex(){if(MECH_TX)return MECH_TX;MECH_TX={};
   const chev=col=>cvTex((g,s)=>{g.clearRect(0,0,s,s);g.fillStyle=col;for(let i=0;i<2;i++){const o=i*s*.34;g.beginPath();g.moveTo(s*.16,s*.26+o);g.lineTo(s*.5,s*.1+o);g.lineTo(s*.84,s*.26+o);g.lineTo(s*.84,s*.42+o);g.lineTo(s*.5,s*.26+o);g.lineTo(s*.16,s*.42+o);g.closePath();g.fill()}});
+  MECH_TX.smash=cvTex((g,s)=>{g.clearRect(0,0,s,s);g.translate(s/2,s/2);g.fillStyle='#ff7a3a';g.strokeStyle='#2a1208';g.lineWidth=5;g.beginPath();for(let i=0;i<16;i++){const r=i%2?s*.18:s*.44,a=i/16*Math.PI*2;g.lineTo(Math.cos(a)*r,Math.sin(a)*r)}g.closePath();g.stroke();g.fill();g.fillStyle='#fff3d0';g.beginPath();g.arc(0,0,s*.1,0,7);g.fill()});
   MECH_TX.chev=chev('#f3b33d');MECH_TX.chevW=chev('#f4f6f8');MECH_TX.chevC=chev('#5fe8ff');
   return MECH_TX}
 function mechDecal(x,z,y,rot,sz=.7,tex='chev'){const d=new THREE.Mesh(new THREE.PlaneGeometry(sz,sz),new THREE.MeshLambertMaterial({map:mechTex()[tex],transparent:true,depthWrite:false}));d.rotation.x=-Math.PI/2;d.rotation.z=rot;const p=W(x,z);d.position.set(p.x,y+.02,p.z);scene.add(d);return d}
+// Move preview mark on a barricade or sheet wall a heavy can charge through.
+function smashMark(t){const p=W(t.x,t.z),m=new THREE.Mesh(new THREE.PlaneGeometry(.5,.5),new THREE.MeshBasicMaterial({map:mechTex().smash,transparent:true,depthTest:false}));m.rotation.x=-Math.PI/2;m.position.set(p.x,topY(t)+(t.obj==='sheet'?1.45:.62),p.z);m.renderOrder=5;m.userData.tile=t;hl.add(m)}
 // Ladders, rails, step chevrons, gap edges and zipline cables.
 function mechBuild(){if(!scene)return;const lad=new THREE.MeshLambertMaterial({color:0xd4a52a}),railM=new THREE.MeshLambertMaterial({color:0xe2b21f});
   for(const row of G)for(const t of row){const p=W(t.x,t.z);
