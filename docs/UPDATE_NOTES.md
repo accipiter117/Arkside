@@ -140,3 +140,11 @@ Built in the Claude chat and already playable there. This brings the repo up to 
 - **Gear rebuilt for the new bodies:** chest plates and carriers are now curved shells that wrap the ribcage (front and back) instead of boxes, pauldrons are rounded caps on the shoulders, kneepads are domes on the shins, scrap armour is angled curved plates with straps, and class packs are smaller rounded cases. Sized per build from the body's own chest, so heavies fill out through the body rather than the gear.
 - **Arms:** the left elbow is now steered out and down (an elbow guide) when the hand is pinned to the gun, so it no longer folds into the chest. Each arm has raise, forward, twist and elbow bend offsets, and the strength of the hand pin is adjustable; all of these are in the body tuner's Arms panel.
 - **Gun direction:** the gun is now aimed from the body's facing rather than the right hand's animated rotation (which pointed the barrel skyward on the new bodies): level when firing or in cover, angled down at a low ready when idle or moving. The support hand stays on the gun in both. Aim, carry and across-body angles are sliders in the tuner's Arms panel.
+
+# Update 17: rings, disguise, civilians, hit label, crane tiles
+
+- **No faction rings.** Units no longer have red or blue rings under them. The selected operative keeps its highlight, and only enemies your selected operative can shoot get a red ring. Civilians never have one.
+- **Disguise looks the part.** An Operative using Disguise turns into an unarmed civilian of the map's own civilians (refugees in the shanty districts, citizens in Security areas), keeping their face and hair, until the disguise ends. Your name tag still shows "Disguised".
+- **Civilians move together**, all at once at the end of the enemy turn, and the camera no longer follows them.
+- **Hit chance** sits above the target's name and health bar instead of over it.
+- **Crane cargo drop zone:** tiles in the drop zone are ordinary floor for moving. Tap the crane's hook or cargo to aim at it; a drop-zone tile only aims at the crane when you can't move there.

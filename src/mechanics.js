@@ -279,12 +279,15 @@ function spawnCivilians(info){const n=civCount();if(!n)return;const R=rng((M.id|
 // leave the map at the far end, and new ones arrive at the start while the count is under the cap.
 async function civTurn(){const cap=civCount();if(!cap||!S.civAxis)return;const A=S.civAxis,R=S.R||Math.random;
   const cs=units.filter(u=>u.cls==='civ'&&!u.down&&!u.gone),fighters=units.filter(u=>!u.gone&&!u.down&&(u.team==='p'||u.team==='e')&&u.cls!=='bot');
+  // Plan every civilian's move first (claiming tiles so two never end on the same one), then play them all at once.
+  const claimed=new Set(),moves=[];
   for(const c of cs){const r=reach(c,S.alerted?5:4),p0=A.p(c);let best=null,bs=-1e9;
-    for(const k of r.d.keys()){const[x,z]=k.split(',').map(Number);const t=G[z][x];if(t.flood||t.trapZone)continue;
+    for(const k of r.d.keys()){const[x,z]=k.split(',').map(Number);const t=G[z][x];if(t.flood||t.trapZone||claimed.has(k))continue;
       let s=(A.p(t)-p0)*1.2+R()*.8;if(S.alerted){for(const f of fighters){const d=Math.hypot(f.x-x,f.z-z);if(d<2.5)s-=(2.5-d)*1.5}}
       if(s>bs){bs=s;best=[x,z]}}
-    if(best&&!(best[0]===c.x&&best[1]===c.z)){const path=pathTo(r,best[0],best[1]);if(path.length){if(c.group.visible&&S.vis.has(key(best[0],best[1])))await moveAlong(c,path);else{c.x=best[0];c.z=best[1];place(c)}}}
-    if(A.p(c)<=p0+.5)c.stuck=(c.stuck||0)+1;else c.stuck=0;
+    if(best&&!(best[0]===c.x&&best[1]===c.z)){claimed.add(key(best[0],best[1]));const path=pathTo(r,best[0],best[1]);if(path.length)moves.push({c,path,best,p0});else moves.push({c,p0})}else{claimed.add(key(c.x,c.z));moves.push({c,p0})}}
+  await Promise.all(moves.map(async({c,path,best})=>{if(!path)return;if(c.group.visible&&S.vis.has(key(best[0],best[1])))await moveAlong(c,path);else{c.x=best[0];c.z=best[1];place(c)}}));
+  for(const{c,p0}of moves){if(A.p(c)<=p0+.5)c.stuck=(c.stuck||0)+1;else c.stuck=0;
     if(A.p(c)>=A.hi-(A.hi-A.lo)*.1||c.stuck>=3){c.gone=true;c.group.visible=false;if(c.el)c.el.remove()}}
   const alive=units.filter(u=>u.cls==='civ'&&!u.down&&!u.gone).length,want=Math.min(cap-alive,alive<cap/2?2:1);
   if(want>0){const ent=civEntryTiles();for(let i=0;i<want&&ent.length;i++){const t=ent.splice(Math.floor(R()*ent.length),1)[0];civSpawnAt(t,R)}}

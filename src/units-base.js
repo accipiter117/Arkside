@@ -146,7 +146,7 @@ class BaseAnim extends RigAnim{
     if(o.bend){const a=ua.getWorldPosition(new THREE.Vector3()),b=la.getWorldPosition(new THREE.Vector3()),c=(B['hand'+sfx]||la).getWorldPosition(new THREE.Vector3());let ax=b.clone().sub(a).cross(c.clone().sub(b));if(ax.lengthSq()<1e-8)ax=b.clone().sub(a).cross(fwd);q.setFromAxisAngle(ax.normalize(),o.bend*d);this.rotW(la,q)}}
   // Point the gun along the body's facing (level when firing, low ready otherwise) by turning the right hand so the
   // gun's fixed grip frame lines up; the clips alone point the barrel at the sky on these long-armed bodies.
-  aimGun(){const{bones,gun}=this.ik,hd=bones.hand_r;if(!hd||!gun)return;const n=this.curName||'',firing=/Shoot|Gun/.test(n)||n==='Duck';
+  aimGun(){const{bones,gun}=this.ik,hd=bones.hand_r;if(!hd||!gun||!gun.visible)return;const n=this.curName||'',firing=/Shoot|Gun/.test(n)||n==='Duck';
     const{fwd}=this.axes(),up=new THREE.Vector3(0,1,0),right=new THREE.Vector3().crossVectors(fwd,up).normalize(),d=Math.PI/180;
     const A=this.arm(),dir=fwd.clone().applyAxisAngle(up,(A.yaw||0)*d).applyAxisAngle(right,(firing?A.aim:A.carry)*d).normalize();
     const xA=new THREE.Vector3().crossVectors(up,dir).normalize(),yA=new THREE.Vector3().crossVectors(dir,xA);
