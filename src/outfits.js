@@ -146,42 +146,55 @@ function ofHelmetSec(ctx){const g=ofHead(ctx),wh=ofMat('rigid','#e3e8eb'),dk=ofM
   bakeGroup(g,ctx.outline)}
 
 /* ---------- Resistance: scavenger ----------
-   Layered, patched and mismatched: a work shirt with sleeves rolled to the
-   elbow, an open canvas vest over it, patched trousers, worn boots, a
-   scarf, a bandolier, a scrap plate strapped on, wrist wraps and goggles
-   pushed up on the forehead. */
-function ofResistance(ctx){const{look,meshes,bones,outline}=ctx,body=meshes.find(m=>m.userData.role==='Skin');if(!body)return;const I=ofInfo(body),L=I.L;
-  const P=FACTIONS.resistance.pal,shirt=P[look.primary]||'#7a3c22',trou=P[look.secondary]||'#8b7b55',vest='#525c3b',leather='#5a3a24';
+   Bold blocks, like Security's navy and white: a rust duster coat open at
+   the front, sand trousers and hood, dark leather straps, gloves and boots,
+   and one teal accent (the face scarf). Signature shapes for the game
+   camera: the hood, the coat tails, one big scrap pauldron on the left
+   shoulder and the scarf over the face. */
+const RES_COL={coat:'#6e2c1b',coatD:'#4e1f13',sand:'#857350',sandD:'#6a5b3f',leather:'#3a2418',teal:'#2f8a86',tealD:'#226a67'};
+function ofResistance(ctx){const{look,meshes,bones,outline}=ctx,body=meshes.find(m=>m.userData.role==='Skin');if(!body)return;const I=ofInfo(body),L=I.L,C=RES_COL;
   const V=ofMat('skinV','#ffffff'),sh=L.shoulder.x,el=L.elbow.x,wr=L.wrist.x;
-  // work shirt, sleeves rolled to just above the elbow (the roll is a thicker, lighter cuff)
-  ofShell(body,v=>{if(!(v.r===1||v.r===2||v.r===3)||v.h<L.belt-.012)return false;if(v.h>L.neck.h-.006)return false;if(v.ax>el-.03)return false;
-    const roll=v.ax>el-.055;return{off:roll?.0095:.0058,col:roll?shade(shirt,25):(v.h>L.neck.h-.02?shade(shirt,-15):shirt)}},V,outline,{smooth:true});
-  // open canvas vest: no sleeves, open down the front
-  ofShell(body,v=>{if(v.r>2||v.h<L.belt+.01||v.h>L.neck.h-.015)return false;if(v.ax>sh-.02-(v.h>L.shoulder.h-.01?0:.012))return false;if(v.z>0&&v.ax<.012+(v.h>L.chest.h?(v.h-L.chest.h)*.45:0))return false;
-    const hem=v.h<L.belt+.025,pocket=v.z>0&&v.ax>.04&&v.ax<.085&&v.h>L.belly.h&&v.h<L.belly.h+.04;return{off:.011,col:hem?shade(vest,-18):pocket?shade(vest,-10):vest}},V,outline,{smooth:true});
-  // trousers with a knee patch on the left leg, turned-up hems
-  ofShell(body,v=>{if(v.r<1||v.r>2||v.h<L.ankle.h+.035||v.h>L.belt+.006)return false;const patch=v.x>0&&v.z>L.knee.z-.01&&Math.abs(v.h-L.knee.h)<.03;const hem=v.h<L.ankle.h+.06;return{off:hem?.008:.0045,col:patch?'#6b5a3a':hem?shade(trou,-14):trou}},V,outline,{smooth:true});
-  // worn boots
-  ofShell(body,v=>{if(!(v.r===6||(v.r===2&&v.h<L.ankle.h+.045)))return false;return{off:.0065,col:v.h<.016?'#1c1712':v.h>L.ankle.h+.03?'#4a3626':'#3d2c20'}},V,outline);
-  // wrist wraps and fingerless gloves
-  ofShell(body,v=>{if(!((v.r===4||v.r===5)&&v.ax>wr-.035&&v.ax<wr+.03))return false;return{off:.005,col:Math.floor(v.ax*260)%2?'#c9b48c':'#b39c74'}},V,outline);
-  // belt
-  ofShell(body,v=>{if(v.r<1||v.r>2||Math.abs(v.h-L.belt)>.011||v.ax>.17)return false;return{off:.012,col:'#3a2a1e'}},V,outline);
-  // scarf, thick and loose round the neck
-  ofShell(body,v=>{if(v.r>1||v.h<L.neck.h-.04||v.h>L.neck.h+.012||v.ax>.068-(L.neck.h-v.h)*.4)return false;return{off:.028,col:v.h>L.neck.h-.004?'#4a6676':'#3b5566'}},V,outline,{smooth:true});
-  // bandolier: a strap from the left shoulder down to the right hip, front and back
-  {const ax=.075,ah=L.neck.h-.025,bx=-.085,bh=L.belt+.02,dx=bx-ax,dh=bh-ah,len=Math.hypot(dx,dh);
-   ofShell(body,v=>{if(v.r>1)return false;const d=Math.abs(dx*(v.h-ah)-dh*(v.x-ax))/len;if(d>.013)return false;const t=((v.x-ax)*dx+(v.h-ah)*dh)/(len*len);if(t<-.05||t>1.05)return false;return{off:.016,col:d>.009?'#3a2418':leather}},V,outline,{smooth:true});}
-  // rigid: bandolier from the right shoulder to the left hip with pouches, a scrap plate, belt pouches, the scarf's tail
-  const T=ofFrame(body,bones.spine_03),Pl=ofFrame(body,bones.pelvis),N=ofFrame(body,bones.neck_01);
-  const pm=ofMat('rigid','#6b4a2e'),ax=.075,ah=L.neck.h-.025,bx=-.085,bh=L.belt+.02,ang=Math.atan2(ah-bh,ax-bx);
-  for(let i=1;i<6;i++){const t=.18+i*.12,h=ah+(bh-ah)*t,x=ax+(bx-ax)*t;ofBox(T,.018,.024,.013,pm,x,h,I.front(h)+.028,0,0,ang-Math.PI/2+Math.PI/2)}
-  ofBox(Pl,.034,.03,.022,ofMat('rigid','#4f5a39'),-.085,L.belt-.02,I.frontAt(L.belt-.02,-.085)+.014,0,.35,0);ofBox(Pl,.026,.032,.02,pm,.09,L.belt-.022,I.frontAt(L.belt-.022,.09)+.012,0,-.5,0);
-  ofBake(T,outline);ofBake(Pl,outline);N.parent.remove(N);
-  // goggles pushed up on the forehead
-  const g=ofHead(ctx),band=new THREE.Mesh(new THREE.TorusGeometry(.162,.011,6,24),ofMat('rigid','#2b2622'));band.rotation.x=Math.PI/2-.25;band.position.set(0,.075,0);band.scale.set(1,1.06,1);g.add(band);
-  for(const sx of[-1,1]){const lens=new THREE.Mesh(new THREE.CylinderGeometry(.034,.036,.03,14),ofMat('rigid','#7a5331'));lens.rotation.x=Math.PI/2-.35;lens.position.set(sx*.045,.12,.14);g.add(lens);
-    const gl=new THREE.Mesh(new THREE.CircleGeometry(.026,14),new THREE.MeshBasicMaterial({color:0x9fd6c8}));gl.position.set(sx*.045,.126,.157);gl.rotation.x=-.35;g.add(gl)}
+  // sand trousers, tucked into boots
+  ofShell(body,v=>{if(v.r<1||v.r>2||v.h<L.ankle.h+.04||v.h>L.belt+.006)return false;return{off:.0045,col:C.sand}},V,outline,{smooth:true});
+  // boots and gloves, dark leather
+  ofShell(body,v=>{if(!(v.r===6||(v.r===2&&v.h<L.ankle.h+.06)))return false;return{off:.007,col:v.h<.016?'#1a120c':C.leather}},V,outline);
+  ofShell(body,v=>{if(!(v.r===5||(v.r===4&&v.ax>wr-.02)))return false;return{off:.004,col:C.leather}},V,outline);
+  // duster coat: torso and sleeves to the wrist, collar, open down the front below the chest, tails to just above the knee that flare out
+  const tail=L.hip.h-.035;
+  ofShell(body,v=>{const legs=v.r===2&&v.h<L.belt;if(!(v.r===1||v.r===3||v.r===4||(v.r===2&&v.h>=tail)))return false;if(v.h>L.neck.h-.004)return false;if(v.r===4&&v.ax>wr-.022)return false;
+    const open=v.z>0&&v.ax<(v.h<L.belt?.05+(L.belt-v.h)*.25:v.h<L.chest.h?.018:0);if(open)return false;
+    const below=Math.max(0,L.belt-v.h),flare=.007+below*.25,cuff=(v.r===4&&v.ax>wr-.045),hem=v.h<tail+.018,collar=v.h>L.neck.h-.03;
+    return{off:collar?.014:cuff?.011:flare,col:cuff||hem||collar?C.coatD:C.coat}},V,outline,{smooth:true});
+  // belt and a leather strap across the chest from the left shoulder to the right hip
+  ofShell(body,v=>{if(v.r<1||v.r>2||Math.abs(v.h-L.belt)>.012||v.ax>.18)return false;return{off:.016,col:C.leather}},V,outline);
+  {const ax=.08,ah=L.neck.h-.03,bx=-.09,bh=L.belt+.015,dx=bx-ax,dh=bh-ah,len=Math.hypot(dx,dh);
+   ofShell(body,v=>{if(v.r>2&&v.r!==3)return false;if(v.r===3&&v.ax>sh+.02)return false;const d=Math.abs(dx*(v.h-ah)-dh*(v.x-ax))/len;if(d>.012)return false;const t=((v.x-ax)*dx+(v.h-ah)*dh)/(len*len);if(t<-.08||t>1.05)return false;return{off:.02,col:C.leather}},V,outline,{smooth:true})}
+  // hood cowl draped over the shoulders, then the teal scarf round the neck
+  ofShell(body,v=>{if(v.r>1&&v.r!==3)return false;if(v.h>L.neck.h+.01)return false;const dd=Math.hypot(v.ax*.85,L.neck.h-v.h);if(dd>.085)return false;if(v.z>0&&v.ax<(L.neck.h-v.h)*.7)return false;return{off:.028,col:dd>.075?C.sandD:C.sand}},V,outline,{smooth:true});
+  ofShell(body,v=>{if(v.r>1||v.h<L.neck.h-.03||v.h>L.neck.h+.014||v.ax>.06-(L.neck.h-v.h)*.4)return false;return{off:.036,col:v.h>L.neck.h?C.teal:C.tealD}},V,outline,{smooth:true});
+  // rigid: belt pouches and the scrap pauldron
+  const Pl=ofFrame(body,bones.pelvis),pm=ofMat('rigid',C.leather);
+  ofBox(Pl,.034,.03,.022,pm,-.085,L.belt-.022,I.frontAt(L.belt-.022,-.085)+.02,0,.35,0);ofBox(Pl,.03,.032,.02,pm,.095,L.belt-.024,I.frontAt(L.belt-.024,.095)+.016,0,-.5,0);ofBake(Pl,outline);
+  // scrap pauldron on the left shoulder: a thick curved metal shell that follows the arm, with rivets and a strap
+  ofShell(body,v=>{if(v.x<0||(v.r!==1&&v.r!==3))return false;if(v.ax<sh-.045||v.ax>sh+.06||v.h<L.shoulder.h-.006)return false;const e=v.ax>sh+.05||v.ax<sh-.037;return{off:.022,col:e?'#5a4030':Math.floor(v.ax*140)%2?'#6f767b':'#61686d'}},V,outline);
+  const S=ofFrame(body,bones.upperarm_l||bones.spine_03),rv=ofMat('rigid','#4a3020');
+  for(const dx of[-.02,.02])for(const dz of[-.03,.03])ofCyl(S,.004,.004,.006,rv,sh+dx,L.shoulder.h+.05,L.shoulder.z+dz,6);
+  S.userData.attach=true;bakeGroup(S,outline);
+  // coat skirt: hangs from the hips to just above the knee, open at the front, with a back vent
+  const cm=ofMat('rigid',C.coat),cmD=ofMat('rigid',C.coatD),top=L.belt-.012,bot=L.knee.h+.035,ph=top-bot,Sk=ofFrame(body,bones.pelvis);
+  for(const sgn of[-1,1]){const arc=.6*Math.PI,st=sgn>0?Math.PI+.03:Math.PI-.03-arc;
+    const sk=new THREE.Mesh(new THREE.CylinderGeometry(.118,.15,ph,18,1,true,st,arc),cm);sk.material.side=THREE.DoubleSide;sk.position.set(0,bot+ph/2,L.hip.z-.004);sk.scale.set(1.05,1,.9);Sk.add(sk);
+    const hem=new THREE.Mesh(new THREE.CylinderGeometry(.1495,.1505,.014,18,1,true,st,arc),cmD);hem.material.side=THREE.DoubleSide;hem.position.set(0,bot+.007,L.hip.z-.004);hem.scale.set(1.05,1,.9);Sk.add(hem)}
+  Sk.userData.attach=true;bakeGroup(Sk,outline);
+  // hood over the head and a teal scarf over the nose and mouth
+  const g=ofHead(ctx),hm=ofMat('rigid',C.sand),hd=ofMat('rigid',C.sandD);
+  // cloth hood: a lathed profile that flares down to the shoulders, a full crown, and a face opening below the brow
+  const prof=[[.001,.215],[.07,.205],[.13,.18],[.172,.13],[.19,.07],[.196,0],[.2,-.07],[.212,-.14],[.235,-.2],[.262,-.24]].map(([r,y])=>new THREE.Vector2(r,y));
+  const crown=new THREE.Mesh(new THREE.LatheGeometry(prof.slice(0,4).reverse(),24),hm),sides=new THREE.Mesh(new THREE.LatheGeometry(prof.slice(3).reverse(),24,Math.PI*.3,Math.PI*1.4),hm);
+  for(const m of[crown,sides]){m.material.side=THREE.DoubleSide;m.position.set(0,.0,-.025);m.scale.set(1.05,1.02,1.12);g.add(m)}
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(.176,.012,6,24,Math.PI*.6),hd);rim.rotation.set(-.15,0,Math.PI*.2);rim.position.set(0,.13,.0);rim.scale.set(.86,.55,1);
+  const peak=new THREE.Mesh(new THREE.ConeGeometry(.06,.1,10),hm);peak.position.set(0,.15,-.17);peak.rotation.x=-1.25;g.add(peak);
+  const mask=new THREE.Mesh(new THREE.SphereGeometry(.166,22,8,Math.PI*.5-Math.PI*.4,Math.PI*.8,Math.PI*.6,Math.PI*.3),ofMat('rigid',C.teal));mask.material.side=THREE.DoubleSide;mask.position.set(0,-.005,.004);mask.scale.set(1.05,1,1.2);g.add(mask);
   bakeGroup(g,ctx.outline)}
 
 /* ---------- Weapons, faction finishes (the rifle first) ---------- */
@@ -205,6 +218,6 @@ function ofWeapon(k,look,K){if(k!=='rifle')return null;const sec=look.faction===
 
 // Build a unit in the new outfit (preview).
 function buildOutfit(look,wkey,cls,opts={}){const sec=look.faction==='security';
-  return buildBase(look,wkey,cls,Object.assign({},opts,{bare:true,noGear:true,coverHair:sec,
+  return buildBase(look,wkey,cls,Object.assign({},opts,{bare:true,noGear:true,coverHair:true,
     weapon:(k,l,K)=>ofWeapon(k,l,K)||weaponModel(k,sec?'#3a4048':'#7a5331','#2b2e32','#4a4f55',K.box,K.cylZ,K.mesh,FACTIONS[l.faction].accent),
     after:ctx=>{ctx.outline=opts.outline!==false;(sec?ofSecurity:ofResistance)(ctx)}}))}
