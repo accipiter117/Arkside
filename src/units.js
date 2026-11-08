@@ -180,7 +180,7 @@ function fixHolder(root,h,k){root.updateMatrixWorld(true);const ws=h.parent.getW
 // Build a rigged operative. Returns null if the models aren't loaded.
 // opts.outline (default true) adds inverted-hull outlines.
 function buildRigged(look,wkey,cls,opts={}){
-  if(!RIG.ok)return null;if(UNIT_STYLE==='base'&&typeof BASE!=='undefined'&&BASE.ok)return buildBase(look,wkey,cls,opts);
+  if(!RIG.ok)return null;if(UNIT_STYLE==='base'&&typeof BASE!=='undefined'&&BASE.ok)return typeof buildOutfit==='function'?buildOutfit(look,wkey,cls,opts):buildBase(look,wkey,cls,opts);
   const sec=look.faction==='security',tpl=RIG.tpl[look.model||(sec?'sec':'res')]||RIG.tpl[sec?'sec':'res'];
   const root=THREE.SkeletonUtils.clone(tpl.root),bones={},meshes=[],weapons={};
   root.traverse(o=>{if(o.isBone)bones[o.name]=o;if(RIG_WEAPONS.includes(o.name))weapons[o.name]=o;if(o.isMesh)meshes.push(o)});

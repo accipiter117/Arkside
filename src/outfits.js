@@ -21,7 +21,9 @@ function ofMat(kind,col){const k=kind+'|'+col;let m=OF_MATS.get(k);if(m)return m
 // like straps and trim cut cleanly. Skin weights of a new vertex are the
 // average of its two parents, keeping the four strongest bones.
 const OF_SUB=new WeakMap();
-function ofSub(body){const g00=body.geometry;let g=OF_SUB.get(g00);if(g)return g;g=ofSub1(ofSub1(g00));OF_SUB.set(g00,g);return g}
+function ofSub(body){const g00=body.geometry,lv=(typeof HI==='function'&&!HI())?1:2;let c=OF_SUB.get(g00);if(!c){c={};OF_SUB.set(g00,c)}if(!c[lv])c[lv]=lv===1?ofSub1(g00):ofSub1(c[1]||(c[1]=ofSub1(g00)));return c[lv]}
+// Finished shell geometry is shared between units with the same look (key set by ofOutfit).
+const OF_GEO=new Map();let OF_KEY=null,OF_N=0;
 function ofSub1(g0){let g;
   const pos=g0.attributes.position,nor=g0.attributes.normal,si=g0.attributes.skinIndex,sw=g0.attributes.skinWeight,reg=g0.attributes.region,idx=g0.index,n0=pos.count;
   const P=Array.from(pos.array),N=Array.from(nor.array),SI=Array.from(si.array),SW=Array.from(sw.array),R=reg?Array.from(reg.array):new Array(n0).fill(0);
@@ -58,7 +60,7 @@ function ofInfo(body){const g=body.geometry;let I=OF_INFO.get(g);if(I)return I;
 // Build a skinned shell. rule(v) returns false to drop a vertex, or an object
 // {off, col} (offset in body heights, vertex colour). A triangle is kept when
 // all three of its vertices are kept.
-function ofShell(body,rule,mat,outline,opt={}){const g=ofSub(body),I=ofInfo(body),pos=g.attributes.position,nor=g.attributes.normal,si=g.attributes.skinIndex,sw=g.attributes.skinWeight,reg=g.attributes.region,idx=g.index;
+function ofShell(body,rule,mat,outline,opt={}){const ck=OF_KEY?OF_KEY+'|'+(OF_N++):null,cached=ck&&OF_GEO.get(ck);if(cached!==undefined&&ck)return ofShellMesh(body,cached,mat);const g=ofSub(body),I=ofInfo(body),pos=g.attributes.position,nor=g.attributes.normal,si=g.attributes.skinIndex,sw=g.attributes.skinWeight,reg=g.attributes.region,idx=g.index;
   const n=g.attributes.position.count,keep=new Int32Array(n).fill(-1),offs=new Float32Array(n),cols=[];let cnt=0;const v={};
   const W=name=>{const bi=I.names.indexOf(name);if(bi<0)return 0;let w=0;for(let j=0;j<4;j++){const ii=[si.getX(v.i),si.getY(v.i),si.getZ(v.i),si.getW(v.i)][j];if(ii===bi)w+=[sw.getX(v.i),sw.getY(v.i),sw.getZ(v.i),sw.getW(v.i)][j]}return w};
   const res=[];
@@ -66,7 +68,7 @@ function ofShell(body,rule,mat,outline,opt={}){const g=ofSub(body),I=ofInfo(body
     const r=rule(v);res.push(r||null)}
   const tri=[];const ix=idx?(k=>idx.getX(k)):(k=>k),nt=(idx?idx.count:n)/3;
   for(let t=0;t<nt;t++){const a=ix(t*3),b=ix(t*3+1),c=ix(t*3+2);if(res[a]&&res[b]&&res[c])tri.push(a,b,c)}
-  if(!tri.length)return null;
+  if(!tri.length){if(ck)OF_GEO.set(ck,null);return null}
   // flatten: pull the front (and back) of a plate towards the furthest point at that height, so it reads as a hard plate, not muscles
   const flatZ=new Map(),FB=30;if(opt.flat){for(const o of tri){const h=Math.round((pos.getY(o)-I.y0)/I.H*FB),z=pos.getZ(o),e=flatZ.get(h)||[-1e9,1e9];e[0]=Math.max(e[0],z);e[1]=Math.min(e[1],z);flatZ.set(h,e)}}
   const flatAt=y=>{const f=(y-I.y0)/I.H*FB,a=Math.floor(f),t=f-a,A=flatZ.get(a)||flatZ.get(a+1),B=flatZ.get(a+1)||A;if(!A)return null;return[A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t]};
@@ -77,9 +79,9 @@ function ofShell(body,rule,mat,outline,opt={}){const g=ofSub(body),I=ofInfo(body
       SI.push(si.getX(o),si.getY(o),si.getZ(o),si.getW(o));SW.push(sw.getX(o),sw.getY(o),sw.getZ(o),sw.getW(o));const c=new THREE.Color(r.col||'#ffffff');C.push(c.r,c.g,c.b)}out.push(k)}
   const ng=new THREE.BufferGeometry();ng.setAttribute('position',new THREE.Float32BufferAttribute(P,3));ng.setAttribute('normal',new THREE.Float32BufferAttribute(N,3));
   ng.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(SI,4));ng.setAttribute('skinWeight',new THREE.Float32BufferAttribute(SW,4));ng.setAttribute('color',new THREE.Float32BufferAttribute(C,3));ng.setIndex(out);
-  if(opt.smooth)ng.computeVertexNormals();
+  if(opt.smooth)ng.computeVertexNormals();if(ck)OF_GEO.set(ck,ng);return ofShellMesh(body,ng,mat)}
+function ofShellMesh(body,ng,mat){if(!ng)return null;
   const m=new THREE.SkinnedMesh(ng,mat);m.bind(body.skeleton,body.bindMatrix);m.frustumCulled=false;m.castShadow=true;m.receiveShadow=true;body.parent.add(m);
-  if(outline&&opt.outline){const ol=new THREE.SkinnedMesh(ng,rigOutlineMat(true));ol.bind(body.skeleton,body.bindMatrix);ol.frustumCulled=false;ol.userData.isOutline=true;body.parent.add(ol)}
   return m}
 
 // A group that sits on a bone but takes positions in the body mesh's own
@@ -234,6 +236,8 @@ function ofFacegear(K){const{look,sec,St,ctx}=K,f=look.facegear;if(f==='none')re
 
 // ---------- the whole outfit ----------
 function ofOutfit(ctx){const K=ofKit(ctx);if(!K)return;const{look,sec,St,c1,c2,L}=K;
+  OF_KEY=[ctx.tpl.key,(typeof HI==='function'&&!HI())?1:2,look.faction,look.top,look.armour,look.legs,look.gloves,look.headgear,look.facegear,look.primary,look.secondary].join('|');OF_N=0;try{ofOutfitParts(K)}finally{OF_KEY=null}}
+function ofOutfitParts(K){const{look,sec,St,c1,c2,L,ctx}=K;
   // legs
   const legC=sec?(look.legs==='armoured'?c1:c1):(look.legs==='jeans'?'#3b4a63':c2);
   ofLegs(K,{col:legC,colD:shade(legC,-18),stripe:sec&&look.legs==='jeans'?St.acc:null,patch:!sec&&look.legs==='armoured'?'#6b5a3a':null,pads:look.legs==='armoured'?(sec?[St.plate,St.plateE]:['#3a3330','#2a2420']):null});
@@ -248,9 +252,9 @@ function ofOutfit(ctx){const K=ofKit(ctx);if(!K)return;const{look,sec,St,c1,c2,L
   else if(t==='hoodie')ofTorso(K,{col,colD,sleeves:'long',off:.008,zip:sec?'#22272c':null,yoke:sec?shade(c1,-12):null});
   else if(t==='jacket'){ofTorso(K,{col,colD,sleeves:'long',off:.007,open:sec?0:.05,zip:sec?St.acc:null,yoke:sec?St.plate:null});ofSkirt(K,col,colD,sec)}
   ofBelt(K,St.dark);
-  ofArmour(K);ofClassKit(K,look.cls);ofHeadgear(K);ofFacegear(K);
+  const civ=look.cls==='civ';ofArmour(K);if(!civ)ofClassKit(K,look.cls);ofHeadgear(K);ofFacegear(K);
   // the base Ark Authority badge on every Security top
-  if(sec){const T=K.F('spine_03'),ch=L.chest.h+.03,bd=new THREE.Mesh(new THREE.PlaneGeometry(.026,.026),new THREE.MeshBasicMaterial({map:ofTex().ark,transparent:true}));bd.position.set(-.045,ch,K.I.frontAt(ch,-.045)+(look.armour==='riot'?.02:look.armour==='carrier'?.024:.01));T.add(bd);T.userData.attach=true}}
+  if(sec&&!civ){const T=K.F('spine_03'),ch=L.chest.h+.03,bd=new THREE.Mesh(new THREE.PlaneGeometry(.026,.026),new THREE.MeshBasicMaterial({map:ofTex().ark,transparent:true}));bd.position.set(-.045,ch,K.I.frontAt(ch,-.045)+(look.armour==='riot'?.02:look.armour==='carrier'?.024:.01));T.add(bd);T.userData.attach=true}}
 
 /* ---------- Weapons, faction finishes (the rifle first) ---------- */
 function ofWeapon(k,look,K){if(k!=='rifle')return null;const sec=look.faction==='security',g=new THREE.Group(),{box,cylZ}=K;
