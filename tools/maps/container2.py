@@ -128,6 +128,11 @@ M_ROWS = [''.join(r) for r in m]
 F_ROWS = [''.join(r) for r in f]
 ZIPS = [[2, 12, 4, 21], [21, 18, 17, 10], [18, 4, 13, 8]]
 TUNNELS = [[4, 29, 6, 21], [16, 21, 13, 9], [22, 31, 21, 21]]
+# vent crawlspaces (lights): outside the lab warehouse into it; past the foundry wall into the works;
+# from the market lane up inside the stack to the rooftop school; under the gate wall from the scrap yard
+VENTS = [[6, 9, 4, 4], [14, 12, 19, 14], [8, 20, 4, 13], [16, 24, 16, 21]]
+# winch lifts (lights and mediums), foot then roof: port office, east homes, gate wall, west homes
+WINCHES = [[19, 6, 19, 5], [16, 16, 16, 17], [15, 24, 15, 23], [3, 14, 3, 13]]
 EXTRAS = [dict(t='hull', x=4, z=-4, rot=.35, len=10), dict(t='boat', x=17, z=-2, rot=1.2), dict(t='boat', x=21, z=-3, rot=.4), dict(t='boat', x=9, z=-3, rot=2.6)]
 PATH = [[12, z] for z in range(24, 10, -1)]
 STAGES = [
@@ -144,7 +149,7 @@ POINTS = [dict(type='supply', x=23, z=31), dict(type='supply', x=0, z=21), dict(
 TRAPS = [dict(type='crane', x=15, z=6, area=[[11, 8], [12, 8], [11, 9], [12, 9]], crate=[11, 8]),
          dict(type='barrels', x=8, z=25), dict(type='barrels', x=15, z=24), dict(type='steam', x=14, z=16, line=[[13, 17], [13, 18], [12, 19]]),
          dict(type='fuel', x=9, z=10, area=[[8, 10], [7, 10], [8, 9], [7, 9]])]
-CONTAINER2 = dict(h=H_ROWS, m=M_ROWS, feat=F_ROWS, zips=ZIPS, tunnels=TUNNELS, bld=BLD, extras=EXTRAS, stages=STAGES, secondaries=SECONDARIES, points=POINTS, traps=TRAPS, turns=10)
+CONTAINER2 = dict(h=H_ROWS, m=M_ROWS, feat=F_ROWS, zips=ZIPS, tunnels=TUNNELS, vents=VENTS, winches=WINCHES, bld=BLD, extras=EXTRAS, stages=STAGES, secondaries=SECONDARIES, points=POINTS, traps=TRAPS, turns=10)
 
 if __name__ == '__main__':
     for z in range(H): print(f'{z:2} {H_ROWS[z]}  {M_ROWS[z]}  {F_ROWS[z]}')

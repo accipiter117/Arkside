@@ -36,7 +36,7 @@ def step(body,a,b):
     if a['f']=='L' or b['f']=='L':lv=int(-(-dn//1));return 2*lv if body=='heavy' else lv
     return 0
 def t_ok(t):return t['ch']!='~' and t['f'] not in 'r_='
-CH=False;TUN=[]
+CH=False;TUN=[];VEN=[];WIN=[]
 def links(G,NX,NZ,body,x,z,zips):
     a=G[z][x]
     for dx,dz in((1,0),(-1,0),(0,1),(0,-1)):
@@ -53,6 +53,13 @@ def links(G,NX,NZ,body,x,z,zips):
         if (m['f'] in '_=' or (m['ch']=='~' and CH)) and abs(dh)<=1:
             if body=='light':yield bx,bz,2
             elif body=='medium':yield bx,bz,(2 if m['f']=='=' else 3)+(1 if dh>.5 else 0)
+    if body=='light':
+        for x1,z1,x2,z2 in VEN:
+            for (ax,az,bx,bz) in ((x1,z1,x2,z2),(x2,z2,x1,z1)):
+                if (ax,az)==(x,z) and not blocked(G[bz][bx]):yield bx,bz,1
+    if body!='heavy':
+        for x1,z1,x2,z2 in WIN:
+            if (x1,z1)==(x,z) and not blocked(G[z2][x2]):yield x2,z2,1
     for x1,z1,x2,z2 in TUN:
         for (ax,az,bx,bz) in ((x1,z1,x2,z2),(x2,z2,x1,z1)):
             if (ax,az)==(x,z) and not blocked(G[bz][bx]):yield bx,bz,2+(abs(bx-ax)+abs(bz-az)+7)//8
@@ -75,7 +82,7 @@ def reach(G,NX,NZ,body,starts,zips=()):
     return dist
 def near(R,p):return min(R.get((p[0]+dx,p[1]+dz),999) for dx in(-1,0,1) for dz in(-1,0,1))
 for k,d in L.items():
-    G,NX,NZ=parse(d);ok=True;CH=bool(d.get('channels'));TUN=[tuple(t) for t in d.get('tunnels',[])]
+    G,NX,NZ=parse(d);ok=True;CH=bool(d.get('channels'));TUN=[tuple(t) for t in d.get('tunnels',[])];VEN=[tuple(t) for t in d.get('vents',[])];WIN=[tuple(t) for t in d.get('winches',[])]
     spawns=[(t['x'],t['z']) for r in G for t in r if t['ch']=='P']
     for si,st in enumerate(d['stages']):
         sp=[tuple(p) for p in st['spawns']] if st['spawns'] else spawns
