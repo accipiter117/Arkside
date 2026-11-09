@@ -27,16 +27,20 @@ def rect(x, z, w, d, hv=None, ch=None):
         for xx in range(x, x + w):
             if hv is not None: h[zz][xx] = hv
             if ch is not None: m[zz][xx] = ch
-def bld(t, x, z, w, d, lv=0, face='s', doors=(), col=None):
+def bld(t, x, z, w, d, lv=0, face='s', doors=(), col=None, st=None, hs=None):
     """Stamp a building's tiles and record it for the renderer."""
     b = dict(t=t, x=x, z=z, w=w, d=d, lv=lv, face=face)
     if doors: b['doors'] = [list(p) for p in doors]
     if col: b['col'] = col
+    if st: b['st'] = st
     BLD.append(b)
     if t in ('home', 'cantina', 'office', 'tower', 'bridge'):
         rect(x, z, w, d, lv, '.')
-    elif t in ('shack', 'pump', 'tank'):
+    elif t in ('shack', 'pump', 'tank', 'stack'):
         rect(x, z, w, d, 0, 'B')
+    elif t == 'deck':
+        for i, (xx, zz) in enumerate([(xx, zz) for zz in range(z, z + d) for xx in range(x, x + w)]):
+            h[zz][xx] = hs[i] if hs else lv; m[zz][xx] = '.'
     elif t == 'warehouse':
         rect(x, z, w, d, 0, '.')
         for zz in range(z, z + d):
@@ -56,19 +60,23 @@ bld('warehouse', 1, 3, 7, 6, face='s', doors=((4, 8), (7, 5)))          # the la
 m[5][3] = 'I'; m[4][5] = 'C'; m[6][2] = 'C'; m[6][5] = 'w'
 rect(10, 3, 5, 4, 2); m[4][12] = 'T'; h[7][12] = 1; h[7][11] = 1        # crane platform, steps south
 ladder(10, 5); ladder(14, 5); m[3][10] = 'C'; m[3][14] = 'C'; m[6][10] = 'w'; m[6][14] = 'w'
-bld('office', 17, 3, 4, 3, lv=8, face='w')                              # port office, two storeys
-ladder(17, 4); ladder(20, 5)
+bld('office', 17, 3, 3, 3, lv=8, face='w')                              # port office, two storeys
+ladder(17, 4)
+bld('stack', 20, 3, 4, 2, face='s', st=3)                               # tall stacks along the dock edge
 bld('tower', 22, 7, 1, 1, lv=6, face='s'); ladder(22, 7)              # watchtower
 bld('pump', 15, 8, 2, 2, face='w')
-m[2][3] = 'C'; m[2][9] = 'w'; m[2][14] = 'w'; m[2][16] = 'C'
-for x, z in ((9, 9), (14, 9), (19, 8), (21, 9), (5, 10), (2, 10)): m[z][x] = 'C'
+bld('shack', 18, 7, 2, 2, face='w')
+m[2][3] = 'C'; m[2][9] = 'w'; m[2][14] = 'w'; m[2][15] = 'C'
+for x, z in ((9, 9), (14, 9), (21, 9), (5, 10), (2, 10)): m[z][x] = 'C'
 m[10][11] = 'w'; m[10][13] = 'w'
 
 # ================= stage 2: the street (z 11-21) =================
-bld('home', 1, 11, 4, 3, lv=8, face='e')                                 # two-storey homes (west)
-ladder(4, 12)
-bld('home', 6, 11, 3, 2, lv=4, face='s', col='#c98a2a')                # one-storey homes; hop up to the tall block
-bld('cantina', 8, 14, 2, 2, lv=4, face='e')                              # the cantina on the street
+bld('stack', 0, 11, 2, 4, face='e', st=4)                               # the west skyline
+bld('home', 2, 11, 3, 3, lv=8, face='e')                                 # two-storey homes
+bld('deck', 5, 12, 1, 3, face='e', hs=[8, 6, 4])                         # plank stairs up to them from the lane
+bld('deck', 6, 14, 1, 1, face='e', hs=[2])
+bld('home', 6, 11, 3, 2, lv=4, face='s', col='#c98a2a')
+bld('cantina', 8, 14, 2, 2, lv=4, face='e')
 m[15][10] = 'C'
 bld('hall', 1, 16, 7, 5, face='e')                                       # the market hall (roofed)
 for x, z in ((3, 17), (5, 17), (3, 19), (5, 19)): m[z][x] = 'F'
@@ -76,11 +84,14 @@ m[18][4] = 'w'
 bld('shack', 9, 18, 2, 2, face='e')
 bld('warehouse', 15, 11, 7, 5, face='w', doors=((15, 13), (18, 15)))  # the workshop (roofed)
 m[12][17] = 'C'; m[13][19] = 'w'; m[12][20] = 'C'; m[14][17] = 'C'
+bld('stack', 22, 11, 2, 5, face='w', st=3)                              # the east skyline
+bld('deck', 13, 17, 1, 4, face='w', hs=[8, 6, 4, 2])                    # plank stairs up from the street
 bld('home', 14, 17, 3, 3, lv=8, face='w')                                # east homes joined by a rope bridge
 bld('bridge', 17, 18, 2, 1, lv=8, face='s')
 bld('home', 19, 17, 4, 3, lv=8, face='w', col='#2f6e8a')
-ladder(14, 19); ladder(22, 20)
-m[16][13] = 'C'; m[19][13] = 'w'; m[13][10] = 'w'; m[20][10] = 'C'; m[21][15] = 'C'; m[21][20] = 'w'; m[16][22] = 'C'
+bld('stack', 23, 17, 1, 4, face='w', st=4)
+ladder(22, 20)
+m[16][13] = 'C'; m[13][10] = 'w'; m[20][10] = 'C'; m[21][15] = 'C'; m[21][20] = 'w'; m[16][21] = 'C'
 
 # ================= stage 1: the gate (z 22-31) =================
 for (x0, x1) in ((0, 1), (3, 9), (14, 19), (21, 23)):
@@ -88,20 +99,24 @@ for (x0, x1) in ((0, 1), (3, 9), (14, 19), (21, 23)):
 for x in (10, 11, 12, 13): m[22][x] = 'D'; m[23][x] = 'D'
 m[22][2] = 'n'; m[23][2] = 'n'                                           # crawl vent (lights)
 m[23][20] = 'K'                                                          # side door (hack)
-ladder(6, 23); ladder(17, 23); ladder(7, 22); ladder(16, 22)            # ladders up both faces of the wall
-bld('shack', 2, 26, 3, 2, face='e')
+ladder(17, 23); ladder(7, 22); ladder(16, 22)                           # ladders: east face up from the yard, both down the far side
+bld('deck', 8, 24, 1, 3, face='s', hs=[6, 4, 2])                         # plank stairs up the west of the wall
+bld('stack', 0, 25, 2, 4, face='e', st=3)
+bld('shack', 3, 26, 3, 2, face='e')
 bld('shack', 18, 25, 3, 2, face='w')
-bld('pump', 7, 28, 2, 1, face='n')
+bld('pump', 6, 29, 2, 1, face='n')
 bld('tank', 20, 28, 2, 2, face='n')
-for x, z in ((9, 25), (14, 25), (10, 27), (13, 27), (1, 29), (16, 29), (22, 26), (5, 25)): m[z][x] = 'C'
+bld('home', 16, 29, 3, 2, lv=4, face='n', col='#4f6b3a'); ladder(15, 30)
+for x, z in ((10, 25), (14, 25), (10, 27), (13, 27), (22, 26), (5, 25)): m[z][x] = 'C'
 for x, z in ((11, 25), (12, 25), (6, 27), (17, 27)): m[z][x] = 'w'
 for x in (9, 10, 13, 14): m[30][x] = 'P'
 
 H_ROWS = [''.join(str(v) for v in r) for r in h]
 M_ROWS = [''.join(r) for r in m]
 F_ROWS = [''.join(r) for r in f]
-ZIPS = [[1, 12, 4, 20], [22, 18, 18, 10], [18, 4, 13, 8]]
-TUNNELS = [[4, 29, 6, 21], [16, 21, 13, 9], [23, 30, 23, 16]]
+ZIPS = [[2, 12, 4, 21], [21, 18, 17, 10], [18, 4, 13, 8]]
+TUNNELS = [[4, 29, 6, 21], [16, 21, 13, 9], [22, 31, 21, 21]]
+EXTRAS = [dict(t='hull', x=4, z=-4, rot=.35, len=10), dict(t='boat', x=17, z=-2, rot=1.2), dict(t='boat', x=21, z=-3, rot=.4), dict(t='boat', x=9, z=-3, rot=2.6)]
 PATH = [[12, z] for z in range(24, 10, -1)]
 STAGES = [
   dict(name='Breach the gate', objectives=[dict(type='plant', label='Blow the gate', targets=[[11, 23]], need=2, clears=[[10, 22], [12, 22], [13, 22], [10, 23], [12, 23], [13, 23], [11, 22]])], spawns=None, addTurns=0,
@@ -117,7 +132,7 @@ POINTS = [dict(type='supply', x=23, z=31), dict(type='supply', x=0, z=21), dict(
 TRAPS = [dict(type='crane', x=15, z=6, area=[[11, 8], [12, 8], [11, 9], [12, 9]], crate=[11, 8]),
          dict(type='barrels', x=8, z=25), dict(type='barrels', x=15, z=24), dict(type='steam', x=14, z=16, line=[[13, 17], [13, 18], [12, 19]]),
          dict(type='fuel', x=9, z=10, area=[[8, 10], [7, 10], [8, 9], [7, 9]])]
-CONTAINER2 = dict(h=H_ROWS, m=M_ROWS, feat=F_ROWS, zips=ZIPS, tunnels=TUNNELS, bld=BLD, stages=STAGES, secondaries=SECONDARIES, points=POINTS, traps=TRAPS, turns=10)
+CONTAINER2 = dict(h=H_ROWS, m=M_ROWS, feat=F_ROWS, zips=ZIPS, tunnels=TUNNELS, bld=BLD, extras=EXTRAS, stages=STAGES, secondaries=SECONDARIES, points=POINTS, traps=TRAPS, turns=10)
 
 if __name__ == '__main__':
     for z in range(H): print(f'{z:2} {H_ROWS[z]}  {M_ROWS[z]}  {F_ROWS[z]}')

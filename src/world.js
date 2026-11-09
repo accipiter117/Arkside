@@ -275,7 +275,7 @@ function bldBox(b){const a=W(b.x,b.z),c=W(b.x+b.w-1,b.z+b.d-1);return{x0:a.x-.5,
 function bldInside(b,x,z){return x>=b.x&&x<b.x+b.w&&z>=b.z&&z<b.z+b.d}
 // Parse: mark tiles (called after parseMap)
 function bldParse(m){BLD=(m.bld||[]).map(o=>Object.assign({},o));for(const b of BLD)for(let z=b.z;z<b.z+b.d;z++)for(let x=b.x;x<b.x+b.w;x++){const t=tileAt(x,z);if(!t)continue;t.bld=b;
-    if(['home','cantina','office','tower'].includes(b.t))t.bldSkin=true;if(b.t==='bridge'){t.bldSkin=true;t.bridge=true}
+    if(['home','cantina','office','tower'].includes(b.t))t.bldSkin=true;if(b.t==='bridge'||b.t==='deck'){t.bldSkin=true;t.bridge=true}
     if(t.obj==='bldg')t.bldHide=true}
   S.tunnels=(m.tunnels||[]).map(a=>({x1:a[0],z1:a[1],x2:a[2],z2:a[3]}));for(const tn of S.tunnels){const a=tileAt(tn.x1,tn.z1),c=tileAt(tn.x2,tn.z2);if(a)a.tunnel=true;if(c)c.tunnel=true}}
 // Draw every building
@@ -289,9 +289,22 @@ function bldBuildAll(){if(!scene)return;const T=bldTex(),lit=!!TM.lamps,lo=!HI()
     // a feature on the facing wall at local offset u (along the wall) and height y
     const face=(obj,u,y,out=.02)=>{if(f[1]){obj.position.set(B.cx+u,y,f[1]>0?B.z1+out:B.z0-out);obj.rotation.y=f[1]>0?0:Math.PI}else{obj.position.set(f[0]>0?B.x1+out:B.x0-out,y,B.cz+u);obj.rotation.y=f[0]>0?Math.PI/2:-Math.PI/2}g.add(obj);return obj};
     const faceLen=f[1]?W2:D2;
-    if(b.t==='home'||b.t==='cantina'){const st=Math.max(1,Math.round(top));let y0=-.05;
+    if(b.t==='stack'){// solid tall stack, 3 to 4 storeys of uneven containers, lit windows
+      const st=b.st||3;let y0=-.05;for(let i=0;i<st;i++){const c=pick(),cm=mt(c,'corr'),ox=i?(R()-.5)*.35:0,oz=i?(R()-.5)*.35:0,rot=R()<.3&&Math.abs(W2-D2)<.6,ww=W2-.06+(i?R()*.4:0),dd=D2-.06+(i?R()*.3:0);
+        const bx=box(g,rot?dd:ww,.98,rot?ww:dd,cm,B.cx+ox,y0+.49,B.cz+oz);box(g,(rot?dd:ww)+.03,.05,(rot?ww:dd)+.03,mt('#2b2b2b'),bx.position.x,y0+.96,bx.position.z);
+        for(let u=-faceLen/2+.45;u<faceLen/2-.3;u+=.8)if(R()<.6){const wn=new THREE.Mesh(new THREE.PlaneGeometry(.26,.22),winM);face(wn,u+(f[1]?ox:oz),y0+.6,.02+Math.abs(f[1]?oz:ox)+(i?.15:0))}
+        y0+=1}
+      b.topY=y0;cyl(g,.06,.06,.7,mt('#3a3a3a'),B.x1-.25,y0+.35,B.z0+.25,6);b.smoke=[B.x1-.25,y0+.75,B.z0+.25];
+      if(R()<.8){const tp=new THREE.Mesh(new THREE.PlaneGeometry(W2*.7,D2*.6),sm(['#2f6eb8','#3d6a8a','#4f5a39','#7a3c22'][Math.floor(R()*4)],null,{side:THREE.DoubleSide}));tp.rotation.x=-Math.PI/2+.12;tp.position.set(B.cx-.1,y0+.12,B.cz+.05);g.add(tp)}
+      for(let k=0;k<3;k++)cyl(g,.12,.12,.3,mt(['#8a3b24','#3b5b6b','#5f6b4a'][k]),B.x0+.25+k*.26,y0+.15,B.z1-.25,8)}
+    else if(b.t==='deck'){// plank boardwalk or stair platforms on posts, each tile at its own height, rails on open edges
+      const pl=sm('#8b6a48','planks'),pm=mt('#4a3a2e'),rl=mt('#3a2c22');
+      for(let z=b.z;z<b.z+b.d;z++)for(let x=b.x;x<b.x+b.w;x++){const t=tileAt(x,z);if(!t)continue;const p=W(x,z),y=topY(t);box(g,1,.07,1,pl,p.x,y-.035,p.z);
+        for(const[sx,sz]of[[-.42,-.42],[.42,-.42],[-.42,.42],[.42,.42]])box(g,.07,y+.05,.07,pm,p.x+sx,y/2-.02,p.z+sz);
+        for(const[dx,dz]of D4){const n=tileAt(x+dx,z+dz);if(n&&Math.abs(n.h-t.h)<=.5&&n.type!=='water'&&n.type!=='gap')continue;if(n&&n.ladder)continue;box(g,dx?.04:.96,.04,dz?.04:.96,rl,p.x+dx*.47,y+.4,p.z+dz*.47);for(const s2 of[-.44,.44])box(g,.04,.4,.04,rl,p.x+dx*.47+(dz?s2:0),y+.2,p.z+dz*.47+(dx?s2:0))}}}
+    else if(b.t==='home'||b.t==='cantina'){const st=Math.max(1,Math.round(top));let y0=-.05;
       for(let i=0;i<st;i++){const h=(i===st-1?top-y0:1)-.0,c=pick(),cm=mt(c,'corr');const sh=(R()-.5)*.08;
-        box(g,W2-.04+(i%2?.06:0),h-.02,D2-.04,cm,B.cx+sh,y0+h/2,B.cz);box(g,W2+.02,.05,D2+.02,mt('#2b2b2b'),B.cx,y0+h-.025,B.cz);
+        const ov=i>0&&R()<.6?.18+R()*.18:0,ovx=f[1]?0:f[0]*ov,ovz=f[1]?f[1]*ov:0;box(g,W2-.04+(i%2?.06:0)+Math.abs(ovx),h-.02,D2-.04+Math.abs(ovz),cm,B.cx+sh+ovx/2,y0+h/2,B.cz+ovz/2);box(g,W2+.02,.05,D2+.02,mt('#2b2b2b'),B.cx,y0+h-.025,B.cz);
         for(const sx of[B.x0+.03,B.x1-.03])for(const sz of[B.z0+.03,B.z1-.03])box(g,.07,.07,.07,mt('#2b2b2b'),sx,y0+h-.04,sz);
         // windows and a door on the facing side
         for(let u=-faceLen/2+.45;u<faceLen/2-.3;u+=.9){if(i===0&&Math.abs(u)<.5){const door=new THREE.Mesh(new THREE.PlaneGeometry(.36,.68),mt('#2a2d31'));face(door,u,y0+.36)}else if(R()<.75){const wn=new THREE.Mesh(new THREE.PlaneGeometry(.3,.24),winM);face(wn,u,y0+.62)}}
@@ -303,6 +316,9 @@ function bldBuildAll(){if(!scene)return;const T=bldTex(),lit=!!TM.lamps,lo=!HI()
       const rc=[[B.x0+.3,B.z0+.3],[B.x1-.3,B.z0+.3],[B.x0+.3,B.z1-.3],[B.x1-.3,B.z1-.3]].filter(([x,z])=>f[1]?Math.sign(z-B.cz)!==f[1]:Math.sign(x-B.cx)!==f[0]);
       if(rc[0]&&R()<.8){cyl(g,.16,.16,.34,mt('#3b5b6b'),rc[0][0],top+.17,rc[0][1],10);cyl(g,.165,.165,.04,mt('#2a2a2a'),rc[0][0],top+.32,rc[0][1],10)}
       if(rc[1]&&R()<.7){const d=new THREE.Mesh(new THREE.SphereGeometry(.18,10,6,0,Math.PI*2,0,.9),sm('#cfcfcf',null,{side:THREE.DoubleSide}));d.position.set(rc[1][0],top+.35,rc[1][1]);d.rotation.x=-1;g.add(d);cyl(g,.02,.02,.3,mt('#555'),rc[1][0],top+.15,rc[1][1],5)}
+      if(R()<.55){const tp=new THREE.Mesh(new THREE.PlaneGeometry(Math.min(1.4,W2*.6),Math.min(1,D2*.5)),sm(['#2f6eb8','#3d6a8a','#4f5a39','#c7922c'][Math.floor(R()*4)],null,{side:THREE.DoubleSide}));tp.rotation.x=-Math.PI/2+.25;const tc=rc[2]||[B.cx,B.cz];tp.position.set(tc[0],top+.35,tc[1]);g.add(tp);for(const sx of[-.3,.3])cyl(g,.02,.02,.4,mt('#4a3a2e'),tc[0]+sx,top+.2,tc[1]+.25,5)}
+      if(R()<.5){cyl(g,.05,.05,.6,mt('#3a3a3a'),B.x0+.2,top+.3,B.cz,6);b.smoke=[B.x0+.2,top+.65,B.cz]}
+      if(R()<.6){const sg=new THREE.Mesh(new THREE.PlaneGeometry(.55,.22),new THREE.MeshBasicMaterial({color:[0xffd28a,0x7fe8ff,0xff8a5f,0xc8ffb0][Math.floor(R()*4)]}));face(sg,faceLen/2-.45,Math.min(top,1)-.12,.06)}
       // low parapet so roofs read as roofs
       for(const[x0,z0,x1,z1]of[[B.x0,B.z0,B.x1,B.z0],[B.x0,B.z1,B.x1,B.z1],[B.x0,B.z0,B.x0,B.z1],[B.x1,B.z0,B.x1,B.z1]]){const len=Math.hypot(x1-x0,z1-z0);box(g,x1===x0?.06:len,.1,z1===z0?.06:len,mt('#3a3a3a'),(x0+x1)/2,top+.05,(z0+z1)/2)}}
     else if(b.t==='office'){const cm=sm('#b9b4aa','conc'),floors=Math.max(1,Math.round(top));
@@ -346,7 +362,21 @@ function bldBuildAll(){if(!scene)return;const T=bldTex(),lit=!!TM.lamps,lo=!HI()
       for(const s2 of[-.42,.42]){box(g,ax?W2:.025,.025,ax?.025:D2,rope,B.cx+(ax?0:s2),top+.42,B.cz+(ax?s2:0));for(let k=0;k<=(ax?W2:D2);k+=.5)box(g,.03,.42,.03,rope,ax?B.x0+k:B.cx+s2,top+.21,ax?B.cz+s2:B.z0+k)}}
     stat.add(g)}
   // merge the static parts into one mesh per material (roofs stay live so they can fade)
+  // cables with bulbs strung between neighbouring rooftops
+  const tall=BLD.filter(b=>['home','stack','office','cantina','tower'].includes(b.t)),cab=new THREE.Group(),bulbM=new THREE.MeshBasicMaterial({color:lit?0xffd28a:0xb8a070});let nc=0;
+  for(let i=0;i<tall.length&&nc<(lo?4:10);i++)for(let j=i+1;j<tall.length&&nc<(lo?4:10);j++){const A=bldBox(tall[i]),C=bldBox(tall[j]),ya=(tall[i].topY??(tall[i].lv||0)*.25)+.6,yc=(tall[j].topY??(tall[j].lv||0)*.25)+.6,d=Math.hypot(A.cx-C.cx,A.cz-C.cz);if(d<2.5||d>6.5)continue;
+    const a2=new THREE.Vector3(A.cx,ya,A.cz),c2=new THREE.Vector3(C.cx,yc,C.cz),pts=[];for(let k=0;k<=12;k++){const t=k/12,v=a2.clone().lerp(c2,t);v.y-=Math.sin(t*Math.PI)*.45;pts.push(v)}
+    cab.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0x1a1a1a})));for(let k=2;k<12;k+=3){const bb=new THREE.Mesh(new THREE.SphereGeometry(.035,6,4),bulbM);bb.position.copy(pts[k]);bb.position.y-=.05;stat.add(bb)}nc++}
+  scene.add(cab);
+  // a rusting hull and moored boats off the docks (map extras)
+  for(const e of M.extras||[]){const p=W(e.x,e.z);if(e.t==='hull'){const hg=new THREE.Group(),rm=sm('#6a3a22','corr'),L2=e.len||9;const hull=new THREE.Mesh(new THREE.CylinderGeometry(1.6,1.6,L2,16,1,false,0,Math.PI),rm);hull.rotation.set(0,0,Math.PI/2);hull.scale.set(1,1,.8);hull.position.y=.2;hg.add(hull);
+      const dk=new THREE.Mesh(new THREE.BoxGeometry(L2,.12,2.4),sm('#4a3a2e','planks'));dk.position.y=.25;hg.add(dk);const br=new THREE.Mesh(new THREE.BoxGeometry(1.6,1.4,1.6),sm('#d8d2c0','corr'));br.position.set(-L2*.3,1,0);hg.add(br);
+      const mast=new THREE.Mesh(new THREE.CylinderGeometry(.06,.08,3.2,6),mt('#3a3a3a'));mast.position.set(.8,1.8,0);mast.rotation.z=.25;hg.add(mast);hg.position.set(p.x,-.7,p.z);hg.rotation.set(.08,e.rot||0,.18);stat.add(hg)}
+    else if(e.t==='boat'){const bt=boatProp(rng(e.x*7+e.z));bt.position.set(p.x,-.28,p.z);bt.rotation.y=e.rot||0;scene.add(bt)}}
   worldBake(stat);
+  // chimney smoke
+  if(!lo){const puffs=[],pm=new THREE.MeshLambertMaterial({color:0x8a8a8a,transparent:true,opacity:.4,depthWrite:false});for(const b of BLD)if(b.smoke)for(let k=0;k<3;k++){const m=new THREE.Mesh(new THREE.SphereGeometry(.12,6,5),pm.clone());m.userData.s=b.smoke;m.userData.ph=k/3;scene.add(m);puffs.push(m)}
+    if(puffs.length)ANIM.push((dt,t)=>{for(const m of puffs){const k=(t*.25+m.userData.ph)%1,[x,y,z]=m.userData.s;m.position.set(x+k*.4,y+k*1.6,z+k*.2);m.scale.setScalar(.6+k*2.2);m.material.opacity=.4*(1-k)}})}
   // tunnel mouths: manhole rims with a dark hole
   for(const tn of S.tunnels||[])for(const[x,z]of[[tn.x1,tn.z1],[tn.x2,tn.z2]]){const t=G[z][x],p=W(x,z);const rim=new THREE.Mesh(new THREE.TorusGeometry(.26,.05,6,16),sm('#3a3d40'));rim.rotation.x=Math.PI/2;rim.position.set(p.x,topY(t)+.03,p.z);scene.add(rim);
     const hole=new THREE.Mesh(new THREE.CircleGeometry(.24,16),new THREE.MeshBasicMaterial({color:0x07090b}));hole.rotation.x=-Math.PI/2;hole.position.set(p.x,topY(t)+.025,p.z);scene.add(hole);
