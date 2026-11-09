@@ -62,6 +62,8 @@ function moveLinks(u,x,z){const out=[],a=G[z][x];if(!freeRunner(u))return out;
     if(m.obj==='rail'&&Math.abs(m.h-a.h)<=.5&&Math.abs(dh)<=.5){if(u.body==='light')out.push([b.x,b.z,2,'vault']);else if(u.body==='medium')out.push([b.x,b.z,3,'vault'])}
     // gap jump (or across a one-tile water channel); a ledge grab lands up to one level higher or lower
     if((m.type==='gap'||(m.type==='water'&&M.channels&&!m.flood&&Math.abs(m.h-a.h)<=.5))&&Math.abs(dh)<=1){if(u.body==='light')out.push([b.x,b.z,2,'jump']);else if(u.body==='medium')out.push([b.x,b.z,(m.markedGap?2:3)+(dh>.5?1:0),'jump'])}}
+  // drain tunnels: any build, either way, out of sight
+  for(const tn of S.tunnels||[]){let ex=null;if(tn.x1===x&&tn.z1===z)ex=[tn.x2,tn.z2];else if(tn.x2===x&&tn.z2===z)ex=[tn.x1,tn.z1];if(ex){const b=G[ex[1]][ex[0]];if(b&&!b.obj)out.push([ex[0],ex[1],2+Math.ceil((Math.abs(ex[0]-x)+Math.abs(ex[1]-z))/8),'tunnel'])}}
   if(u.body!=='heavy')for(const zp of S.zips||[])if(zp.x1===x&&zp.z1===z){const b=G[zp.z2][zp.x2];if(b&&!b.obj)out.push([zp.x2,zp.z2,1,'zip'])}
   return out}
 // Vault and gap costs above include the tile walked into (2 = one step plus
@@ -118,7 +120,7 @@ function mechLadder(t){const p=W(t.x,t.z),lad=MECH_LAD||(MECH_LAD={stile:new THR
 function mechArcs(r){for(const[k,kind]of r.kind){const pk=r.prev.get(k);if(!pk)continue;const[ax,az]=pk.split(',').map(Number),[bx,bz]=k.split(',').map(Number);
   const a=W(ax,az),b=W(bx,bz);a.y=topY(G[az][ax])+.12;b.y=topY(G[bz][bx])+.12;const pts=[],H=kind==='zip'?-.2:.55;
   for(let i=0;i<=16;i++){const t=i/16,v=a.clone().lerp(b,t);v.y+=Math.sin(t*Math.PI)*H+(kind==='zip'?(1.4*(1-t)+1*t):0);pts.push(v)}
-  const g=new THREE.BufferGeometry().setFromPoints(pts),l=new THREE.Line(g,new THREE.LineDashedMaterial({color:kind==='zip'?0x7fe8ff:0xf3b33d,dashSize:.08,gapSize:.06}));l.computeLineDistances();hl.add(l)}}
+  if(kind==='tunnel'){for(const v of pts){v.y=Math.min(a.y,b.y)+.06}}const g=new THREE.BufferGeometry().setFromPoints(pts),l=new THREE.Line(g,new THREE.LineDashedMaterial({color:kind==='zip'?0x7fe8ff:kind==='tunnel'?0xb08aff:0xf3b33d,dashSize:.08,gapSize:.06}));l.computeLineDistances();hl.add(l)}}
 
 /* ===================== Interactive points and traps =====================
    Map data (optional): points:[...] and traps:[...], each {type, x, z, ...}.
