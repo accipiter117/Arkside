@@ -7,14 +7,15 @@ HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 from container2 import CONTAINER2
 
 MAPS = [
-  dict(id='x1v2', title='Container City Push', version=4, theme='container', time='day', data=dict(CONTAINER2, title='Container City Push', long=True, xp=160),
-       changes=['People live here now. Buildings have jobs, and the cover inside them is that job\'s props (same cover rules as before):',
-                'Market hall (west): stall counters with striped canopies and fruit (half cover), produce crates (full cover), hanging lanterns and a MARKET sign.',
-                'Fishery (docks, by the crane): an open shed with nets, crates of fish on ice and a drying rack hung with fish.',
-                'Foundry works (the east warehouse): a tall brick smokestack, a glowing furnace door, gas bottles and workbenches inside.',
-                'Clinic tent (behind the gate, east): white canvas with a red cross on the roof, cots with drip stands and medical crates.',
-                'Bar terrace beside the cantina: tables with stools and bottles.',
-                'Washing lines strung between the homes and stacks, and vegetable planters on some rooftops.'])]
+  dict(id='x1v2', title='Container City Push', version=5, theme='container', time='day', data=dict(CONTAINER2, title='Container City Push', long=True, xp=160),
+       changes=['Six more jobs round the town:',
+                'Water distillery (scrapyard, west): a tin shed with two copper stills and coils on the roof, blue water tanks, steam and a WATER sign. Solid building.',
+                'Radio shack (docks, by the lab warehouse): a hut with a tall lattice mast and a blinking red light, a stack of dishes and a RADIO sign.',
+                'A rooftop school on the west two-storey homes: desks and benches (half cover) and a chalkboard on an easel (full cover).',
+                'A shrine at the market corner: a stone base, candles, a red tin canopy and prayer flags.',
+                'Chicken coops on the east rooftops (and on some homes), and a rooftop vegetable garden with planter beds (half cover) next to them.',
+                'A noodle stand by the cantina: a counter with a steaming pot, red lanterns, stools and a NOODLES sign.',
+                'The scrapyard is now a scrap-sorting yard: scrap piles and car shells (full cover), tyre stacks (half cover) and a magnet crane holding a car over the yard.'])]
 
 if __name__ == '__main__':
     for mp in MAPS:
