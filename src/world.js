@@ -267,6 +267,8 @@ function bldTex(){if(BLD_T)return BLD_T;const R=rng(515);BLD_T={};
   BLD_T.shut=cvTex((g,s)=>{g.fillStyle='#d8d8d8';g.fillRect(0,0,s,s);for(let y=0;y<s;y+=6){g.fillStyle='rgba(0,0,0,.22)';g.fillRect(0,y,s,2)}g.fillStyle='rgba(120,55,20,.35)';for(let i=0;i<6;i++)g.fillRect(R()*s,R()*s,3+R()*8,2+R()*20)},64);
   BLD_T.stripe=cvTex((g,s)=>{for(let x=0;x<s;x+=16){g.fillStyle=(x/16)%2?'#f2ead8':'#c8321f';g.fillRect(x,0,16,s)}},64);
   BLD_T.glass=cvTex((g,s)=>{g.fillStyle='#4a5a66';g.fillRect(0,0,s,s);for(let x=0;x<s;x+=16){g.fillStyle='#8fb6cc';g.fillRect(x+2,6,12,s-12)}},64);
+  const signT=(txt,bg,fg)=>cvTex((g,s2)=>{g.fillStyle=bg;g.fillRect(0,0,s2,s2);g.fillStyle=fg;g.font=`bold ${s2*.3}px sans-serif`;g.textAlign='center';g.fillText(txt,s2/2,s2*.62)},128);
+  BLD_T.sMarket=signT('MARKET','#c8321f','#fff3d0');BLD_T.sFish=signT('FISH','#2f6e8a','#f2ead8');BLD_T.sClinic=signT('+ CLINIC','#f4f4f4','#c8321f');BLD_T.sWorks=signT('WORKS','#2b2b2b','#ffb347');
   BLD_T.neon=cvTex((g,s)=>{g.clearRect(0,0,s*2,s);g.font=`bold ${s*.5}px sans-serif`;g.textAlign='center';g.fillStyle='#ff5fa2';g.shadowColor='#ff5fa2';g.shadowBlur=10;g.fillText('BAR',s/2,s*.68)},128);
   BLD_T.water=cvTex((g,s)=>{g.fillStyle='#c9c3b8';g.fillRect(0,0,s,s);for(let x=0;x<s;x+=10){g.fillStyle='rgba(0,0,0,.12)';g.fillRect(x,0,3,s)}g.fillStyle='rgba(30,40,50,.75)';g.font=`bold ${s*.18}px sans-serif`;g.textAlign='center';g.fillText('H2O',s/2,s*.58);g.fillStyle='rgba(120,55,20,.35)';for(let i=0;i<8;i++)g.fillRect(R()*s,0,3,s*.6*R())},128);
   return BLD_T}
@@ -284,7 +286,7 @@ function bldBuildAll(){if(!scene)return;const T=bldTex(),lit=!!TM.lamps,lo=!HI()
   const box=(p,w,h,d,mat,x,y,z,ry=0)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.rotation.y=ry;p.add(m);return m};
   const cyl=(p,r1,r2,h,mat,x,y,z,seg=10)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,seg),mat);m.position.set(x,y,z);p.add(m);return m};
   const winM=lit?new THREE.MeshBasicMaterial({map:T.window}):new THREE.MeshLambertMaterial({map:T.window,color:0x9a9a9a});
-  for(const b of BLD){const B=bldBox(b),top=(b.lv||0)*.25,R=rng(b.x*131+b.z*17+b.w),g=new THREE.Group(),f=BLD_FACE[b.face||'s'],live=new THREE.Group();b.g=g;
+  for(const b of BLD){if(b.t==='yard')continue;const B=bldBox(b),top=(b.lv||0)*.25,R=rng(b.x*131+b.z*17+b.w),g=new THREE.Group(),f=BLD_FACE[b.face||'s'],live=new THREE.Group();b.g=g;
     const W2=B.x1-B.x0,D2=B.z1-B.z0,cols=b.col?[b.col]:CONT_COLS,pick=()=>cols[Math.floor(R()*cols.length)];
     // a feature on the facing wall at local offset u (along the wall) and height y
     const face=(obj,u,y,out=.02)=>{if(f[1]){obj.position.set(B.cx+u,y,f[1]>0?B.z1+out:B.z0-out);obj.rotation.y=f[1]>0?0:Math.PI}else{obj.position.set(f[0]>0?B.x1+out:B.x0-out,y,B.cz+u);obj.rotation.y=f[0]>0?Math.PI/2:-Math.PI/2}g.add(obj);return obj};
@@ -318,6 +320,7 @@ function bldBuildAll(){if(!scene)return;const T=bldTex(),lit=!!TM.lamps,lo=!HI()
       if(rc[1]&&R()<.7){const d=new THREE.Mesh(new THREE.SphereGeometry(.18,10,6,0,Math.PI*2,0,.9),sm('#cfcfcf',null,{side:THREE.DoubleSide}));d.position.set(rc[1][0],top+.35,rc[1][1]);d.rotation.x=-1;g.add(d);cyl(g,.02,.02,.3,mt('#555'),rc[1][0],top+.15,rc[1][1],5)}
       if(R()<.55){const tp=new THREE.Mesh(new THREE.PlaneGeometry(Math.min(1.4,W2*.6),Math.min(1,D2*.5)),sm(['#2f6eb8','#3d6a8a','#4f5a39','#c7922c'][Math.floor(R()*4)],null,{side:THREE.DoubleSide}));tp.rotation.x=-Math.PI/2+.25;const tc=rc[2]||[B.cx,B.cz];tp.position.set(tc[0],top+.35,tc[1]);g.add(tp);for(const sx of[-.3,.3])cyl(g,.02,.02,.4,mt('#4a3a2e'),tc[0]+sx,top+.2,tc[1]+.25,5)}
       if(R()<.5){cyl(g,.05,.05,.6,mt('#3a3a3a'),B.x0+.2,top+.3,B.cz,6);b.smoke=[B.x0+.2,top+.65,B.cz]}
+      if(rc[3]&&R()<.6){for(let k=0;k<2;k++){box(g,.42,.16,.2,sm('#6b4a2e','planks'),rc[3][0]+(k?.0:0),top+.08,rc[3][1]+(k-.5)*.24);for(let j=0;j<3;j++){const lf=new THREE.Mesh(new THREE.IcosahedronGeometry(.06,0),mt(['#4f8f3a','#6fa040','#3f7a30'][j]));lf.position.set(rc[3][0]-.13+j*.13,top+.2,rc[3][1]+(k-.5)*.24);g.add(lf)}}}
       if(R()<.6){const sg=new THREE.Mesh(new THREE.PlaneGeometry(.55,.22),new THREE.MeshBasicMaterial({color:[0xffd28a,0x7fe8ff,0xff8a5f,0xc8ffb0][Math.floor(R()*4)]}));face(sg,faceLen/2-.45,Math.min(top,1)-.12,.06)}
       // low parapet so roofs read as roofs
       for(const[x0,z0,x1,z1]of[[B.x0,B.z0,B.x1,B.z0],[B.x0,B.z1,B.x1,B.z1],[B.x0,B.z0,B.x0,B.z1],[B.x1,B.z0,B.x1,B.z1]]){const len=Math.hypot(x1-x0,z1-z0);box(g,x1===x0?.06:len,.1,z1===z0?.06:len,mt('#3a3a3a'),(x0+x1)/2,top+.05,(z0+z1)/2)}}
@@ -346,11 +349,20 @@ function bldBuildAll(){if(!scene)return;const T=bldTex(),lit=!!TM.lamps,lo=!HI()
         box(g,W2+.04,.08,.08,mt('#e2b21f'),B.cx,1.38,B.z1+.02);const sgn=new THREE.Mesh(new THREE.PlaneGeometry(1.6,.4),new THREE.MeshLambertMaterial({map:T.stripe}));sgn.material=sm('#f4f4f4');face(sgn,0,rh-.4,.03)}
       else{// open market hall: posts round the edge
         const pm=mt('#4a3a2e');for(let x=B.x0+.08;x<=B.x1;x+=Math.max(1,(W2-.16)/Math.ceil(W2/2)))for(const z of[B.z0+.08,B.z1-.08])cyl(g,.05,.06,rh,pm,x,rh/2,z,6);for(let z=B.z0+.08;z<=B.z1;z+=Math.max(1,(D2-.16)/Math.ceil(D2/2)))for(const x of[B.x0+.08,B.x1-.08])cyl(g,.05,.06,rh,pm,x,rh/2,z,6);
-        const ban=new THREE.Mesh(new THREE.PlaneGeometry(Math.min(2.4,faceLen*.7),.35),new THREE.MeshLambertMaterial({map:T.stripe,side:THREE.DoubleSide}));face(ban,0,rh-.2,.05)}
+        const ban=new THREE.Mesh(new THREE.PlaneGeometry(Math.min(2.4,faceLen*.7),.35),new THREE.MeshLambertMaterial({map:T.stripe,side:THREE.DoubleSide}));face(ban,0,rh-.2,.05);
+        const st2={market:T.sMarket,fishery:T.sFish,clinic:T.sClinic}[b.use];if(st2){const sg=new THREE.Mesh(new THREE.PlaneGeometry(.9,.45),new THREE.MeshBasicMaterial({map:st2}));face(sg,0,rh+.15,.06)}
+        // hanging lanterns under the roof
+        for(let i=0;i<Math.min(6,b.w*b.d/4);i++){const lx=B.x0+.6+R()*(W2-1.2),lz=B.z0+.6+R()*(D2-1.2);const ln=new THREE.Mesh(new THREE.SphereGeometry(.07,8,6),new THREE.MeshBasicMaterial({color:b.use==='clinic'?0xf4fbff:0xffd28a}));ln.position.set(lx,rh-.35,lz);g.add(ln);cyl(g,.006,.006,.3,mt('#222'),lx,rh-.18,lz,4)}
+        if(b.use==='fishery')for(let i=0;i<3;i++){const net=new THREE.Mesh(new THREE.PlaneGeometry(.9,.6),sm('#3a4a3a',null,{side:THREE.DoubleSide,transparent:true,opacity:.7}));net.position.set(B.x0+.5+i*(W2-1)/2,rh-.5,B.z1-.15);net.rotation.y=.1;g.add(net)}}
       // the roof: shallow pitch, overhanging, ribbed tin; skylights on the warehouse
-      const ridge=W2>=D2,span=(ridge?D2:W2)+.5,len=(ridge?W2:D2)+.5,ang=wh?.22:.3,sl=span/2/Math.cos(ang)+.05,rm=sm(wh?'#9a9da0':'#b06a3a','corr');
+      const ridge=W2>=D2,span=(ridge?D2:W2)+.5,len=(ridge?W2:D2)+.5,ang=wh?.22:.3,sl=span/2/Math.cos(ang)+.05,rm=b.use==='clinic'?sm('#eef0ea'):b.use==='fishery'?sm('#4a6a7a','corr'):sm(wh?'#9a9da0':'#b06a3a','corr');
       for(const sgn of[-1,1]){const r=new THREE.Mesh(new THREE.BoxGeometry(ridge?len:sl,.05,ridge?sl:len),rm);if(ridge){r.position.set(B.cx,rh+Math.tan(ang)*span/4,B.cz+sgn*span/4);r.rotation.x=sgn*ang}else{r.position.set(B.cx+sgn*span/4,rh+Math.tan(ang)*span/4,B.cz);r.rotation.z=-sgn*ang}roof.add(r)}
       if(wh)for(let i=-1;i<=1;i+=2){const sk=new THREE.Mesh(new THREE.BoxGeometry(ridge?.6:.5,.06,ridge?.5:.6),new THREE.MeshLambertMaterial({color:0x9fd0e8}));sk.position.set(B.cx+(ridge?i*len/4:span/4*.6),rh+.2,B.cz+(ridge?span/4*.6:i*len/4));sk.rotation.copy(roof.children[1].rotation);roof.add(sk)}
+      if(b.use==='clinic'){for(const[w3,d3]of[[.7,.2],[.2,.7]]){const cr=new THREE.Mesh(new THREE.BoxGeometry(w3,.02,d3),sm('#c8321f'));cr.position.set(B.cx,rh+Math.tan(ang)*span/2*.98+.02,B.cz);roof.add(cr)}}
+      if(b.use==='works'){const sx=B.x1-.5,sz=B.z0+.5;cyl(g,.22,.28,4.6,sm('#7a4a3a','side'),sx,2.3,sz,12);for(const y of[1.5,3,4.4])cyl(g,.3,.3,.08,mt('#3a3a3a'),sx,y,sz,12);b.smoke=[sx,4.7,sz];
+        const fur=new THREE.Mesh(new THREE.PlaneGeometry(.7,.5),new THREE.MeshBasicMaterial({color:0xff7a2a}));face(fur,-faceLen/4,.3,.03);const fr2=new THREE.Mesh(new THREE.PlaneGeometry(.84,.62),mt('#1a1a1a'));face(fr2,-faceLen/4,.3,.02);
+        const sg=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.5),new THREE.MeshBasicMaterial({map:T.sWorks}));face(sg,faceLen/4,1.75,.04);if(lit){const l=new THREE.PointLight(0xff7a2a,.9,3.5,2);face(l,-faceLen/4,.4,.6);g.remove(l);scene.add(l)}
+        b.sparks=[];}
       roof.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.transparent=true;o.userData.roofMat=true;o.userData.live=true}});b.roofMeshes=[];roof.traverse(o=>{if(o.isMesh)b.roofMeshes.push(o)});g.add(roof)}
     else if(b.t==='tower'){const lm=mt('#5a4a3a');for(const sx of[B.x0+.12,B.x1-.12])for(const sz of[B.z0+.12,B.z1-.12])box(g,.08,top+.02,.08,lm,sx,top/2,sz);
       for(let y=.4;y<top-.2;y+=.6){box(g,W2-.2,.04,.04,lm,B.cx,y,B.z0+.12);box(g,W2-.2,.04,.04,lm,B.cx,y,B.z1-.12);box(g,.04,.04,D2-.2,lm,B.x0+.12,y,B.cz);box(g,.04,.04,D2-.2,lm,B.x1-.12,y,B.cz)}
@@ -367,6 +379,13 @@ function bldBuildAll(){if(!scene)return;const T=bldTex(),lit=!!TM.lamps,lo=!HI()
   for(let i=0;i<tall.length&&nc<(lo?4:10);i++)for(let j=i+1;j<tall.length&&nc<(lo?4:10);j++){const A=bldBox(tall[i]),C=bldBox(tall[j]),ya=(tall[i].topY??(tall[i].lv||0)*.25)+.6,yc=(tall[j].topY??(tall[j].lv||0)*.25)+.6,d=Math.hypot(A.cx-C.cx,A.cz-C.cz);if(d<2.5||d>6.5)continue;
     const a2=new THREE.Vector3(A.cx,ya,A.cz),c2=new THREE.Vector3(C.cx,yc,C.cz),pts=[];for(let k=0;k<=12;k++){const t=k/12,v=a2.clone().lerp(c2,t);v.y-=Math.sin(t*Math.PI)*.45;pts.push(v)}
     cab.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0x1a1a1a})));for(let k=2;k<12;k+=3){const bb=new THREE.Mesh(new THREE.SphereGeometry(.035,6,4),bulbM);bb.position.copy(pts[k]);bb.position.y-=.05;stat.add(bb)}nc++}
+  {const homes=BLD.filter(b=>b.t==='home'||b.t==='stack');let nl=0;const CL=['#e3672a','#d8d0b8','#3d6a8a','#8a3b24','#e3c25a','#6b8a4a','#f2f2ee'];
+   for(let i=0;i<homes.length&&nl<(lo?3:8);i++)for(let j=i+1;j<homes.length&&nl<(lo?3:8);j++){const A=bldBox(homes[i]),C=bldBox(homes[j]),d=Math.hypot(A.cx-C.cx,A.cz-C.cz);if(d<2||d>4.5)continue;
+     const y=Math.min(1.1,((homes[i].lv||4)*.25),((homes[j].lv||4)*.25))+.25,a2=new THREE.Vector3(A.cx,y,A.cz),c2=new THREE.Vector3(C.cx,y,C.cz);
+     // start and end on the facing walls rather than the centres
+     const dir=c2.clone().sub(a2).normalize();a2.addScaledVector(dir,Math.min(A.w,A.d)/2);c2.addScaledVector(dir,-Math.min(C.w,C.d)/2);const L3=a2.distanceTo(c2);if(L3<.8)continue;
+     cab.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a2,c2]),new THREE.LineBasicMaterial({color:0x2a2a2a})));
+     for(let k=1;k<Math.floor(L3/.32);k++){const c=new THREE.Mesh(new THREE.PlaneGeometry(.22,.3),sm(CL[(k+nl)%CL.length],null,{side:THREE.DoubleSide}));c.position.copy(a2).lerp(c2,k/Math.floor(L3/.32));c.position.y-=.17;c.rotation.y=-Math.atan2(c2.z-a2.z,c2.x-a2.x);stat.add(c)}nl++}}
   scene.add(cab);
   // a rusting hull and moored boats off the docks (map extras)
   for(const e of M.extras||[]){const p=W(e.x,e.z);if(e.t==='hull'){const hg=new THREE.Group(),rm=sm('#6a3a22','corr'),L2=e.len||9;const hull=new THREE.Mesh(new THREE.CylinderGeometry(1.6,1.6,L2,16,1,false,0,Math.PI),rm);hull.rotation.set(0,0,Math.PI/2);hull.scale.set(1,1,.8);hull.position.y=.2;hg.add(hull);
@@ -382,7 +401,28 @@ function bldBuildAll(){if(!scene)return;const T=bldTex(),lit=!!TM.lamps,lo=!HI()
     const hole=new THREE.Mesh(new THREE.CircleGeometry(.24,16),new THREE.MeshBasicMaterial({color:0x07090b}));hole.rotation.x=-Math.PI/2;hole.position.set(p.x,topY(t)+.025,p.z);scene.add(hole);
     const lid=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.03,16),sm('#5a5d60'));lid.position.set(p.x+.28,topY(t)+.02,p.z+.12);lid.rotation.z=.15;scene.add(lid)}
   // roofs fade while the squad is inside or can move inside
-  ANIM.push(dt=>{const sel=typeof S!=='undefined'&&S.sel&&S.reach?S.reach:null;for(const b of BLD){if(!b.roof)continue;let inside=false;
+  ANIM.push(dt=>{const sel=typeof S!=='undefined'&&S.sel&&S.reach?S.reach:null;for(const b of BLD){if(!b.roof)continue;let inside=!!window.ROOFS_LIFTED;
       for(const u of units)if(u.team==='p'&&!u.down&&!u.gone&&bldInside(b,u.x,u.z)){inside=true;break}
       if(!inside&&sel)for(let z=b.z+1;z<b.z+b.d-1&&!inside;z++)for(let x=b.x+1;x<b.x+b.w-1;x++)if(sel.d.has(key(x,z))){inside=true;break}
       const tgt=inside?.12:1;for(const o of b.roofMeshes||[]){{o.material.opacity+=(tgt-o.material.opacity)*Math.min(1,dt*6);o.material.depthWrite=o.material.opacity>.9;o.visible=o.material.opacity>.05}}}})}
+
+// Cover inside or beside a building with a job is drawn as that job's props:
+// market stalls and produce, fish crates and drying racks, clinic cots and
+// supply boxes, foundry gas bottles and workbenches, bar tables. Same cover
+// rules (crate = full, wall = half, heavies charge through half cover).
+function bldProp(t,g){const b=t.bld,use=b&&(b.use||(b.t==='cantina'?'bar':null));if(!use)return false;const R=rng(t.x*97+t.z*31),M3=c=>sm(c),box=(w,h,d,c,x,y,z,ry=0)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),typeof c==='string'?sm(c):c);m.position.set(x,y,z);m.rotation.y=ry;g.add(m);return m},
+  cyl=(r1,r2,h,c,x,y,z,seg=8)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,seg),sm(c));m.position.set(x,y,z);g.add(m);return m},ball=(r,c,x,y,z)=>{const m=new THREE.Mesh(new THREE.IcosahedronGeometry(r,0),sm(c));m.position.set(x,y,z);g.add(m);return m};
+  const wood=sm('#9a7a52','planks');
+  if(use==='market'){if(t.obj==='wall'){box(.9,.08,.5,wood,0,.46,0);box(.85,.42,.45,'#6b4a2e',0,.21,0);for(const x of[-.42,.42])box(.04,1.1,.04,'#4a3a2e',x,.55,-.2);const can=new THREE.Mesh(new THREE.PlaneGeometry(1,.6),new THREE.MeshLambertMaterial({map:bldTex().stripe,side:THREE.DoubleSide}));can.position.set(0,1.1,0);can.rotation.x=-1.25;g.add(can);
+      for(let i=0;i<6;i++)ball(.06,['#e3672a','#e3c25a','#6fa040','#c8321f'][i%4],-.3+(i%3)*.3,.56,-.08+Math.floor(i/3)*.16);return true}
+    if(t.obj==='crate'){for(const[x,z,r]of[[-.22,-.2,.2],[.2,-.18,-.1],[0,.22,.3]]){box(.38,.3,.32,wood,x,.15,z,r);for(let i=0;i<4;i++)ball(.07,['#e3672a','#6fa040','#e3c25a','#8a3b24'][(i+Math.round(x*10))&3],x-.1+(i%2)*.2,.34,z-.06+Math.floor(i/2)*.12)}box(.4,.3,.34,wood,0,.46,0,.2);return true}}
+  if(use==='fishery'){if(t.obj==='crate'){for(let i=0;i<5;i++){const x=(i%3-1)*.3,z=i<3?-.15:.18,y=i<3?.12:.12;box(.28,.22,.36,'#2f6eb8',x,y,z);for(let k=0;k<3;k++){const f=new THREE.Mesh(new THREE.SphereGeometry(.05,6,4),sm('#c8d0d6'));f.scale.set(1,.5,2.2);f.position.set(x-.07+k*.07,y+.13,z);g.add(f)}}box(.34,.3,.4,'#3d6a8a',0,.4,.18);return true}
+    if(t.obj==='wall'){for(const x of[-.42,.42]){const a=box(.04,1.1,.04,'#4a3a2e',x,.5,0);a.rotation.z=x>0?.12:-.12}box(.9,.03,.03,'#4a3a2e',0,1.02,0);box(.9,.03,.03,'#4a3a2e',0,.65,0);for(let i=0;i<7;i++){const f=new THREE.Mesh(new THREE.SphereGeometry(.05,6,4),sm('#b8a88a'));f.scale.set(.6,2.2,.4);f.position.set(-.36+i*.12,(i%2?.52:.88),0);g.add(f)}return true}}
+  if(use==='clinic'){if(t.obj==='crate'){box(.8,.06,.4,'#9aa4ad',0,.4,0);for(const[x,z]of[[-.36,-.16],[.36,-.16],[-.36,.16],[.36,.16]])box(.03,.4,.03,'#7a848a',x,.2,z);box(.76,.08,.36,'#f4f4f0',0,.47,0);box(.4,.05,.37,'#c8321f',.15,.52,0);box(.18,.06,.3,'#ffffff',-.28,.53,0);
+      cyl(.012,.012,1.1,'#9aa4ad',.45,.55,.25,5);box(.1,.14,.03,'#bfe6ff',.45,1.05,.25);return true}
+    if(t.obj==='wall'){box(.5,.35,.4,'#f4f4f0',-.18,.18,0);box(.4,.3,.35,'#e9eef1',.25,.15,.05,.3);box(.24,.06,.01,'#c8321f',-.18,.25,.205);box(.06,.24,.01,'#c8321f',-.18,.25,.206);box(.45,.28,.36,'#f4f4f0',-.1,.49,0,.1);return true}}
+  if(use==='works'){if(t.obj==='crate'){for(let i=0;i<5;i++)cyl(.09,.09,.75,['#2f6e8a','#c8321f','#4f6b3a','#e3c25a','#2f6e8a'][i],-.24+(i%3)*.24,.38,i<3?-.15:.15,10);box(.8,.05,.05,'#3a3a3a',0,.6,-.28);return true}
+    if(t.obj==='wall'){box(.9,.06,.5,'#5a5d60',0,.48,0);for(const x of[-.4,.4])for(const z of[-.2,.2])box(.05,.45,.05,'#3a3d40',x,.23,z);box(.15,.12,.12,'#2b2b2b',.3,.57,0);box(.3,.1,.2,'#8a8f94',-.2,.56,.05);const sp=new THREE.Mesh(new THREE.SphereGeometry(.04,6,4),new THREE.MeshBasicMaterial({color:0xffd27a}));sp.position.set(.3,.66,0);g.add(sp);return true}}
+  if(use==='bar'&&t.obj==='wall'){cyl(.32,.32,.05,'#7a5331',0,.5,0,14);cyl(.05,.08,.5,'#3a3a3a',0,.25,0,8);for(const[x,z]of[[-.38,0],[.38,0],[0,.38]]){cyl(.1,.1,.04,'#c8321f',x,.32,z,10);cyl(.025,.025,.32,'#3a3a3a',x,.16,z,5)}
+    for(let i=0;i<3;i++)cyl(.025,.03,.14,['#4f8f3a','#8a5a2a','#d8d0b8'][i],-.1+i*.1,.6,.04,6);return true}
+  return false}

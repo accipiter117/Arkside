@@ -27,12 +27,13 @@ def rect(x, z, w, d, hv=None, ch=None):
         for xx in range(x, x + w):
             if hv is not None: h[zz][xx] = hv
             if ch is not None: m[zz][xx] = ch
-def bld(t, x, z, w, d, lv=0, face='s', doors=(), col=None, st=None, hs=None):
+def bld(t, x, z, w, d, lv=0, face='s', doors=(), col=None, st=None, hs=None, use=None):
     """Stamp a building's tiles and record it for the renderer."""
     b = dict(t=t, x=x, z=z, w=w, d=d, lv=lv, face=face)
     if doors: b['doors'] = [list(p) for p in doors]
     if col: b['col'] = col
     if st: b['st'] = st
+    if use: b['use'] = use
     BLD.append(b)
     if t in ('home', 'cantina', 'office', 'tower', 'bridge'):
         rect(x, z, w, d, lv, '.')
@@ -64,8 +65,8 @@ bld('office', 17, 3, 3, 3, lv=8, face='w')                              # port o
 ladder(17, 4)
 bld('stack', 20, 3, 4, 2, face='s', st=3)                               # tall stacks along the dock edge
 bld('tower', 22, 7, 1, 1, lv=6, face='s'); ladder(22, 7)              # watchtower
-bld('pump', 15, 8, 2, 2, face='w')
-bld('shack', 18, 7, 2, 2, face='w')
+bld('hall', 15, 7, 5, 3, face='w', use='fishery')                         # the fishery shed
+m[8][16] = 'C'; m[8][18] = 'C'; m[8][17] = 'w'
 m[2][3] = 'C'; m[2][9] = 'w'; m[2][14] = 'w'; m[2][15] = 'C'
 for x, z in ((9, 9), (14, 9), (21, 9), (5, 10), (2, 10)): m[z][x] = 'C'
 m[10][11] = 'w'; m[10][13] = 'w'
@@ -77,12 +78,13 @@ bld('deck', 5, 12, 1, 3, face='e', hs=[8, 6, 4])                         # plank
 bld('deck', 6, 14, 1, 1, face='e', hs=[2])
 bld('home', 6, 11, 3, 2, lv=4, face='s', col='#c98a2a')
 bld('cantina', 8, 14, 2, 2, lv=4, face='e')
-m[15][10] = 'C'
-bld('hall', 1, 16, 7, 5, face='e')                                       # the market hall (roofed)
-for x, z in ((3, 17), (5, 17), (3, 19), (5, 19)): m[z][x] = 'F'
-m[18][4] = 'w'
+bld('yard', 10, 14, 1, 3, use='bar')                                     # the bar terrace
+m[15][10] = 'w'; m[16][10] = 'w'
+bld('hall', 1, 16, 7, 5, face='e', use='market')                         # the market hall (roofed)
+for x, z in ((3, 17), (5, 17), (3, 19), (5, 19), (4, 18)): m[z][x] = 'w'
+m[18][2] = 'C'; m[18][6] = 'C'
 bld('shack', 9, 18, 2, 2, face='e')
-bld('warehouse', 15, 11, 7, 5, face='w', doors=((15, 13), (18, 15)))  # the workshop (roofed)
+bld('warehouse', 15, 11, 7, 5, face='w', doors=((15, 13), (18, 15)), use='works')  # the foundry works (roofed)
 m[12][17] = 'C'; m[13][19] = 'w'; m[12][20] = 'C'; m[14][17] = 'C'
 bld('stack', 22, 11, 2, 5, face='w', st=3)                              # the east skyline
 bld('deck', 13, 17, 1, 4, face='w', hs=[8, 6, 4, 2])                    # plank stairs up from the street
@@ -103,7 +105,8 @@ ladder(17, 23); ladder(7, 22); ladder(16, 22)                           # ladder
 bld('deck', 8, 24, 1, 3, face='s', hs=[6, 4, 2])                         # plank stairs up the west of the wall
 bld('stack', 0, 25, 2, 4, face='e', st=3)
 bld('shack', 3, 26, 3, 2, face='e')
-bld('shack', 18, 25, 3, 2, face='w')
+bld('hall', 18, 25, 4, 3, face='w', use='clinic')                       # the clinic tent
+m[26][19] = 'C'; m[26][20] = 'C'; m[25][20] = 'w'
 bld('pump', 6, 29, 2, 1, face='n')
 bld('tank', 20, 28, 2, 2, face='n')
 bld('home', 16, 29, 3, 2, lv=4, face='n', col='#4f6b3a'); ladder(15, 30)
@@ -124,11 +127,11 @@ STAGES = [
   dict(front=21, name='Escort the bot', objectives=[dict(type='escort', path=PATH, hp=360)], spawns=[[10, 24], [11, 24], [12, 24], [13, 24]], addTurns=9,
        enemies=[['marksman', 2, 12], ['marksman', 20, 18], ['trooper', 9, 12], ['trooper', 17, 13], ['heavy', 12, 11], ['medic', 4, 17], ['infiltrator', 15, 18], ['engineer', 13, 14]], reinf=[[3, [['trooper', 3, 10], ['trooper', 20, 10]]], [5, [['heavy', 12, 9]]]]),
   dict(front=10, name='Take the docks', objectives=[dict(type='repair', label='Repair the crane', targets=[[12, 4]], need=5), dict(type='extract')], spawns=[[11, 13], [12, 13], [11, 12], [12, 12]], addTurns=10,
-       enemies=[['trooper', 9, 7], ['trooper', 15, 7], ['heavy', 12, 5], ['marksman', 18, 4], ['marksman', 22, 7], ['medic', 13, 3], ['infiltrator', 4, 6], ['engineer', 10, 4]], reinf=[[2, [['trooper', 17, 1], ['trooper', 21, 1]]], [4, [['heavy', 20, 1]]]]),
+       enemies=[['trooper', 9, 7], ['trooper', 16, 9], ['heavy', 12, 5], ['marksman', 18, 4], ['marksman', 22, 7], ['medic', 13, 3], ['infiltrator', 4, 6], ['engineer', 10, 4]], reinf=[[2, [['trooper', 17, 1], ['trooper', 21, 1]]], [4, [['heavy', 20, 1]]]]),
 ]
 SECONDARIES = [dict(id='door', type='hack', stage=0, targets=[[20, 23]], need=2, label='Hack the side door'),
                dict(id='mg', type='mg', stage=1, targets=[[12, 18]], need=2, label='Build an MG nest')]
-POINTS = [dict(type='supply', x=23, z=31), dict(type='supply', x=0, z=21), dict(type='supply', x=16, z=7)]
+POINTS = [dict(type='supply', x=23, z=31), dict(type='supply', x=0, z=21), dict(type='supply', x=16, z=10)]
 TRAPS = [dict(type='crane', x=15, z=6, area=[[11, 8], [12, 8], [11, 9], [12, 9]], crate=[11, 8]),
          dict(type='barrels', x=8, z=25), dict(type='barrels', x=15, z=24), dict(type='steam', x=14, z=16, line=[[13, 17], [13, 18], [12, 19]]),
          dict(type='fuel', x=9, z=10, area=[[8, 10], [7, 10], [8, 9], [7, 9]])]

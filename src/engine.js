@@ -518,7 +518,7 @@ function tileMesh_(t){const p=W(t.x,t.z),hgt=topY(t)+.45;let topTex,topCol,sideT
 function objMesh(t){return inTheme(t,()=>objMesh_(t))}
 function objMesh_(t){const p=W(t.x,t.z),y=topY(t),g=new THREE.Group();g.position.set(p.x,y,p.z);const theme=TH===THEMES.founders?'f':TH===THEMES.industrial?'i':'c';
   const box=(w,h,d,mat,yy,x=0,z=0)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,yy,z);g.add(m);return m};
-  if(t.obj==='crate'||t.obj==='wall'||t.obj==='sheet')envCover(t,g,theme);
+  if((t.obj==='crate'||t.obj==='wall'||t.obj==='sheet')&&!(t.bld&&typeof bldProp==='function'&&bldProp(t,g)))envCover(t,g,theme);
   if(t.obj==='gate'){box(.98,1.6,.5,lamT('#3a3f45','side'),.8);box(1,.12,.52,lamT('#ffffff','hazard'),1.45);box(1,.12,.52,lamT('#ffffff','hazard'),.15);for(const x of[-.3,0,.3])box(.06,1.3,.52,lamT('#5a6066'),.8,x,0)}
   if(t.obj==='door'){box(.98,1.5,.5,lamT(pickC(CONT_COLS,t,11),'corr'),.75);box(.5,1.1,.04,lamT('#2a2d31'),.6,0,.27);const lt=new THREE.Mesh(new THREE.BoxGeometry(.12,.08,.04),new THREE.MeshBasicMaterial({color:0x38e0ff}));lt.position.set(.18,.85,.29);g.add(lt)}
   if(t.obj==='scaffold'){for(const x of[-.4,.4])for(const z of[-.4,.4]){const pp=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.9,6),lamT('#c9a046'));pp.position.set(x,.45,z);g.add(pp)}box(.9,.05,.9,lamT('#b98e5c','wood'),.5);box(.9,.05,.2,lamT('#e0a020'),.02,0,.4)}

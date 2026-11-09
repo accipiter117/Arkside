@@ -34,7 +34,7 @@ let showLay=false;
 function bar(){const m=MP();ui.innerHTML=`<div class="bar row"><b class="t">${m.title}</b><span class="v">v${m.version}</span>
   ${BUILDER_MAPS.length>1?`<select id="mbmap">${BUILDER_MAPS.map((x,i)=>`<option value="${i}"${i===mi?' selected':''}>${x.title} v${x.version}</option>`).join('')}</select>`:''}
   <button data-v="plan" aria-pressed="${view==='plan'}">Plan</button><button data-v="3d" aria-pressed="${view==='3d'}">3D</button>
-  <button id="mblay" aria-pressed="${showLay}">Layers</button><button id="mbchg" aria-pressed="${showChg}">What changed</button></div>
+  <button id="mbroof" aria-pressed="${!!window.ROOFS_LIFTED}">Lift roofs</button><button id="mblay" aria-pressed="${showLay}">Layers</button><button id="mbchg" aria-pressed="${showChg}">What changed</button></div>
   <div class="panel"${showLay?'':' hidden'}><button data-o="heights" aria-pressed="${ov.heights}">Heights</button><button data-o="routes" aria-pressed="${ov.routes}">Routes</button><button data-o="stages" aria-pressed="${ov.stages}">Stages</button><button data-o="objectives" aria-pressed="${ov.objectives}">Objectives</button>
   <select id="mbreach"><option value="off">Reach: off</option>${['light','medium','heavy'].map(b=>`<option value="${b}"${ov.reach===b?' selected':''}>Reach: ${b}</option>`).join('')}</select>
   <select id="mbstage">${(m.data.stages||[{name:'Map'}]).map((s,i)=>`<option value="${i}"${i===stageSel?' selected':''}>Stage ${i+1}: ${s.name}</option>`).join('')}</select>
@@ -42,7 +42,7 @@ function bar(){const m=MP();ui.innerHTML=`<div class="bar row"><b class="t">${m.
   <div class="chg"${showChg?'':' hidden'}><b>Version ${m.version}</b> · ${m.data.map[0].length} × ${m.data.map.length} tiles. Tap a tile in Plan for its name.<ul>${m.changes.map(c=>`<li>${c}</li>`).join('')}</ul></div>`;
   ui.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{view=b.dataset.v;apply()});
   ui.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{ov[b.dataset.o]=!ov[b.dataset.o];apply()});
-  ui.querySelector('#mbchg').onclick=()=>{showChg=!showChg;showLay=false;bar();pv.fit=true;draw()};ui.querySelector('#mblay').onclick=()=>{showLay=!showLay;showChg=false;bar();pv.fit=true;draw()};
+  ui.querySelector('#mbroof').onclick=()=>{window.ROOFS_LIFTED=!window.ROOFS_LIFTED;bar()};ui.querySelector('#mbchg').onclick=()=>{showChg=!showChg;showLay=false;bar();pv.fit=true;draw()};ui.querySelector('#mblay').onclick=()=>{showLay=!showLay;showChg=false;bar();pv.fit=true;draw()};
   ui.querySelector('#mbreach').onchange=e=>{ov.reach=e.target.value;apply()};ui.querySelector('#mbstage').onchange=e=>{stageSel=+e.target.value;apply()};
   const sm=ui.querySelector('#mbmap');if(sm)sm.onchange=e=>{mi=+e.target.value;stageSel=0;load()}}
 function apply(){bar();plan.hidden=view!=='plan';draw();marks3d()}
@@ -75,10 +75,10 @@ function draw(){if(view!=='plan'||!G)return;const dpr=Math.min(2,devicePixelRati
     if(t.exit){g2.fillStyle='#5fae7a';g2.fillRect(X(t.x)+s*.2,Y(t.z)+s*.2,s*.6,s*.6)}if(t.item){g2.fillStyle='#7dffd0';g2.beginPath();g2.arc(X(t.x)+s/2,Y(t.z)+s/2,s*.25,0,7);g2.fill()}}
   if(ov.routes)for(const zp of S.zips||[]){g2.strokeStyle='#7fe8ff';g2.lineWidth=2;g2.setLineDash([4,3]);g2.beginPath();g2.moveTo(X(zp.x1)+s/2,Y(zp.z1)+s/2);g2.lineTo(X(zp.x2)+s/2,Y(zp.z2)+s/2);g2.stroke();g2.setLineDash([])}
   // buildings: outline and name; tunnels: purple dashed links between manholes
-  const BN={home:'Container homes',cantina:'Cantina',office:'Port office',tower:'Watchtower',bridge:'Rope bridge',shack:'Shack',pump:'Pump house',tank:'Water tower',hall:'Market hall',warehouse:'Warehouse'};
-  for(const b of (typeof BLD!=='undefined'?BLD:[])){g2.strokeStyle=b.t==='bridge'?'#c9a46a':'#1b2226';g2.lineWidth=b.t==='bridge'?2:2.5;g2.strokeRect(X(b.x)+1,Y(b.z)+1,b.w*s-2,b.d*s-2);
+  const BN={yard:'',home:'Container homes',cantina:'Cantina',office:'Port office',tower:'Watchtower',bridge:'Rope bridge',shack:'Shack',pump:'Pump house',tank:'Water tower',hall:'Market hall',warehouse:'Warehouse'};
+  for(const b of (typeof BLD!=='undefined'?BLD:[])){g2.strokeStyle=b.t==='bridge'?'#c9a46a':b.t==='yard'?'#8a6a3a':'#1b2226';g2.lineWidth=b.t==='bridge'?2:2.5;g2.strokeRect(X(b.x)+1,Y(b.z)+1,b.w*s-2,b.d*s-2);
     if(b.t==='hall'||b.t==='warehouse'){g2.fillStyle='rgba(40,50,60,.12)';g2.fillRect(X(b.x),Y(b.z),b.w*s,b.d*s)}
-    if(s*b.w>=40){g2.fillStyle='#1b2226';g2.font=`bold ${Math.max(9,Math.round(s*.38))}px Barlow`;g2.fillText(BN[b.t]||b.t,X(b.x)+3,Y(b.z+b.d)-4)}}
+    if(s*b.w>=40){g2.fillStyle='#1b2226';g2.font=`bold ${Math.max(9,Math.round(s*.38))}px Barlow`;g2.fillText(({market:'Market',fishery:'Fishery',clinic:'Clinic',works:'Foundry works',bar:'Bar terrace'})[b.use]||BN[b.t]||b.t,X(b.x)+3,Y(b.z+b.d)-4)}}
   for(const tn of S.tunnels||[]){g2.strokeStyle='#b08aff';g2.lineWidth=2.5;g2.setLineDash([3,4]);g2.beginPath();g2.moveTo(X(tn.x1)+s/2,Y(tn.z1)+s/2);g2.lineTo(X(tn.x2)+s/2,Y(tn.z2)+s/2);g2.stroke();g2.setLineDash([]);
     for(const[x,z]of[[tn.x1,tn.z1],[tn.x2,tn.z2]]){g2.fillStyle='#3a2a5a';g2.beginPath();g2.arc(X(x)+s/2,Y(z)+s/2,s*.3,0,7);g2.fill();g2.strokeStyle='#b08aff';g2.lineWidth=2;g2.stroke()}}
   const R=reachSet();if(R)for(const[k,d]of R){const[x,z]=k.split(',').map(Number);g2.fillStyle=d.turn===1?'rgba(63,191,106,.42)':d.turn===2?'rgba(224,176,58,.38)':'rgba(224,122,58,.3)';g2.fillRect(X(x)+1,Y(z)+1,s-2,s-2)}
@@ -98,7 +98,7 @@ cv.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.
 cv.addEventListener('pointerup',e=>{pts.delete(e.pointerId);if(pdrag&&!pdrag.moved){const x=Math.floor((e.clientX-pv.ox)/pv.s),z=Math.floor((e.clientY-pv.oy)/pv.s);if(x>=0&&z>=0&&x<NX&&z<NZ){const t=G[z][x];const bits=[`<b>${cName(x,z)}</b>`,t.type==='water'?'water':t.type==='gap'?'gap':t.type==='ramp'?'stairs':`level ${t.h}`];if(t.obj)bits.push({bldg:'building (full cover, blocks sight)',crate:'crate (full cover)',wall:'barricade (half cover)',sheet:'sheet wall (full cover, heavies charge through)',pillar:'pillar (full cover)',term:'objective',gate:'gate',door:'door',scaffold:'scaffold',rail:'vault rail',pt:'trap or point'}[t.obj]||t.obj);if(t.ladder)bits.push('ladder');if(t.step)bits.push('climb step');if(t.pass)bits.push(t.pass==='light'?'crawl vent':'narrow gap');if(t.bld)bits.push({home:'container homes',cantina:'cantina',office:'port office',tower:'watchtower',bridge:'rope bridge',shack:'shack',pump:'pump house',tank:'water tower',hall:'market hall (roofed)',warehouse:'warehouse (roofed)'}[t.bld.t]);if(t.tunnel)bits.push('drain tunnel entrance');tip.innerHTML=bits.join(' · ');tip.hidden=false}else tip.hidden=true}if(pts.size<2)pinch=null;pdrag=null});
 cv.addEventListener('wheel',e=>{e.preventDefault();const k=e.deltaY>0?.9:1.1,ns=Math.max(6,Math.min(80,pv.s*k));pv.fit=false;pv.ox=e.clientX-(e.clientX-pv.ox)*ns/pv.s;pv.oy=e.clientY-(e.clientY-pv.oy)*ns/pv.s;pv.s=ns;draw()},{passive:false});
 addEventListener('resize',()=>{pv.fit=true;draw()});
-window.BUILDER={load:i=>{mi=i;load()},view:v=>{view=v;apply()},set:(k,v)=>{ov[k]=v;apply()},stage:i=>{stageSel=i;apply()}};
+window.BUILDER={roofs:v=>{window.ROOFS_LIFTED=v;bar()},load:i=>{mi=i;load()},view:v=>{view=v;apply()},set:(k,v)=>{ov[k]=v;apply()},stage:i=>{stageSel=i;apply()}};
 const go=()=>{if(typeof RIG!=='undefined'&&RIG.ready)RIG.ready.then(()=>{load();window.BUILDER_READY=true});else{load();window.BUILDER_READY=true}};
 if(document.readyState==='complete')setTimeout(go,300);else addEventListener('load',()=>setTimeout(go,300));
 })();
