@@ -68,3 +68,5 @@ from tidewater import TIDEWATER
 L['x4'] = TIDEWATER
 from foundry import INDUSTRIAL
 L['x5'] = INDUSTRIAL
+from container2 import CONTAINER2
+L['x1v2'] = CONTAINER2

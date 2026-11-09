@@ -105,11 +105,28 @@ def build(template, out, subs):
     print(f"wrote {out.relative_to(ROOT)} ({out.stat().st_size // 1024} KB)")
 
 
+def build_builder(subs):
+    """lab/map-builder.html: the game page plus the review layer and the maps
+    under review (tools/maps/builder_maps.json, written by tools/maps/builder.py)."""
+    data = ROOT / "tools" / "maps" / "builder_maps.json"
+    if not data.exists():
+        return
+    tmp = ROOT / "lab" / ".map-builder.template.html"
+    html = (SRC / "index.template.html").read_text(encoding="utf-8")
+    html = html.replace("<title>Arkside</title>", "<title>Map builder</title>", 1)
+    inject = "<script>const BUILDER_MAPS=" + data.read_text(encoding="utf-8").strip() + ";\n" + (SRC / "lab" / "map-builder.js").read_text(encoding="utf-8") + "\n</script>\n</body>"
+    html = html.replace("</body>", inject, 1)
+    tmp.write_text(html, encoding="utf-8")
+    build(tmp, ROOT / "lab" / "map-builder.html", subs)
+    tmp.unlink()
+
+
 def main():
     subs = {"/*__GLB__*/": glb_script, "//__MUSIC__": audio_script}
     for template, out in PAGES:
         if template.exists():
             build(template, out, subs)
+    build_builder(subs)
 
 
 if __name__ == "__main__":
