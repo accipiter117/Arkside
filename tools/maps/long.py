@@ -72,3 +72,5 @@ from container2 import CONTAINER2
 L['x1_old'] = L['x1']   # the 12 x 34 original, kept for reference
 L['x1'] = CONTAINER2    # Container City at 24 x 32 with buildings (live since update 21)
 del L['x1_old']
+from breakout2 import BREAKOUT2
+L['x2v2'] = BREAKOUT2
