@@ -8,6 +8,7 @@ from container2 import CONTAINER2
 from breakout2 import BREAKOUT2
 from terminal2 import TERMINAL2
 from tidewater2 import TIDEWATER2
+from foundry2 import FOUNDRY2
 
 MAPS = [
   dict(id='x2v2', title='Breakout', version=1, theme='founders', time='dusk', data=dict(BREAKOUT2, title='Breakout', long=True, xp=180),
@@ -25,6 +26,11 @@ MAPS = [
                 'Stage 1, the rooftops: container-home roofs one and two storeys high over flooded alleys one tile wide (lights and mediums jump them, everyone can cross the rope bridges and plank boardwalks). The spotter relay is on the tall mast roof in the middle; plank stairs lead down into the market.',
                 'Stage 2, the drowned market: two flooded canals across the map with plank bridges, a channel up the west side, the market hall on the dry square, the pump house in the west (restart the drainage pump), a noodle stand, a cantina with a bar terrace and stall roofs. The floodgate panel can flood the bridges.',
                 'Stage 3, the docks: the fishery shed, the floodgate store with the key, two-storey dock homes and a stack, a watchtower and the radio shack, three piers with boats, a crane over the dock road, and a hull off the shore.']),
+  dict(id='x5v2', title='Service Lift', version=1, theme='industrial', time='day', data=dict(FOUNDRY2, title='Service Lift', long=True, xp=200, civ=4),
+       changes=['New size: 24 wide by 32 deep (was 12 by 36). The industrial decks in the south and middle, the Founders\' atrium in the north (rows 1 to 10), on one map.',
+                'Stage 1, the foundry floor: escort the bot up the conveyor road (column M). West: the refinery and the furnace works with its smokestack. East: silos and the foundry control room with steel stairs and a winch. A steel catwalk over the west road; conveyor rails to vault.',
+                'Stage 2, the gantries: the casting pit across the map, crossed by a gantry walkway at level 1 with side walkways and spurs, marked gaps for mediums, a deployable bridge (G20) and a gantry charge that drops the west walkway. Repair the cargo lift controls at the north edge, between two booths with winches.',
+                'Stage 3, the atrium: through the cargo lift doors in a bulkhead of pipe racks (a duct in the west for lights, a service gap in the east), into the glass-roofed Founders\' atrium with planters and benches, white balconies either side with stairs, tower blocks in the corners and the broadcast gallery with the core at the north.']),
   dict(id='x1v2', title='Container City Push', version=6, theme='container', time='day', data=dict(CONTAINER2, title='Container City Push', long=True, xp=160),
        changes=['Two new ways to move (both used by the enemy AI too):',
                 'Vent crawlspaces, lights only: linked pairs of vent grates (teal in Plan). A light shrinks into one and pops out of the other for 1 move. Four pairs: outside the lab warehouse into it (G10 to E5), past the foundry wall into the works (O13 to T15), from the market lane up inside the stack onto the rooftop school (I21 to E14), and under the gate wall from the scrap yard (Q25 to Q22).',

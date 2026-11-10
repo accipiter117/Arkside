@@ -78,3 +78,5 @@ from terminal2 import TERMINAL2
 L['x3v2'] = TERMINAL2
 from tidewater2 import TIDEWATER2
 L['x4v2'] = TIDEWATER2
+from foundry2 import FOUNDRY2
+L['x5v2'] = FOUNDRY2
