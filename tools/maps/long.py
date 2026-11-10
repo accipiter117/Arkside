@@ -76,3 +76,5 @@ from breakout2 import BREAKOUT2
 L['x2v2'] = BREAKOUT2
 from terminal2 import TERMINAL2
 L['x3v2'] = TERMINAL2
+from tidewater2 import TIDEWATER2
+L['x4v2'] = TIDEWATER2

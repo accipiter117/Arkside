@@ -7,6 +7,7 @@ HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 from container2 import CONTAINER2
 from breakout2 import BREAKOUT2
 from terminal2 import TERMINAL2
+from tidewater2 import TIDEWATER2
 
 MAPS = [
   dict(id='x2v2', title='Breakout', version=1, theme='founders', time='dusk', data=dict(BREAKOUT2, title='Breakout', long=True, xp=180),
@@ -19,6 +20,11 @@ MAPS = [
                 'Stage 1, the concourse: a glass-roofed concourse with the mainframe in the middle (hack it to lift the shutters), ticket desks, vending machines and benches; tall control rooms either side with ladders; a bulkhead of pipe racks with the shutters, a crawl vent (west) and a side door (east).',
                 'Stage 2, the vault: the baggage hall with carousels and luggage piles (three doors), the vault with the safe and the data key (doors south and north), a booth with a winch, silos and the refinery to the east. A vent from the concourse into the baggage hall.',
                 'Stage 3, the platform: the monorail car waiting at a raised platform with ticket barriers to vault, the staff canteen, the control tower with steel stairs and a winch. Drain tunnels from the street to the baggage hall and to the platform.']),
+  dict(id='x4v2', title='Tidewater Run', version=1, theme='container', time='overcast', data=dict(TIDEWATER2, title='Tidewater Run', long=True, xp=190, civ=6),
+       changes=['New size: 24 wide by 32 deep (was 12 by 36), in the flooded shanty district with the Container City kit.',
+                'Stage 1, the rooftops: container-home roofs one and two storeys high over flooded alleys one tile wide (lights and mediums jump them, everyone can cross the rope bridges and plank boardwalks). The spotter relay is on the tall mast roof in the middle; plank stairs lead down into the market.',
+                'Stage 2, the drowned market: two flooded canals across the map with plank bridges, a channel up the west side, the market hall on the dry square, the pump house in the west (restart the drainage pump), a noodle stand, a cantina with a bar terrace and stall roofs. The floodgate panel can flood the bridges.',
+                'Stage 3, the docks: the fishery shed, the floodgate store with the key, two-storey dock homes and a stack, a watchtower and the radio shack, three piers with boats, a crane over the dock road, and a hull off the shore.']),
   dict(id='x1v2', title='Container City Push', version=6, theme='container', time='day', data=dict(CONTAINER2, title='Container City Push', long=True, xp=160),
        changes=['Two new ways to move (both used by the enemy AI too):',
                 'Vent crawlspaces, lights only: linked pairs of vent grates (teal in Plan). A light shrinks into one and pops out of the other for 1 move. Four pairs: outside the lab warehouse into it (G10 to E5), past the foundry wall into the works (O13 to T15), from the market lane up inside the stack onto the rooftop school (I21 to E14), and under the gate wall from the scrap yard (Q25 to Q22).',
