@@ -80,3 +80,5 @@ from tidewater2 import TIDEWATER2
 L['x4v2'] = TIDEWATER2
 from foundry2 import FOUNDRY2
 L['x5v2'] = FOUNDRY2
+from control2 import CONTROL2
+L['c1v2'] = CONTROL2
