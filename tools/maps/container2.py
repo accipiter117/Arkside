@@ -149,7 +149,7 @@ POINTS = [dict(type='supply', x=23, z=31), dict(type='supply', x=0, z=21), dict(
 TRAPS = [dict(type='crane', x=15, z=6, area=[[11, 8], [12, 8], [11, 9], [12, 9]], crate=[11, 8]),
          dict(type='barrels', x=8, z=25), dict(type='barrels', x=15, z=24), dict(type='steam', x=14, z=16, line=[[13, 17], [13, 18], [12, 19]]),
          dict(type='fuel', x=9, z=10, area=[[8, 10], [7, 10], [8, 9], [7, 9]])]
-CONTAINER2 = dict(h=H_ROWS, m=M_ROWS, feat=F_ROWS, zips=ZIPS, tunnels=TUNNELS, vents=VENTS, winches=WINCHES, bld=BLD, extras=EXTRAS, stages=STAGES, secondaries=SECONDARIES, points=POINTS, traps=TRAPS, turns=10)
+CONTAINER2 = dict(h=H_ROWS, m=M_ROWS, feat=F_ROWS, zips=ZIPS, tunnels=TUNNELS, vents=VENTS, winches=WINCHES, bld=BLD, extras=EXTRAS, stages=STAGES, secondaries=SECONDARIES, points=POINTS, traps=TRAPS, turns=11)
 
 if __name__ == '__main__':
     for z in range(H): print(f'{z:2} {H_ROWS[z]}  {M_ROWS[z]}  {F_ROWS[z]}')

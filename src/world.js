@@ -470,6 +470,13 @@ function bldBuildAll(){if(!scene)return;const T=bldTex(),lit=!!TM.lamps,lo=!HI()
     const rope=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,yb+.82-ya-.1,5),sm('#c9b48c'));rope.position.set(pb.x+dx*.72,(yb+.82+ya+.1)/2,pb.z+dz*.72);wg.add(rope);const loop=new THREE.Mesh(new THREE.TorusGeometry(.09,.02,6,12),sm('#c8321f'));loop.position.set(pb.x+dx*.72,ya+.12,pb.z+dz*.72);wg.add(loop);
     const crank=new THREE.Mesh(new THREE.BoxGeometry(.3,.22,.22),D2);crank.position.set(pb.x-dx*.1,yb+.11,pb.z-dz*.1);wg.add(crank);const drum=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.26,10),Y2);drum.rotation.set(dz?0:Math.PI/2,0,dz?Math.PI/2:0);drum.position.set(pb.x-dx*.1,yb+.27,pb.z-dz*.1);wg.add(drum);
     const tag=new THREE.Mesh(new THREE.PlaneGeometry(.4,.4),new THREE.MeshBasicMaterial({color:0xffd23a,transparent:true,opacity:.5,depthWrite:false}));tag.rotation.x=-Math.PI/2;tag.position.set(pa.x,ya+.02,pa.z);wg.add(tag);wg.traverse(o=>{if(o.isMesh)o.castShadow=HI()});scene.add(wg)}
+  {const stat=new THREE.Group();
+  // pits under gap tiles: dark shaft walls, and molten metal glowing at the bottom on the industrial decks
+  {const shaft=sm('#2a2d31','side'),molten=new THREE.MeshBasicMaterial({color:0xff7a2a}),deep=new THREE.MeshBasicMaterial({color:0x0b1418});let anyMolten=false;
+   for(const row of G)for(const t of row){if(t.type!=='gap')continue;const p=W(t.x,t.z),ind=tileTheme(t)==='industrial';const base=new THREE.Mesh(new THREE.BoxGeometry(1,.05,1),ind?molten:deep);base.position.set(p.x,-.27,p.z);stat.add(base);if(ind)anyMolten=true;
+     for(const[dx,dz]of D4){const n=tileAt(t.x+dx,t.z+dz);if(n&&n.type==='gap')continue;const hh2=.3+topY(n||t);const wl=new THREE.Mesh(new THREE.BoxGeometry(dx?.04:1,hh2,dz?.04:1),shaft);wl.position.set(p.x+dx*.5,-.3+hh2/2,p.z+dz*.5);stat.add(wl)}}
+   if(anyMolten&&!lo){const gl=new THREE.PointLight(0xff7a2a,.6,8,2);let n=0,cx=0,cz=0;for(const row of G)for(const t of row)if(t.type==='gap'&&tileTheme(t)==='industrial'){const p=W(t.x,t.z);cx+=p.x;cz+=p.z;n++}gl.position.set(cx/n,-.4,cz/n);scene.add(gl)}}
+  worldBake(stat,false)}
   // tunnel mouths: manhole rims with a dark hole
   for(const tn of S.tunnels||[])for(const[x,z]of[[tn.x1,tn.z1],[tn.x2,tn.z2]]){const t=G[z][x],p=W(x,z);const rim=new THREE.Mesh(new THREE.TorusGeometry(.26,.05,6,16),sm('#3a3d40'));rim.rotation.x=Math.PI/2;rim.position.set(p.x,topY(t)+.03,p.z);scene.add(rim);
     const hole=new THREE.Mesh(new THREE.CircleGeometry(.24,16),new THREE.MeshBasicMaterial({color:0x07090b}));hole.rotation.x=-Math.PI/2;hole.position.set(p.x,topY(t)+.025,p.z);scene.add(hole);
@@ -480,6 +487,22 @@ function bldBuildAll(){if(!scene)return;const T=bldTex(),lit=!!TM.lamps,lo=!HI()
       if(!inside&&sel)for(let z=b.z+1;z<b.z+b.d-1&&!inside;z++)for(let x=b.x+1;x<b.x+b.w-1;x++)if(sel.d.has(key(x,z))){inside=true;break}
       const tgt=inside?.12:1;for(const o of b.roofMeshes||[]){{o.material.opacity+=(tgt-o.material.opacity)*Math.min(1,dt*6);o.material.depthWrite=o.material.opacity>.9;o.visible=o.material.opacity>.05}}}})}
 
+// The corner bays of an open hall: a little lock-up of corrugated sheet walls
+// on a timber frame (white panels in the Founders' district, grey sheet with
+// a hazard band on the decks), topped just under the eaves so nothing pokes
+// through the roof. Same rules as any pillar: full cover, blocks sight.
+function bldPillar(t,g){const b=t.bld;if(!b||(b.t!=='hall'&&b.t!=='atrium'))return false;const R=rng(t.x*53+t.z*29),th=tileTheme(t),
+    hgt=2.1-topY(t)-.1,fr=sm(th==='founders'?'#e9eef1':th==='industrial'?'#3a3d40':'#4a3a2e'),
+    cols=th==='founders'?['#f2f5f7','#e6ebee']:th==='industrial'?['#8a8f94','#7d8388','#959a9e']:['#a4462c','#7d8a8f','#c98a2a','#3d5f7a','#8f7a5a','#6b7a5a'],
+    box=(w,h,d,m,x,y,z,rz=0)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.rotation.z=rz;g.add(o);return o};
+  // four sides, each two or three uneven panels of sheet
+  for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){let u=-.45;while(u<.44){const w=Math.min(.45-u,.28+R()*.2),c=cols[Math.floor(R()*cols.length)],m=sm(c,th==='founders'?'white':'corr'),hh=hgt-R()*.12,uc=u+w/2;
+      if(dx)box(.04,hh,w,m,dx*.44,hh/2,uc);else box(w,hh,.04,m,uc,hh/2,dz*.44);u+=w}}
+  for(const sx of[-.45,.45])for(const sz of[-.45,.45])box(.07,hgt+.02,.07,fr,sx,(hgt+.02)/2,sz);
+  box(.94,.05,.94,sm(th==='founders'?'#dfe4e7':'#5f6569',th==='founders'?null:'corr'),0,hgt,0);
+  const band=sm(th==='founders'?'#38b6e8':th==='industrial'?'#e2b21f':'#3a2c22');for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]])box(dx?.02:.92,.07,dz?.02:.92,band,dx*.465,.95,dz*.465);
+  if(th!=='founders'&&R()<.6){const pl=new THREE.Mesh(new THREE.PlaneGeometry(.28,.2),sm(['#c8321f','#d8a030','#f4f4f0'][Math.floor(R()*3)]));const s2=R()<.5?1:-1;pl.position.set(s2*.47,1.3,0);pl.rotation.y=s2*Math.PI/2;g.add(pl)}
+  return true}
 // Cover inside or beside a building with a job is drawn as that job's props:
 // market stalls and produce, fish crates and drying racks, clinic cots and
 // supply boxes, foundry gas bottles and workbenches, bar tables. Same cover

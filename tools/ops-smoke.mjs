@@ -3,7 +3,9 @@
 // overwatch, then the enemy and the escort bot move), and fail on any
 // console error. Saves shots/ops-<id>.png.
 //
-//   node tools/ops-smoke.mjs [--turns N] [--only x4,x5] [--faction resistance]
+//   node tools/ops-smoke.mjs [--turns N] [--only x4,x5] [--faction resistance] [--stage K]
+// --stage K jumps straight to stage K (0-based) before playing, moving the
+// squad to that stage's drop point, so later stages' spawns and AI get run.
 import path from 'node:path';
 import fs from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -14,6 +16,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2), ANIM = args.includes('--animated');
 const TURNS = +(args[args.indexOf('--turns') + 1] || 0) || 3;
 const ONLY = args.includes('--only') ? args[args.indexOf('--only') + 1].split(',') : null;
+const STAGE = args.includes('--stage') ? +args[args.indexOf('--stage') + 1] : 0;
 const FACTIONS = args.includes('--faction') ? [args[args.indexOf('--faction') + 1]] : ['resistance', 'security'];
 fs.mkdirSync(path.join(ROOT, 'shots'), {recursive: true});
 const {url, close} = await serve(ROOT);
@@ -37,7 +40,15 @@ try {
       await page.click('#deploy');
       await page.waitForFunction(() => ARKSIDE.units.length > 0, null, {timeout: 20000});
       await page.waitForTimeout(1200);
-      if (faction === 'resistance') await page.screenshot({path: path.join(ROOT, 'shots', `ops-${id}.png`)});
+      if (STAGE) await page.evaluate(async k => {
+        if (!M.stages || k >= M.stages.length) return;
+        ARKSIDE.S.objIdx = M.objectives.findIndex(o => o.stage === k); enterStage(k);
+        const sp = ARKSIDE.S.info.spawns; let i = 0;
+        for (const u of squad()) { const t = sp[i++ % sp.length]; if (!unitAt(t.x, t.z) || unitAt(t.x, t.z) === u) { u.x = t.x; u.z = t.z; place(u) } }
+        computeVis(); refresh();
+      }, STAGE);
+      await page.waitForTimeout(600);
+      if (faction === 'resistance') await page.screenshot({path: path.join(ROOT, 'shots', `ops-${id}${STAGE ? '-s' + STAGE : ''}.png`)});
       const res = await page.evaluate(async turns => {
         SPD = .2;
         for (let t = 0; t < turns && !ARKSIDE.S.over; t++) {

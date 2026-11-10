@@ -8,7 +8,7 @@
    rivals and militia work as in operations. Hooks in engine.js are
    marked "control". */
 const CTL_ROUND=10;
-function ctlZoneTiles(zn){const out=[];for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){const t=tileAt(zn.x+dx,zn.z+dz);if(t&&t.type!=='water'&&t.type!=='gap'&&!t.obj)out.push(t)}return out}
+function ctlZoneTiles(zn){const out=[],r=zn.r||1;for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){const t=tileAt(zn.x+dx,zn.z+dz);if(t&&t.type!=='water'&&t.type!=='gap'&&!t.obj)out.push(t)}return out}
 function ctlZone(){return M.zones[S.ctl.zi%M.zones.length]}
 function ctlNext(){return M.zones[(S.ctl.zi+1)%M.zones.length]}
 function ctlStart(m){if(!m.control)return;S.ctl={zi:0,left:m.zoneTurns||6,score:{p:0,e:0},warned:false,returns:[]};S.alerted=true;ctlDraw();log(`Control: hold ${ctlZone().name.toLowerCase()} alone at the end of a round for ${CTL_ROUND} points. First to ${M.win} wins.`)}
