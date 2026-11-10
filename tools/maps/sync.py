@@ -47,7 +47,9 @@ for mid, d in L.items():
     layers = dict(h=d['h'], map=d['m'], feat=d['feat'], zips=d.get('zips', []), points=d.get('points', []), traps=d.get('traps', []))
     if 'mat' in d: layers['mat'] = d['mat']
     if 'themeRows' in d: layers['themeRows'] = d['themeRows']
-    if 'stages' in d and mid in ('x4', 'x5'): layers['stages'] = d['stages']
+    if 'stages' in d and mid in ('x1', 'x4', 'x5'): layers['stages'] = d['stages']
+    for k in ('bld', 'tunnels', 'vents', 'winches', 'extras'):
+        if k in d: layers[k] = d[k]
     done = []
     for key, val in layers.items():
         block, ok = replace_key(block, key, val, quoted)
