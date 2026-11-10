@@ -16,6 +16,9 @@
    Shoulder charge (barricade,      No         No                     2 moves (Breacher 1):
      sheet wall)                                                      smashes it flat
    Crawl vent                       Yes        No                     No
+   Vent crawlspace (linked pair)    1 move     No                     No
+   Winch lift (foot to rooftop)     1 move     1 move                 No
+   Drain tunnel (linked manholes)   2 + 1 per 8 tiles, every build
 
    Map data (all optional, per mission or operation):
    - feat: rows of letters over the map, one per tile:
@@ -31,7 +34,10 @@
    the same as walking the tiles (a vault counts as one move). */
 
 // Read the feature layer onto the tiles (called from parseMap).
-function parseFeat(m){S.zips=(m.zips||[]).map(z=>({x1:z[0],z1:z[1],x2:z[2],z2:z[3]}));if(!m.feat)return;
+function parseFeat(m){S.zips=(m.zips||[]).map(z=>({x1:z[0],z1:z[1],x2:z[2],z2:z[3]}));
+  // vent crawlspaces (lights, either way) and winch lifts (lights and mediums, bottom to top)
+  S.vents=(m.vents||[]).map(a=>({x1:a[0],z1:a[1],x2:a[2],z2:a[3]}));S.winches=(m.winches||[]).map(a=>({x1:a[0],z1:a[1],x2:a[2],z2:a[3]}));
+  for(const v of S.vents)for(const[x,z]of[[v.x1,v.z1],[v.x2,v.z2]]){const t=G[z]&&G[z][x];if(t)t.vent=v}for(const w of S.winches){const a=G[w.z1]&&G[w.z1][w.x1],b=G[w.z2]&&G[w.z2][w.x2];if(a)a.winch=w;if(b)b.winchTop=w}if(!m.feat)return;
   for(let z=0;z<NZ;z++)for(let x=0;x<NX;x++){const c=(m.feat[z]||'')[x],t=G[z][x];if(!c||c==='.'||c===' ')continue;
     if(c==='L')t.ladder=true;else if(c==='s')t.step=true;else if(c==='r'){t.obj='rail'}else if(c==='_'||c==='='){t.type='gap';t.markedGap=c==='=';t.obj=null}}}
 
@@ -62,6 +68,12 @@ function moveLinks(u,x,z){const out=[],a=G[z][x];if(!freeRunner(u))return out;
     if(m.obj==='rail'&&Math.abs(m.h-a.h)<=.5&&Math.abs(dh)<=.5){if(u.body==='light')out.push([b.x,b.z,2,'vault']);else if(u.body==='medium')out.push([b.x,b.z,3,'vault'])}
     // gap jump (or across a one-tile water channel); a ledge grab lands up to one level higher or lower
     if((m.type==='gap'||(m.type==='water'&&M.channels&&!m.flood&&Math.abs(m.h-a.h)<=.5))&&Math.abs(dh)<=1){if(u.body==='light')out.push([b.x,b.z,2,'jump']);else if(u.body==='medium')out.push([b.x,b.z,(m.markedGap?2:3)+(dh>.5?1:0),'jump'])}}
+  // vent crawlspaces: lights only, 1 move, either way
+  if(u.body==='light')for(const v of S.vents||[]){let ex=null;if(v.x1===x&&v.z1===z)ex=[v.x2,v.z2];else if(v.x2===x&&v.z2===z)ex=[v.x1,v.z1];if(ex){const b=G[ex[1]][ex[0]];if(b&&!b.obj)out.push([ex[0],ex[1],1,'vent'])}}
+  // winch lifts: lights and mediums ride from the foot loop up onto the roof, 1 move
+  if(u.body!=='heavy')for(const w of S.winches||[])if(w.x1===x&&w.z1===z){const b=G[w.z2][w.x2];if(b&&!b.obj)out.push([w.x2,w.z2,1,'winch'])}
+  // drain tunnels: any build, either way, out of sight
+  for(const tn of S.tunnels||[]){let ex=null;if(tn.x1===x&&tn.z1===z)ex=[tn.x2,tn.z2];else if(tn.x2===x&&tn.z2===z)ex=[tn.x1,tn.z1];if(ex){const b=G[ex[1]][ex[0]];if(b&&!b.obj)out.push([ex[0],ex[1],2+Math.ceil((Math.abs(ex[0]-x)+Math.abs(ex[1]-z))/8),'tunnel'])}}
   if(u.body!=='heavy')for(const zp of S.zips||[])if(zp.x1===x&&zp.z1===z){const b=G[zp.z2][zp.x2];if(b&&!b.obj)out.push([zp.x2,zp.z2,1,'zip'])}
   return out}
 // Vault and gap costs above include the tile walked into (2 = one step plus
@@ -86,7 +98,7 @@ function mechTex(){if(MECH_TX)return MECH_TX;MECH_TX={};
   return MECH_TX}
 // Permanent chevrons on climbable edges, rails, gaps, vents and ziplines. Off since update 18 (too busy to look at);
 // the move preview still shows jump arcs and climb markers for the selected unit.
-const MECH_MARKS=false;
+let MECH_MARKS=false;
 function mechDecal(x,z,y,rot,sz=.7,tex='chev'){if(!MECH_MARKS)return null;const d=new THREE.Mesh(new THREE.PlaneGeometry(sz,sz),new THREE.MeshLambertMaterial({map:mechTex()[tex],transparent:true,depthWrite:false}));d.rotation.x=-Math.PI/2;d.rotation.z=rot;const p=W(x,z);d.position.set(p.x,y+.02,p.z);scene.add(d);return d}
 // Move preview mark on a barricade or sheet wall a heavy can charge through.
 function smashMark(t){const p=W(t.x,t.z),m=new THREE.Mesh(new THREE.PlaneGeometry(.5,.5),new THREE.MeshBasicMaterial({map:mechTex().smash,transparent:true,depthTest:false}));m.rotation.x=-Math.PI/2;m.position.set(p.x,topY(t)+(t.obj==='sheet'?1.45:.62),p.z);m.renderOrder=5;m.userData.tile=t;hl.add(m)}
@@ -118,7 +130,7 @@ function mechLadder(t){const p=W(t.x,t.z),lad=MECH_LAD||(MECH_LAD={stile:new THR
 function mechArcs(r){for(const[k,kind]of r.kind){const pk=r.prev.get(k);if(!pk)continue;const[ax,az]=pk.split(',').map(Number),[bx,bz]=k.split(',').map(Number);
   const a=W(ax,az),b=W(bx,bz);a.y=topY(G[az][ax])+.12;b.y=topY(G[bz][bx])+.12;const pts=[],H=kind==='zip'?-.2:.55;
   for(let i=0;i<=16;i++){const t=i/16,v=a.clone().lerp(b,t);v.y+=Math.sin(t*Math.PI)*H+(kind==='zip'?(1.4*(1-t)+1*t):0);pts.push(v)}
-  const g=new THREE.BufferGeometry().setFromPoints(pts),l=new THREE.Line(g,new THREE.LineDashedMaterial({color:kind==='zip'?0x7fe8ff:0xf3b33d,dashSize:.08,gapSize:.06}));l.computeLineDistances();hl.add(l)}}
+  if(kind==='tunnel'||kind==='vent'){for(const v of pts){v.y=Math.min(a.y,b.y)+.06}}if(kind==='winch'){for(let i=0;i<pts.length;i++){const t=i/(pts.length-1),v=pts[i];v.x=a.x+(b.x-a.x)*Math.max(0,t*2-1);v.z=a.z+(b.z-a.z)*Math.max(0,t*2-1);v.y=a.y+(b.y+.3-a.y)*Math.min(1,t*2)}}const g=new THREE.BufferGeometry().setFromPoints(pts),l=new THREE.Line(g,new THREE.LineDashedMaterial({color:kind==='zip'?0x7fe8ff:kind==='tunnel'?0xb08aff:kind==='vent'?0x5fe8c0:kind==='winch'?0xffd23a:0xf3b33d,dashSize:.08,gapSize:.06}));l.computeLineDistances();hl.add(l)}}
 
 /* ===================== Interactive points and traps =====================
    Map data (optional): points:[...] and traps:[...], each {type, x, z, ...}.

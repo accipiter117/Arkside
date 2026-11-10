@@ -169,3 +169,15 @@ Built in the Claude chat and already playable there. This brings the repo up to 
 - Every creator slot has a piece per faction: tee, tank, long sleeve, hoodie, jacket (closed officer coat or open duster); chest rig, plate carrier, riot plates or scrap armour; cargo, armoured or plain trousers; gloves; beanie, cap, bandana or headwrap, helmet, riot helmet, headset, goggles and a new Resistance **hood**; scarf or balaclava, respirator, shades, visor; and class kit on the back (soldier pack, medic pack and armband, engineer pack with tools, operative radio and wrist screen).
 - New rifles in faction finishes (Security matte black with an optic and a light; Resistance wood, tape and a rag). The other weapons are unchanged for now.
 - Civilians and disguised Operatives get no class kit or badge. In the game the close-fitting layers (suit, shirt, trousers, boots, gloves) are painted on the body and only pieces that stand proud are built, so a unit costs about the same as before (perf: 29,900 triangles per unit on High against 29,700, 15,300 on Low against 14,900, four or five more draw calls). The creator and portraits use a finer cut, the preview lab the finest. Shell geometry is shared between units with the same look.
+
+# Update 20: Container City rebuilt, buildings, tunnels, vents and winches
+
+- **Container City Push and Hold are rebuilt** at 24 wide by 32 deep (was 12 by 34), built in the new map builder (`lab/map-builder.html`). Same three stages: blow the gate, escort the bot up the main street, repair the crane and get the cache to the boats. One more turn at the start.
+- **Real buildings.** Container homes one and two storeys high with walkable roofs, tall solid container stacks along the edges, a cantina, a two-storey port office, a watchtower, shacks, pump houses, a water tower, a rope bridge between rooftops, and plank stairs and boardwalks on posts.
+- **Buildings with jobs**, whose props are the cover inside them: a market hall with stalls, a fishery shed, the foundry works with its smokestack, a clinic tent, a bar terrace, a noodle stand, a water distillery, a radio shack, a rooftop school, a shrine, chicken coops and rooftop gardens, and a scrap-sorting yard with a magnet crane. The roofed buildings (market, fishery, clinic, warehouses) fade their roofs while your squad is inside or can move inside.
+- **Life**: washing lines and cables with bulbs between the rooftops, chimney smoke, lit signs, tarps, a rusting hull and boats off the docks.
+- **New ways to move** (the enemy uses them too):
+  - **Drain tunnels**: linked manholes, any build, 2 moves plus 1 per 8 tiles, out of sight.
+  - **Vent crawlspaces**: linked grates, lights only, 1 move.
+  - **Winch lifts**: a rope and pulley up onto a roof, lights and mediums, 1 move.
+- New map tile `B` (building: full cover, blocks sight) and map data `bld`, `tunnels`, `vents`, `winches`, `extras`; Container City's source is `tools/maps/container2.py`.
