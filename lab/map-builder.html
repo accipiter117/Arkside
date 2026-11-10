@@ -359,7 +359,7 @@ body[data-faction="security"] .tape{display:none}
 #objPill small{display:block;font:700 10px 'Barlow Condensed',sans-serif;letter-spacing:1px;text-transform:uppercase;color:#b4bcc0}
 .hb{position:absolute;right:10px;width:40px;height:40px;border:0;border-radius:10px;background:var(--glass);color:#fff;display:grid;place-items:center;z-index:3;padding:0}
 .hb.round{border-radius:50%}.hb svg{width:20px;height:20px}
-#menuBtn{top:10px}#mapBtn{top:58px}#rotR{top:106px}
+#menuBtn{top:10px}#mapBtn{top:58px}#rotR{top:106px}#roofBtn{top:154px}#roofBtn[aria-pressed="true"]{background:var(--acc);color:var(--accInk)}
 .rail{position:absolute;left:8px;top:58px;display:grid;gap:12px;z-index:3}
 .ch{position:relative;width:46px;height:46px;border-radius:50%;border:0;padding:0;background:var(--glass)}
 .ch .ring{position:absolute;inset:-3px;border-radius:50%;background:conic-gradient(var(--c) calc(var(--hp)*1%),#0008 0);-webkit-mask:radial-gradient(circle,transparent 25px,#000 26px);mask:radial-gradient(circle,transparent 25px,#000 26px)}
@@ -455,6 +455,7 @@ body[data-faction="security"] .tape{display:none}
     <button type="button" id="menuBtn" class="hb round" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg></button>
     <button type="button" id="mapBtn" class="hb" aria-label="Minimap" data-tip="mini"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m15 5-6-2-6 2v16l6-2 6 2 6-2V3l-6 2Zm-1 13.7-4-1.3V5.3l4 1.3v12.1Z"/></svg></button>
     <button type="button" id="rotR" class="hb round" aria-label="Rotate camera"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7Z"/></svg></button>
+    <button type="button" id="roofBtn" class="hb round" aria-label="See through roofs" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 11 12 4l9 7"/><path fill="currentColor" d="M6 12h2v8H6zm10 0h2v8h-2zM9 18h6v2H9z"/></svg></button>
     <div id="roster" class="rail"></div>
     <div id="toasts" role="status" aria-live="polite"></div>
     <button type="button" id="undoBtn" class="glass" data-tip="undo" hidden>↶ Undo move</button>
@@ -2157,6 +2158,22 @@ function bldBuildAll(){if(!scene)return;const T=bldTex(),lit=!!TM.lamps,lo=!HI()
       if(!inside&&sel)for(let z=b.z+1;z<b.z+b.d-1&&!inside;z++)for(let x=b.x+1;x<b.x+b.w-1;x++)if(sel.d.has(key(x,z))){inside=true;break}
       const tgt=inside?.12:1;for(const o of b.roofMeshes||[]){{o.material.opacity+=(tgt-o.material.opacity)*Math.min(1,dt*6);o.material.depthWrite=o.material.opacity>.9;o.visible=o.material.opacity>.05}}}})}
 
+// The corner bays of an open hall: a little lock-up of corrugated sheet walls
+// on a timber frame (white panels in the Founders' district, grey sheet with
+// a hazard band on the decks), topped just under the eaves so nothing pokes
+// through the roof. Same rules as any pillar: full cover, blocks sight.
+function bldPillar(t,g){const b=t.bld;if(!b||(b.t!=='hall'&&b.t!=='atrium'))return false;const R=rng(t.x*53+t.z*29),th=tileTheme(t),
+    hgt=2.1-topY(t)-.1,fr=sm(th==='founders'?'#e9eef1':th==='industrial'?'#3a3d40':'#4a3a2e'),
+    cols=th==='founders'?['#f2f5f7','#e6ebee']:th==='industrial'?['#8a8f94','#7d8388','#959a9e']:['#a4462c','#7d8a8f','#c98a2a','#3d5f7a','#8f7a5a','#6b7a5a'],
+    box=(w,h,d,m,x,y,z,rz=0)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.rotation.z=rz;g.add(o);return o};
+  // four sides, each two or three uneven panels of sheet
+  for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){let u=-.45;while(u<.44){const w=Math.min(.45-u,.28+R()*.2),c=cols[Math.floor(R()*cols.length)],m=sm(c,th==='founders'?'white':'corr'),hh=hgt-R()*.12,uc=u+w/2;
+      if(dx)box(.04,hh,w,m,dx*.44,hh/2,uc);else box(w,hh,.04,m,uc,hh/2,dz*.44);u+=w}}
+  for(const sx of[-.45,.45])for(const sz of[-.45,.45])box(.07,hgt+.02,.07,fr,sx,(hgt+.02)/2,sz);
+  box(.94,.05,.94,sm(th==='founders'?'#dfe4e7':'#5f6569',th==='founders'?null:'corr'),0,hgt,0);
+  const band=sm(th==='founders'?'#38b6e8':th==='industrial'?'#e2b21f':'#3a2c22');for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]])box(dx?.02:.92,.07,dz?.02:.92,band,dx*.465,.95,dz*.465);
+  if(th!=='founders'&&R()<.6){const pl=new THREE.Mesh(new THREE.PlaneGeometry(.28,.2),sm(['#c8321f','#d8a030','#f4f4f0'][Math.floor(R()*3)]));const s2=R()<.5?1:-1;pl.position.set(s2*.47,1.3,0);pl.rotation.y=s2*Math.PI/2;g.add(pl)}
+  return true}
 // Cover inside or beside a building with a job is drawn as that job's props:
 // market stalls and produce, fish crates and drying racks, clinic cots and
 // supply boxes, foundry gas bottles and workbenches, bar tables. Same cover
@@ -3223,7 +3240,7 @@ function objMesh_(t){const p=W(t.x,t.z),y=topY(t),g=new THREE.Group();g.position
   if(t.obj==='gate'){box(.98,1.6,.5,lamT('#3a3f45','side'),.8);box(1,.12,.52,lamT('#ffffff','hazard'),1.45);box(1,.12,.52,lamT('#ffffff','hazard'),.15);for(const x of[-.3,0,.3])box(.06,1.3,.52,lamT('#5a6066'),.8,x,0)}
   if(t.obj==='door'){box(.98,1.5,.5,lamT(pickC(CONT_COLS,t,11),'corr'),.75);box(.5,1.1,.04,lamT('#2a2d31'),.6,0,.27);const lt=new THREE.Mesh(new THREE.BoxGeometry(.12,.08,.04),new THREE.MeshBasicMaterial({color:0x38e0ff}));lt.position.set(.18,.85,.29);g.add(lt)}
   if(t.obj==='scaffold'){for(const x of[-.4,.4])for(const z of[-.4,.4]){const pp=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.9,6),lamT('#c9a046'));pp.position.set(x,.45,z);g.add(pp)}box(.9,.05,.9,lamT('#b98e5c','wood'),.5);box(.9,.05,.2,lamT('#e0a020'),.02,0,.4)}
-  if(t.obj==='pillar'){
+  if(t.obj==='pillar'&&!(t.bld&&typeof bldPillar==='function'&&bldPillar(t,g))){
     if(theme==='c'){box(.92,.72,.92,lamT(pickC(CONT_COLS,t,6),'corr'),.36);box(.92,.72,.92,lamT(pickC(CONT_COLS,t,7),'corr'),1.1).rotation.y=Math.PI/2;
       const pole=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.9,6),lamT('#d8d8d8'));pole.position.set(.3,1.9,.3);g.add(pole);const tb=new THREE.Group();tb.position.set(.3,2.35,.38);for(let i=0;i<3;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(.05,.42,.02),lamT('#f0f0f0'));b.position.y=.2;const a=new THREE.Group();a.rotation.z=i*Math.PI*2/3;a.add(b);tb.add(a)}g.add(tb);ANIM.push(dt=>tb.rotation.z+=dt*3)}
     else if(theme==='f'){const c=new THREE.Mesh(new THREE.CylinderGeometry(.36,.42,1.3,20),lamT('#f4f6f7','white'));c.position.y=.65;g.add(c);const top=new THREE.Mesh(new THREE.SphereGeometry(.4,20,10,0,Math.PI*2,0,Math.PI/2),lamT('#bfe6ff'));top.position.y=1.3;g.add(top);const band=new THREE.Mesh(new THREE.CylinderGeometry(.385,.385,.06,20),lamT('#38b6e8'));band.position.y=1.05;g.add(band)}
@@ -3311,7 +3328,7 @@ function buildScene(info){
   const deck=new THREE.Mesh(new THREE.BoxGeometry(NX+.6,.5,NZ+.6),lamT('#4a4440','side'));deck.position.y=-.62;deck.receiveShadow=true;scene.add(deck);
   tileGroup=new THREE.Group();scene.add(tileGroup);
   for(const row of G)for(const t of row){if(t.type==='water'||t.type==='gap')continue;tileMesh(t);if(t.obj&&t.obj!=='rail'&&t.obj!=='pt')objMesh(t);if(t.cp)cpMesh(t);if(t.pass)passMesh(t);if(t.mg)mgSpot(t)}
-  dressWorld(theme);worldBuild(theme);if(typeof bldBuildAll==='function')bldBuildAll();mechBuild();mechModels();addLamps(theme);addBanners(theme);addBirds();PARTS=[];FXL=new THREE.PointLight(0xffb060,0,7,1.5);FXL.position.set(0,-5,0);scene.add(FXL);
+  dressWorld(theme);worldBuild(theme);if(typeof bldBuildAll==='function')bldBuildAll();{const rb=document.getElementById('roofBtn');if(rb){rb.hidden=!BLD.some(b=>b.roof);rb.setAttribute('aria-pressed',String(!!window.ROOFS_LIFTED))}}mechBuild();mechModels();addLamps(theme);addBanners(theme);addBirds();PARTS=[];FXL=new THREE.PointLight(0xffb060,0,7,1.5);FXL.position.set(0,-5,0);scene.add(FXL);
   if(info.item){const g=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,.36,12),new THREE.MeshBasicMaterial({color:0x7dffd0}));const p=W(info.item.x,info.item.z);g.position.set(p.x,topY(info.item)+.25,p.z);scene.add(g);S.itemMesh=g}
   selRing=new THREE.Mesh(new THREE.RingGeometry(.4,.5,32),new THREE.MeshBasicMaterial({color:0xffe2a0,side:THREE.DoubleSide,transparent:true,opacity:.9}));selRing.rotation.x=-Math.PI/2;selRing.visible=false;scene.add(selRing);
   hl=new THREE.Group();scene.add(hl)}
@@ -3859,6 +3876,7 @@ const setCtl=()=>{$('#spd').textContent='Speed: '+(SAVE.settings.fast?'Fast':'No
 $('#spd').onclick=()=>{SAVE.settings.fast=!SAVE.settings.fast;SPD=SAVE.settings.fast?.55:1;persist();setCtl()};
 $('#snd').onclick=()=>{SAVE.settings.sound=!SAVE.settings.sound;persist();setCtl();sfx('ui');playMusic(CUR.faction)};setCtl();
 $('#rotR').onclick=()=>rotateCam(1);
+$('#roofBtn').onclick=()=>{window.ROOFS_LIFTED=!window.ROOFS_LIFTED;$('#roofBtn').setAttribute('aria-pressed',String(!!window.ROOFS_LIFTED));toast(window.ROOFS_LIFTED?'Roofs see-through':'Roofs back on')};
 $('#menuBtn').onclick=()=>{$('#menuSheet').hidden=false;$('#logList').innerHTML=(S.logHist||[]).slice().reverse().map(t=>`<li>${esc(t)}</li>`).join('')||'<li>No messages yet.</li>'};
 $('#menuClose').onclick=()=>$('#menuSheet').hidden=true;$('#menuSheet').addEventListener('click',e=>{if(e.target.id==='menuSheet')$('#menuSheet').hidden=true});
 $('#objPill').onclick=()=>openSheet(S.sheet==='obj'?null:'obj');

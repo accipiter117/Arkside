@@ -523,7 +523,7 @@ function objMesh_(t){const p=W(t.x,t.z),y=topY(t),g=new THREE.Group();g.position
   if(t.obj==='gate'){box(.98,1.6,.5,lamT('#3a3f45','side'),.8);box(1,.12,.52,lamT('#ffffff','hazard'),1.45);box(1,.12,.52,lamT('#ffffff','hazard'),.15);for(const x of[-.3,0,.3])box(.06,1.3,.52,lamT('#5a6066'),.8,x,0)}
   if(t.obj==='door'){box(.98,1.5,.5,lamT(pickC(CONT_COLS,t,11),'corr'),.75);box(.5,1.1,.04,lamT('#2a2d31'),.6,0,.27);const lt=new THREE.Mesh(new THREE.BoxGeometry(.12,.08,.04),new THREE.MeshBasicMaterial({color:0x38e0ff}));lt.position.set(.18,.85,.29);g.add(lt)}
   if(t.obj==='scaffold'){for(const x of[-.4,.4])for(const z of[-.4,.4]){const pp=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.9,6),lamT('#c9a046'));pp.position.set(x,.45,z);g.add(pp)}box(.9,.05,.9,lamT('#b98e5c','wood'),.5);box(.9,.05,.2,lamT('#e0a020'),.02,0,.4)}
-  if(t.obj==='pillar'){
+  if(t.obj==='pillar'&&!(t.bld&&typeof bldPillar==='function'&&bldPillar(t,g))){
     if(theme==='c'){box(.92,.72,.92,lamT(pickC(CONT_COLS,t,6),'corr'),.36);box(.92,.72,.92,lamT(pickC(CONT_COLS,t,7),'corr'),1.1).rotation.y=Math.PI/2;
       const pole=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.9,6),lamT('#d8d8d8'));pole.position.set(.3,1.9,.3);g.add(pole);const tb=new THREE.Group();tb.position.set(.3,2.35,.38);for(let i=0;i<3;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(.05,.42,.02),lamT('#f0f0f0'));b.position.y=.2;const a=new THREE.Group();a.rotation.z=i*Math.PI*2/3;a.add(b);tb.add(a)}g.add(tb);ANIM.push(dt=>tb.rotation.z+=dt*3)}
     else if(theme==='f'){const c=new THREE.Mesh(new THREE.CylinderGeometry(.36,.42,1.3,20),lamT('#f4f6f7','white'));c.position.y=.65;g.add(c);const top=new THREE.Mesh(new THREE.SphereGeometry(.4,20,10,0,Math.PI*2,0,Math.PI/2),lamT('#bfe6ff'));top.position.y=1.3;g.add(top);const band=new THREE.Mesh(new THREE.CylinderGeometry(.385,.385,.06,20),lamT('#38b6e8'));band.position.y=1.05;g.add(band)}
@@ -611,7 +611,7 @@ function buildScene(info){
   const deck=new THREE.Mesh(new THREE.BoxGeometry(NX+.6,.5,NZ+.6),lamT('#4a4440','side'));deck.position.y=-.62;deck.receiveShadow=true;scene.add(deck);
   tileGroup=new THREE.Group();scene.add(tileGroup);
   for(const row of G)for(const t of row){if(t.type==='water'||t.type==='gap')continue;tileMesh(t);if(t.obj&&t.obj!=='rail'&&t.obj!=='pt')objMesh(t);if(t.cp)cpMesh(t);if(t.pass)passMesh(t);if(t.mg)mgSpot(t)}
-  dressWorld(theme);worldBuild(theme);if(typeof bldBuildAll==='function')bldBuildAll();mechBuild();mechModels();addLamps(theme);addBanners(theme);addBirds();PARTS=[];FXL=new THREE.PointLight(0xffb060,0,7,1.5);FXL.position.set(0,-5,0);scene.add(FXL);
+  dressWorld(theme);worldBuild(theme);if(typeof bldBuildAll==='function')bldBuildAll();{const rb=document.getElementById('roofBtn');if(rb){rb.hidden=!BLD.some(b=>b.roof);rb.setAttribute('aria-pressed',String(!!window.ROOFS_LIFTED))}}mechBuild();mechModels();addLamps(theme);addBanners(theme);addBirds();PARTS=[];FXL=new THREE.PointLight(0xffb060,0,7,1.5);FXL.position.set(0,-5,0);scene.add(FXL);
   if(info.item){const g=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,.36,12),new THREE.MeshBasicMaterial({color:0x7dffd0}));const p=W(info.item.x,info.item.z);g.position.set(p.x,topY(info.item)+.25,p.z);scene.add(g);S.itemMesh=g}
   selRing=new THREE.Mesh(new THREE.RingGeometry(.4,.5,32),new THREE.MeshBasicMaterial({color:0xffe2a0,side:THREE.DoubleSide,transparent:true,opacity:.9}));selRing.rotation.x=-Math.PI/2;selRing.visible=false;scene.add(selRing);
   hl=new THREE.Group();scene.add(hl)}
@@ -1159,6 +1159,7 @@ const setCtl=()=>{$('#spd').textContent='Speed: '+(SAVE.settings.fast?'Fast':'No
 $('#spd').onclick=()=>{SAVE.settings.fast=!SAVE.settings.fast;SPD=SAVE.settings.fast?.55:1;persist();setCtl()};
 $('#snd').onclick=()=>{SAVE.settings.sound=!SAVE.settings.sound;persist();setCtl();sfx('ui');playMusic(CUR.faction)};setCtl();
 $('#rotR').onclick=()=>rotateCam(1);
+$('#roofBtn').onclick=()=>{window.ROOFS_LIFTED=!window.ROOFS_LIFTED;$('#roofBtn').setAttribute('aria-pressed',String(!!window.ROOFS_LIFTED));toast(window.ROOFS_LIFTED?'Roofs see-through':'Roofs back on')};
 $('#menuBtn').onclick=()=>{$('#menuSheet').hidden=false;$('#logList').innerHTML=(S.logHist||[]).slice().reverse().map(t=>`<li>${esc(t)}</li>`).join('')||'<li>No messages yet.</li>'};
 $('#menuClose').onclick=()=>$('#menuSheet').hidden=true;$('#menuSheet').addEventListener('click',e=>{if(e.target.id==='menuSheet')$('#menuSheet').hidden=true});
 $('#objPill').onclick=()=>openSheet(S.sheet==='obj'?null:'obj');

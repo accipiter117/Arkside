@@ -181,3 +181,8 @@ Built in the Claude chat and already playable there. This brings the repo up to 
   - **Vent crawlspaces**: linked grates, lights only, 1 move.
   - **Winch lifts**: a rope and pulley up onto a roof, lights and mediums, 1 move.
 - New map tile `B` (building: full cover, blocks sight) and map data `bld`, `tunnels`, `vents`, `winches`, `extras`; Container City's source is `tools/maps/container2.py`.
+
+# Update 21: roof button and sheet-wall hall corners
+
+- **See-through roofs button** on the right of the game screen (under rotate), shown on maps with roofed buildings. Tap it to make every roof see-through while you move units around inside; tap again to put them back. Roofs still fade on their own while your squad is inside.
+- **Open halls stand on sheet walls**: the corner bays of the market, fishery, clinic, canteen and atrium are now little lock-ups of corrugated sheet on a timber frame (white panels in the Founders' district, grey sheet with a hazard band on the decks), topped under the eaves. The old stacked containers and wind turbines poked through the roofs. Same rules: full cover, blocks sight.

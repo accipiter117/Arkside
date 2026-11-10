@@ -487,6 +487,22 @@ function bldBuildAll(){if(!scene)return;const T=bldTex(),lit=!!TM.lamps,lo=!HI()
       if(!inside&&sel)for(let z=b.z+1;z<b.z+b.d-1&&!inside;z++)for(let x=b.x+1;x<b.x+b.w-1;x++)if(sel.d.has(key(x,z))){inside=true;break}
       const tgt=inside?.12:1;for(const o of b.roofMeshes||[]){{o.material.opacity+=(tgt-o.material.opacity)*Math.min(1,dt*6);o.material.depthWrite=o.material.opacity>.9;o.visible=o.material.opacity>.05}}}})}
 
+// The corner bays of an open hall: a little lock-up of corrugated sheet walls
+// on a timber frame (white panels in the Founders' district, grey sheet with
+// a hazard band on the decks), topped just under the eaves so nothing pokes
+// through the roof. Same rules as any pillar: full cover, blocks sight.
+function bldPillar(t,g){const b=t.bld;if(!b||(b.t!=='hall'&&b.t!=='atrium'))return false;const R=rng(t.x*53+t.z*29),th=tileTheme(t),
+    hgt=2.1-topY(t)-.1,fr=sm(th==='founders'?'#e9eef1':th==='industrial'?'#3a3d40':'#4a3a2e'),
+    cols=th==='founders'?['#f2f5f7','#e6ebee']:th==='industrial'?['#8a8f94','#7d8388','#959a9e']:['#a4462c','#7d8a8f','#c98a2a','#3d5f7a','#8f7a5a','#6b7a5a'],
+    box=(w,h,d,m,x,y,z,rz=0)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.rotation.z=rz;g.add(o);return o};
+  // four sides, each two or three uneven panels of sheet
+  for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){let u=-.45;while(u<.44){const w=Math.min(.45-u,.28+R()*.2),c=cols[Math.floor(R()*cols.length)],m=sm(c,th==='founders'?'white':'corr'),hh=hgt-R()*.12,uc=u+w/2;
+      if(dx)box(.04,hh,w,m,dx*.44,hh/2,uc);else box(w,hh,.04,m,uc,hh/2,dz*.44);u+=w}}
+  for(const sx of[-.45,.45])for(const sz of[-.45,.45])box(.07,hgt+.02,.07,fr,sx,(hgt+.02)/2,sz);
+  box(.94,.05,.94,sm(th==='founders'?'#dfe4e7':'#5f6569',th==='founders'?null:'corr'),0,hgt,0);
+  const band=sm(th==='founders'?'#38b6e8':th==='industrial'?'#e2b21f':'#3a2c22');for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]])box(dx?.02:.92,.07,dz?.02:.92,band,dx*.465,.95,dz*.465);
+  if(th!=='founders'&&R()<.6){const pl=new THREE.Mesh(new THREE.PlaneGeometry(.28,.2),sm(['#c8321f','#d8a030','#f4f4f0'][Math.floor(R()*3)]));const s2=R()<.5?1:-1;pl.position.set(s2*.47,1.3,0);pl.rotation.y=s2*Math.PI/2;g.add(pl)}
+  return true}
 // Cover inside or beside a building with a job is drawn as that job's props:
 // market stalls and produce, fish crates and drying racks, clinic cots and
 // supply boxes, foundry gas bottles and workbenches, bar tables. Same cover
