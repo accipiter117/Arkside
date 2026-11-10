@@ -186,3 +186,13 @@ Built in the Claude chat and already playable there. This brings the repo up to 
 
 - **See-through roofs button** on the right of the game screen (under rotate), shown on maps with roofed buildings. Tap it to make every roof see-through while you move units around inside; tap again to put them back. Roofs still fade on their own while your squad is inside.
 - **Open halls stand on sheet walls**: the corner bays of the market, fishery, clinic, canteen and atrium are now little lock-ups of corrugated sheet on a timber frame (white panels in the Founders' district, grey sheet with a hazard band on the decks), topped under the eaves. The old stacked containers and wind turbines poked through the roofs. Same rules: full cover, blocks sight.
+
+# Update 22: every operation rebuilt
+
+- **Breakout, Terminal, Tidewater and Service Lift are rebuilt** at 24 wide by 32 deep (were 12 wide and long), attack and defence, with the same three stages each. Each gets one more turn at the start.
+  - **Breakout** (Founders' district): the beach and the white sea wall with guard towers, the prison yard round Block C with barracks, mess hall and armoury, then the plaza under the Security Tower to the boats. A drawbridge in the north-east brings in Security's boat.
+  - **Terminal** (industrial decks): a glass-roofed concourse round the mainframe, tall control rooms either side, the baggage hall and the vault, then the monorail platform with the canteen and control tower.
+  - **Tidewater** (flooded shanty): container rooftops split by flooded alleys with rope bridges and boardwalks, the drowned market with plank bridges over the canals, then the fishery, the floodgate store and the piers.
+  - **Service Lift** (industrial, with the Founders' atrium on top): the foundry floor with the refinery and furnace works, the casting pit with its gantries, then the glass atrium and the broadcast core.
+- **Harbour Row** (Control) is rebuilt at 28 by 28: the market hall (a bigger 5 by 5 zone), the pump yard, the clinic tent, a two-storey rooftop under the water tower, and the canal bridge. Lights and mediums can jump the canal. Two more turns.
+- All of them use the update 20 building kit, tunnels, vents and winch lifts. Defence versions have new lines to hold and new attacker approaches to match.

@@ -72,13 +72,15 @@ from container2 import CONTAINER2
 L['x1_old'] = L['x1']   # the 12 x 34 original, kept for reference
 L['x1'] = CONTAINER2    # Container City at 24 x 32 with buildings (live since update 21)
 del L['x1_old']
+# The rebuilt operations at 24 x 32 (Harbour Row 28 x 28), live since update 22.
+# The originals stay in their own files for reference.
 from breakout2 import BREAKOUT2
-L['x2v2'] = BREAKOUT2
+L['x2'] = BREAKOUT2
 from terminal2 import TERMINAL2
-L['x3v2'] = TERMINAL2
+L['x3'] = TERMINAL2
 from tidewater2 import TIDEWATER2
-L['x4v2'] = TIDEWATER2
+L['x4'] = TIDEWATER2
 from foundry2 import FOUNDRY2
-L['x5v2'] = FOUNDRY2
+L['x5'] = FOUNDRY2
 from control2 import CONTROL2
-L['c1v2'] = CONTROL2
+L['c1'] = CONTROL2
