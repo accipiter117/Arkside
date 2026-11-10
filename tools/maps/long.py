@@ -74,3 +74,5 @@ L['x1'] = CONTAINER2    # Container City at 24 x 32 with buildings (live since u
 del L['x1_old']
 from breakout2 import BREAKOUT2
 L['x2v2'] = BREAKOUT2
+from terminal2 import TERMINAL2
+L['x3v2'] = TERMINAL2

@@ -7,8 +7,8 @@ Walkable-roof buildings raise their footprint to the roof; solid buildings
 fill it with 'B'; roofed interiors (warehouse, cellblock) wall the edge with
 'B' except doors; open halls (hall, atrium) put pillars 'X' at the corners;
 decks take a height per tile; yards only give the ground a use."""
-ROOF = ('home', 'cantina', 'office', 'tower', 'bridge', 'apt', 'wallw')
-SOLID = ('shack', 'pump', 'tank', 'stack', 'distillery', 'radio', 'shrine', 'magnet', 'block', 'spire', 'kiosk')
+ROOF = ('home', 'cantina', 'office', 'tower', 'bridge', 'apt', 'wallw', 'ctrl')
+SOLID = ('shack', 'pump', 'tank', 'stack', 'distillery', 'radio', 'shrine', 'magnet', 'block', 'spire', 'kiosk', 'silo', 'refinery', 'piperack')
 WALLED = ('warehouse', 'cellblock')
 OPEN = ('hall', 'atrium')
 
