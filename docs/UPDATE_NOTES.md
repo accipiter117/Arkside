@@ -196,3 +196,11 @@ Built in the Claude chat and already playable there. This brings the repo up to 
   - **Service Lift** (industrial, with the Founders' atrium on top): the foundry floor with the refinery and furnace works, the casting pit with its gantries, then the glass atrium and the broadcast core.
 - **Harbour Row** (Control) is rebuilt at 28 by 28: the market hall (a bigger 5 by 5 zone), the pump yard, the clinic tent, a two-storey rooftop under the water tower, and the canal bridge. Lights and mediums can jump the canal. Two more turns.
 - All of them use the update 20 building kit, tunnels, vents and winch lifts. Defence versions have new lines to hold and new attacker approaches to match.
+
+# Update 23: a friendlier front door
+
+- **Title screen** now says what the game is: turn-based squad tactics where each operative's build finds its own way through.
+- **Browsers without 3D** (WebGL off or unavailable) are told plainly on the title screen and again on Deploy, which keeps you on the briefing instead of dropping you onto an empty battlefield. The old message wrongly blamed the connection. Squad portraits skip 3D there too.
+- **First mission card**: until you've played anything on a side, the campaign opens with "New to Arkside? Start here", which takes you to that side's first skirmish (Dry Docks for the Resistance).
+- **First mission tips**: on that mission, a tip card walks you through selecting, moving and cover, acting, ending your turn, then on turn 2 what makes each build different (try the crawl gap or a barricade) and the goal. Skip any time; it only runs once.
+- **Briefings lead with the job**: the objective and turn budget first ("Blow the wall gate · 11 turns"), then what finishing it gets you (the next stage, extra turns, a new drop point; or for defence, where you fall back to). The story, rivals, routes and stage list sit under "Full transmission".

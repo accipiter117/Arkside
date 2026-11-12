@@ -529,6 +529,7 @@ function portraitPump(){if(PORTRAIT.pending||!PORTRAIT.queue.length)return;PORTR
       if(src)document.querySelectorAll('img[data-pk]').forEach(i=>{if(i.dataset.pk===q.k){i.src=src;i.removeAttribute('data-pk')}})}
     if(PORTRAIT.queue.length)requestAnimationFrame(step);else PORTRAIT.pending=false}))}
 function portraitRender(look){
+  if(typeof webglOK==='function'&&!webglOK())return '';   // no 3D here: cards keep their initials
   if(!PORTRAIT.r){const r=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});r.setPixelRatio(1);r.setSize(PORTRAIT.size,PORTRAIT.size,false);PORTRAIT.r=r;
     const sc=new THREE.Scene();sc.add(new THREE.HemisphereLight(0xdcefff,0x6a5a4a,.8));const sun=new THREE.DirectionalLight(0xfff1dc,.85);sun.position.set(-2,3,4);sc.add(sun);const rim=new THREE.DirectionalLight(0xbfe4ff,.55);rim.position.set(3,2,-3);sc.add(rim);
     PORTRAIT.scene=sc;PORTRAIT.cam=new THREE.PerspectiveCamera(20,1,.05,20)}

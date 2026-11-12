@@ -439,6 +439,19 @@ body[data-faction="security"] .tape{display:none}
 .ub.ally span{color:#d6dbdd}.ub.ally b{background:#8fa0a8}
 /* hit chance sits above the unit's name and health bar */
 .tg{margin-top:-34px}
+
+/* first-mission tips, the briefing lead, the first-mission card, no-3D notices */
+#coach{position:absolute;left:64px;right:58px;top:58px;z-index:4;background:var(--glass2);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#fff;border-radius:12px;padding:10px 12px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+#coach p{margin:4px 0 8px;font-size:15px;line-height:1.35}#coach .kick{color:var(--acc)}#coach .row{display:flex;gap:8px;flex-wrap:wrap}#coach .btn{min-height:36px;padding:6px 12px}
+.title-hero .tagline{font-size:14px;opacity:.85;margin-top:4px;max-width:34em}
+.lead{border-left:4px solid var(--acc);background:var(--card,rgba(127,127,127,.08));border-radius:8px;padding:10px 12px;margin:10px 0 12px}
+.lead b{display:block;font:600 24px/1.1 Teko,sans-serif;letter-spacing:.3px;text-transform:uppercase}.lead b i{font-style:normal;color:var(--acc)}
+.lead small{display:block;margin-top:4px;font-size:14px;line-height:1.35;opacity:.85}
+.txmore{margin:4px 0 10px}.txmore[open] summary{margin-bottom:8px}
+.firstmis{display:block;width:100%;text-align:left;border:2px solid var(--acc);border-radius:12px;background:var(--card,rgba(127,127,127,.08));color:inherit;padding:12px 14px;margin:10px 0 14px;font:inherit;cursor:pointer}
+.firstmis b{display:block;font:600 22px/1.1 Teko,sans-serif;text-transform:uppercase;margin:2px 0 4px}.firstmis span{display:block;font-size:14px;line-height:1.35;opacity:.85}.firstmis .kick{color:var(--acc)}
+.no3d{border:2px solid #c8321f;border-radius:10px;padding:10px 12px;margin:10px 0;background:rgba(200,50,31,.08)}.no3d p{margin:4px 0 0;font-size:14px;line-height:1.35}
+.fail .btn{margin-top:12px}
 </style>
 </head>
 <body data-view="title" data-faction="resistance">
@@ -456,6 +469,7 @@ body[data-faction="security"] .tape{display:none}
     <button type="button" id="mapBtn" class="hb" aria-label="Minimap" data-tip="mini"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m15 5-6-2-6 2v16l6-2 6 2 6-2V3l-6 2Zm-1 13.7-4-1.3V5.3l4 1.3v12.1Z"/></svg></button>
     <button type="button" id="rotR" class="hb round" aria-label="Rotate camera"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7Z"/></svg></button>
     <button type="button" id="roofBtn" class="hb round" aria-label="See through roofs" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 11 12 4l9 7"/><path fill="currentColor" d="M6 12h2v8H6zm10 0h2v8h-2zM9 18h6v2H9z"/></svg></button>
+    <div id="coach" class="glass" role="status" aria-live="polite" hidden></div>
     <div id="roster" class="rail"></div>
     <div id="toasts" role="status" aria-live="polite"></div>
     <button type="button" id="undoBtn" class="glass" data-tip="undo" hidden>↶ Undo move</button>
@@ -949,6 +963,7 @@ function portraitPump(){if(PORTRAIT.pending||!PORTRAIT.queue.length)return;PORTR
       if(src)document.querySelectorAll('img[data-pk]').forEach(i=>{if(i.dataset.pk===q.k){i.src=src;i.removeAttribute('data-pk')}})}
     if(PORTRAIT.queue.length)requestAnimationFrame(step);else PORTRAIT.pending=false}))}
 function portraitRender(look){
+  if(typeof webglOK==='function'&&!webglOK())return '';   // no 3D here: cards keep their initials
   if(!PORTRAIT.r){const r=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});r.setPixelRatio(1);r.setSize(PORTRAIT.size,PORTRAIT.size,false);PORTRAIT.r=r;
     const sc=new THREE.Scene();sc.add(new THREE.HemisphereLight(0xdcefff,0x6a5a4a,.8));const sun=new THREE.DirectionalLight(0xfff1dc,.85);sun.position.set(-2,3,4);sc.add(sun);const rim=new THREE.DirectionalLight(0xbfe4ff,.55);rim.position.set(3,2,-3);sc.add(rim);
     PORTRAIT.scene=sc;PORTRAIT.cam=new THREE.PerspectiveCamera(20,1,.05,20)}
@@ -2929,7 +2944,7 @@ const SAVE_KEY='arkside.campaign.v1';
 const uid=()=>'op'+Math.random().toString(36).slice(2,9);
 function mkOp(look){return{id:uid(),look,name:look.name,callsign:look.callsign,faction:look.faction,body:look.body,cls:look.cls,weapon:look.weapon,xp:0,injured:0}}
 function newSave(){return{v:1,roster:{resistance:BASE_ROSTER.resistance.map(mkOp),security:BASE_ROSTER.security.map(mkOp)},prog:{resistance:0,security:0},opProg:{resistance:0,security:0},rivals:{resistance:null,security:null},stars:{},settings:{fast:false,sound:true,gfx:'high',music:true,diff:'normal',units:'animated'}}}
-function fillSave(v){v.stars=v.stars||{};v.opProg=Object.assign({resistance:0,security:0},v.opProg||{});v.rivals=Object.assign({resistance:null,security:null},v.rivals||{});v.settings=Object.assign({fast:false,sound:true,gfx:'high',music:true,diff:'normal',units:'animated'},v.settings||{});return v}
+function fillSave(v){v.stars=v.stars||{};v.coached=!!v.coached;v.opProg=Object.assign({resistance:0,security:0},v.opProg||{});v.rivals=Object.assign({resistance:null,security:null},v.rivals||{});v.settings=Object.assign({fast:false,sound:true,gfx:'high',music:true,diff:'normal',units:'animated'},v.settings||{});return v}
 function validSave(s){return s&&s.v===1&&s.roster&&Array.isArray(s.roster.resistance)&&Array.isArray(s.roster.security)&&s.prog}
 function readSave(){try{const v=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');if(validSave(v)){for(const f of ['resistance','security'])v.roster[f]=v.roster[f].map(o=>({...o,look:clean(o.look)}));return fillSave(v)}}catch(e){}return null}
 let SAVE=readSave()||newSave();SPD=SAVE.settings.fast?.55:1;
@@ -3033,9 +3048,13 @@ const paintSoldiers=f=>Object.keys(PAINT).filter(k=>k.startsWith(f==='security'?
 const paintImg=(k,cls,alt='')=>PAINT[k]?`<img class="${cls}" src="${PAINT[k]}" alt="${esc(alt)}" decoding="async" loading="lazy" draggable="false">`:'';
 function speakerOf(m,f){const k=m.portrait||(f==='security'?'sec-commander':'res-leader');return{k:'story-'+k,label:SPEAKERS[k]||''}}
 function speakerFig(m,f,cls){const sp=speakerOf(m,f);if(!PAINT[sp.k])return'';return `<figure class="painted ${cls}">${paintImg(sp.k,'',sp.label)}<figcaption>${sp.label}</figcaption></figure>`}
+// Can this browser draw 3D at all? Checked once, before anyone picks a squad,
+// so a browser without WebGL gets a plain reason instead of an empty battlefield.
+function webglOK(){if(webglOK.v!=null)return webglOK.v;let ok=false;try{const c=document.createElement('canvas'),gl=window.WebGLRenderingContext&&(c.getContext('webgl')||c.getContext('experimental-webgl'));ok=!!gl;const lc=gl&&gl.getExtension('WEBGL_lose_context');if(lc)lc.loseContext()}catch(e){ok=false}return webglOK.v=ok}
+const NO3D='This browser can’t draw 3D graphics (WebGL is switched off or unavailable), so the battles can’t run here. Try Chrome or Safari with hardware acceleration turned on, or another device. Menus, the roster and your save still work.';
 function viewTitle(){
   const p=SAVE.prog;
-  $('#v-title').innerHTML=`<div class="hero-art">${PAINT['title-banner']?`<img src="${PAINT['title-banner']}" alt="The Ark at sea, Resistance and Security trading fire across the water" decoding="async" draggable="false">`:skylineSVG('resistance',170)}</div><div class="title-hero"><div class="stripe"></div><h1 class="logo">Ark<span>side</span></h1><p>Two sides of a drowning city. Pick one.</p></div>
+  $('#v-title').innerHTML=`<div class="hero-art">${PAINT['title-banner']?`<img src="${PAINT['title-banner']}" alt="The Ark at sea, Resistance and Security trading fire across the water" decoding="async" draggable="false">`:skylineSVG('resistance',170)}</div><div class="title-hero"><div class="stripe"></div><h1 class="logo">Ark<span>side</span></h1><p>Two sides of a drowning city. Pick one.</p><p class="tagline">Turn-based squad tactics: lead four operatives street by street, and use each one’s build to find your own way through.</p></div>${typeof THREE==='undefined'||!webglOK()?`<div class="no3d" role="alert"><b>Battles won’t run in this browser</b><p>${typeof THREE==='undefined'?'The 3D engine couldn’t load. Check your connection and reload.':NO3D}</p></div>`:''}
   <div class="facs">${['resistance','security'].map(f=>`<button type="button" class="fac ${f}" data-f="${f}">${(()=>{const l=paintSoldiers(f);return l.length?paintImg(pick(l),'fac-art'):''})()}<i class="fbar"></i><small class="kick">${f==='resistance'?'Fight for the people':'Keep the order'}</small><b>${FACTIONS[f].label}</b><span>${f==='resistance'?'Water, freedom and a way off the Ark.':'Keep the Ark running, whatever it costs.'}</span><em>${(SAVE.opProg[f]||0)>=CAMPAIGN[f].length?'Campaign complete':`Operation ${Math.min(CAMPAIGN[f].length,(SAVE.opProg[f]||0)+1)} of ${CAMPAIGN[f].length}`}</em></button>`).join('')}</div>
   <details class="tools"><summary>Share operatives</summary><p class="small">Design operatives in the Roster (Recruit operative, or Edit look). To share them, tap “Show export code” and copy it. To bring operatives in, paste a code here (old codes from the standalone Operative Creator work too) and each joins their faction’s roster.</p><textarea id="impCreator" spellcheck="false" placeholder="Paste an operative code"></textarea><div class="row"><button type="button" class="btn" id="doExp">Show export code</button><button type="button" class="btn" id="doImp">Import operatives</button></div></details>
   <details class="tools"><summary>Settings</summary><div class="row"><button type="button" class="btn" id="setDiff"></button><button type="button" class="btn" id="setGfx"></button><button type="button" class="btn" id="setSnd"></button><button type="button" class="btn" id="setMus"></button><button type="button" class="btn" id="setSpd"></button></div><p class="small">Low graphics turns off shadows, waves and some scenery. Try it if the game feels sluggish. Each faction’s theme plays once you pick a side.</p><p class="small credits">Characters and soldier models by Quaternius (CC0), with the Toon Shooter exports via Tiny Strike. Sound effects from the OpenSpades free asset pak and its contributors. Full list in assets/CREDITS.md.</p></details>
@@ -3053,6 +3072,7 @@ function viewTitle(){
 function viewCamp(){
   const f=CUR.faction,prog=SAVE.prog[f];
   $('#v-camp').innerHTML=`<div class="chead">${(()=>{const l=paintSoldiers(f);return l.length?paintImg(pick(l),''):skylineSVG(f,150)})()}<div class="chead-t"><span class="kick">${FACTIONS[f].label} campaign</span><h2 class="vh">Operations</h2></div></div><div class="bar"><button type="button" class="btn ghost bk">‹ Factions</button><button type="button" class="btn pri" id="toRoster"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm7 2a3 3 0 1 1 0-6 3 3 0 0 1 0 6ZM1 20c0-3.3 3.6-6 8-6s8 2.7 8 6v1H1v-1Zm17 1v-1c0-1.6-.6-3-1.6-4.2 3.3.3 5.6 2 5.6 4.2v1h-4Z"/></svg>Roster (${SAVE.roster[f].length})</button></div>
+  ${(SAVE.prog[f]||0)===0&&(SAVE.opProg[f]||0)===0?`<button type="button" class="firstmis" id="firstMis"><small class="kick">New to Arkside? Start here</small><b>First mission: ${MISSIONS[f][0].title}</b><span>A short single-board mission with tips on moving, cover and ending your turn, and on what makes each build different. Then take on the operations below.</span></button>`:''}
   ${prog>=4?`<div class="epi"><b>Campaign complete</b><p>${EPILOGUE[f]}</p><p class="small">Replay any mission to keep levelling your operatives.</p></div>`:''}
   <div class="missions">${CAMPAIGN[f].map((id,i)=>{const o=OP_BY_ID[id],op=SAVE.opProg[f]||0,lock=!OPEN_OPS&&i>op,done=i<op;return `<button type="button" class="mis op${lock?' locked':''}${done?' done':''}" data-op="${id}" ${lock?'disabled':''}>${i===0&&f==='resistance'?'<span class="tape"></span>':''}<span class="brk"></span><em>${i+1}</em><span class="mt"><b>${o.title}</b><span>${lock?THEME_LABEL[THEME_OF[id]]+' · locked':o.tag}</span>${lock?'':`<span class="pips">${o.stages.map(()=>`<i${done?' class="on"':''}></i>`).join('')}</span>`}</span><span class="mr">${lock?'<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10V7a5 5 0 0 1 10 0v3h2v12H5V10h2Zm2 0h6V7a3 3 0 0 0-6 0v3Z"/></svg>':`<span class="tag ${o.defend?'d':'a'}">${o.defend?'Defend':'Attack'}</span><i class="stars">${starStr(SAVE.stars[id]||0)}</i>`}</span></button>`}).join('')}</div>
   <div class="kick sec-h">Skirmishes</div><p class="small">Shorter missions on a single board, playable alongside the campaign.</p>
@@ -3062,6 +3082,7 @@ function viewCamp(){
   $('#v-camp .bk').onclick=viewTitle;$('#toRoster').onclick=viewRoster;
   $('#v-camp').querySelectorAll('.mis.op').forEach(b=>b.onclick=()=>{CUR.mi=-1;CUR.op=b.dataset.op;viewBrief()});
   $('#v-camp').querySelectorAll('.mis:not(.op)').forEach(b=>b.onclick=()=>{CUR.mi=+b.dataset.i;viewBrief()});
+  const fm=$('#firstMis');if(fm)fm.onclick=()=>{CUR.mi=0;viewBrief()};
   show('camp');
 }
 function opStats(op){const l=lvlOf(op.xp),B=EB[op.body],P=new Set(op.perks||[]);return{l,hp:B.hp+8*(l-1)+(P.has('tough')?15:0),move:B.move+(l>=3?1:0)+(P.has('quick')?1:0),acc:WPN[op.weapon].acc+3*(l-1)+(P.has('steady')?8:0)}}
@@ -3088,14 +3109,21 @@ function viewRoster(){
 }
 let PICK=[];
 function curMission(){return CUR.mi<0?OP_BY_ID[CUR.op]:MISSIONS[CUR.faction][CUR.mi]}
+// The top of the briefing: what to do first, how many turns there are, and
+// what finishing it gets you. The full transmission sits underneath.
+function briefLead(m){const cap=t=>t?t[0].toUpperCase()+t.slice(1):t,turns=m.turns?`${m.turns} turns`:'No turn limit';let first,next='';
+  if(m.control){first='Hold the live zone';next=`First to ${m.win} points wins. The zone moves every ${m.zoneTurns} turns.`}
+  else if(m.stages){const s0=m.stages[0],s1=m.stages[1];first=cap(s0.objectives.map(o=>objLabel(o,null)).join(', then '));
+    if(s1)next=m.defend?`If this line falls, you fall back to ${s1.name.toLowerCase()} with ${s1.addTurns} more turns to hold. Last until time runs out to win.`:`Completing it opens stage 2, ${s1.name.toLowerCase()}, adds ${s1.addTurns} turns and moves your drop point up.`}
+  else{const os=m.objectives.map(o=>objLabel(o,null));first=cap(os[0]);if(os.length>1)next=`Then ${os.slice(1).join(', then ')}.`}
+  return `<div class="lead"><span class="kick">${m.defend?'Hold the line':'Your objective'}</span><b>${first}<i> · ${turns}</i></b>${next?`<small>${next}</small>`:''}</div>`}
 function viewBrief(){
   const f=CUR.faction,m=curMission(),avail=SAVE.roster[f].filter(o=>!o.injured);
   PICK=PICK.filter(id=>avail.some(o=>o.id===id));if(!PICK.length)PICK=avail.slice(0,4).map(o=>o.id);
-  const objText=m.defend?'hold out until the attack runs out of time':(m.stages?m.stages.flatMap(st=>st.objectives):m.objectives).map(o=>objLabel(o,null)).join(', then ');
   const sp=speakerOf(m,f);
   $('#v-brief').innerHTML=`<div class="speaker">${PAINT[sp.k]?paintImg(sp.k,'',sp.label):''}<button type="button" class="btn ghost bk">‹ Campaign</button><div class="nameplate"><b>${sp.label}</b><small>Incoming transmission</small></div></div>
-  <span class="kick">${CUR.mi<0?(m.control?'Control':CAMPAIGN[f].includes(CUR.op)?'Operation '+(CAMPAIGN[f].indexOf(CUR.op)+1):'Operation'):'Skirmish '+(CUR.mi+1)} · ${THEME_LABEL[THEME_OF[m.id]]} · ${TIMES[TIME_OF[m.id]].label.toLowerCase()}</span><h2 class="vh">${m.title}</h2>${rivalsBriefLines(m)}${routesLine(m)}<div class="story tx">${(Array.isArray(m.brief)?m.brief:m.brief[f]).map(p=>`<p>${p}</p>`).join('')}</div>${m.control?ctlBriefHTML(m):m.stages?`<div class="kick sec-h">${m.defend?'Lines of defence':'Stages'}</div><ol class="steps">${m.stages.map((st,i)=>`<li>${st.name}<small>${(st.objectives||[]).map(o=>objLabel(o,null)).join(', then ')}${i&&st.addTurns?` · +${st.addTurns} turns`:''}</small></li>`).join('')}</ol><p class="small">${m.defend?`Hold for ${m.turns} turns. Each line that falls adds more turns to survive. Defuse charges, shoot the bot and stop the carrier. Optional: ${m.secondaries.map(x=>x.label[0].toLowerCase()+x.label.slice(1)).join(', ')}.`:`You start with ${m.turns} turns. Optional objectives open new routes: ${m.secondaries.map(x=>x.label[0].toLowerCase()+x.label.slice(1)).join(', ')}.`}</p>`:''}
-  <p class="objline"><b>Objective:</b> ${objText}.</p>
+  <span class="kick">${CUR.mi<0?(m.control?'Control':CAMPAIGN[f].includes(CUR.op)?'Operation '+(CAMPAIGN[f].indexOf(CUR.op)+1):'Operation'):'Skirmish '+(CUR.mi+1)} · ${THEME_LABEL[THEME_OF[m.id]]} · ${TIMES[TIME_OF[m.id]].label.toLowerCase()}</span><h2 class="vh">${m.title}</h2>${briefLead(m)}<details class="tools txmore"><summary>Full transmission</summary>${rivalsBriefLines(m)}${routesLine(m)}<div class="story tx">${(Array.isArray(m.brief)?m.brief:m.brief[f]).map(p=>`<p>${p}</p>`).join('')}</div>${m.control?ctlBriefHTML(m):m.stages?`<div class="kick sec-h">${m.defend?'Lines of defence':'Stages'}</div><ol class="steps">${m.stages.map((st,i)=>`<li>${st.name}<small>${(st.objectives||[]).map(o=>objLabel(o,null)).join(', then ')}${i&&st.addTurns?` · +${st.addTurns} turns`:''}</small></li>`).join('')}</ol><p class="small">${m.defend?`Hold for ${m.turns} turns. Each line that falls adds more turns to survive. Defuse charges, shoot the bot and stop the carrier. Optional: ${m.secondaries.map(x=>x.label[0].toLowerCase()+x.label.slice(1)).join(', ')}.`:`You start with ${m.turns} turns. Optional objectives open new routes: ${m.secondaries.map(x=>x.label[0].toLowerCase()+x.label.slice(1)).join(', ')}.`}</p>`:''}
+  </details><div class="no3d" id="no3dBrief" role="alert" hidden><b>Battles won’t run in this browser</b><p></p></div>
   <div class="moves"><b>Moving around the Ark</b><span><i>Light</i> wall-hops two levels, climbs cheaply, vaults free and fits through crawl vents.</span><span><i>Medium</i> wall-climbs two levels, grabs ledges across gaps, drop-rolls and squeezes through narrow gaps.</span><span><i>Heavy</i> mantles up one level and shoulder-charges straight through barricades and sheet walls.</span><small>Difficulty: ${DF().label}. Change it in Settings on the title screen.</small></div>
   <div class="kick sec-h">Squad <span id="pc"></span></div><div class="squad4" id="sq4"></div>
   <details class="tools pickd"><summary>Change squad</summary><p class="small">Tap to add or remove. Up to four.</p><div class="plist">${SAVE.roster[f].map(op=>`<button type="button" class="pk${PICK.includes(op.id)?' on':''}" data-id="${op.id}" ${op.injured?'disabled':''}>${opCard(op,op.injured?'<p class="st"><em>Recovering, back next mission</em></p>':'')}</button>`).join('')}</div></details>
@@ -3104,7 +3132,7 @@ function viewBrief(){
     $('#sq4').innerHTML=[0,1,2,3].map(i=>{const op=SAVE.roster[f].find(o=>o.id===PICK[i]);return op?`<div class="op4"><div class="av">${opPortrait(op)}</div><b>${esc(op.name)}</b><small>${op.cls}</small></div>`:'<div class="op4 empty"><div class="av"></div><b>Empty</b><small>Add below</small></div>'}).join('')};upd();
   $('#v-brief .bk').onclick=viewCamp;
   $('#v-brief').querySelectorAll('.pk').forEach(b=>b.onclick=()=>{const id=b.dataset.id,i=PICK.indexOf(id);if(i>=0)PICK.splice(i,1);else if(PICK.length<4)PICK.push(id);else{toast('Four operatives maximum');return}b.classList.toggle('on',PICK.includes(id));upd()});
-  $('#deploy').onclick=async()=>{const ops=PICK.map(id=>SAVE.roster[f].find(o=>o.id===id));await RIG.wait(4000);show('game');startMission(m,ops)};
+  $('#deploy').onclick=async()=>{if(typeof THREE==='undefined'||!webglOK()){const n=$('#no3dBrief');n.hidden=false;n.querySelector('p').textContent=typeof THREE==='undefined'?'The 3D engine couldn’t load. Check your connection and reload.':NO3D;n.scrollIntoView({block:'center'});return}const ops=PICK.map(id=>SAVE.roster[f].find(o=>o.id===id));await RIG.wait(4000);show('game');startMission(m,ops)};
   show('brief');
 }
 
@@ -3438,21 +3466,22 @@ function spawnEnemy(type,x,z,R){const T=ETYPES[type],ef=ENEMY_OF[CUR.faction],B=
 
 /* ---------- start ---------- */
 function startMission(m,ops){
-  if(!initRenderer()){$('#hud').innerHTML='<div class="fail">This game needs WebGL and the 3D engine, which couldn’t load here. Check your connection and reload.</div>';return}
+  if(!initRenderer()){$('#hud').innerHTML=`<div class="fail"><p>${typeof THREE==='undefined'?'The 3D engine couldn’t load. Check your connection and reload.':NO3D}</p><button type="button" class="btn" id="failBack">‹ Back to the briefing</button></div>`;$('#failBack').onclick=()=>viewBrief();return}
   M=m;units=[];$('#hud').innerHTML='';
   S={undo:null,undoStack:[],aim:null,sheet:null,logHist:[],reacted:false,phase:'player',sel:null,mode:null,turn:1,objIdx:0,prog:{},carrier:null,hold:0,vis:new Set(),explored:new Set(),alerted:!!m.alerted,reveals:[],credit:{},busy:false,reach:null,over:false,item:null,stats:{shots:0,hits:0,downs:0,civ:0}};
   if(m.stages){m.objectives=m.stages.flatMap((st,i)=>st.objectives.map(o=>({...o,stage:i})));m.enemies=m.stages[0].enemies;m.reinf=m.stages[0].reinf}
   S.stage=0;S.stageTurn=1;S.turnsLeft=m.turns||null;S.poolIdx=0;if(m.defend){m.enemies=[];m.reinf=[];S.alerted=true}S.sec=(m.secondaries||[]).map(sc=>({...sc,done:false}));S.bot=null;
   const info=parseMap(m);mechInit(m);S.info=info;S.item=info.item;S.civInfo=info;
   for(const o of m.objectives)if(o.targets)for(const[x,z]of o.targets){G[z][x].kind=o.type}for(const sc of S.sec)for(const[x,z]of sc.targets)G[z][x].sec=sc
-  buildScene(info);S.itemHome=info.item;if(m.defend){info.spawns=m.stages[0].pspawns.map(([x,z])=>G[z][x]);S.espawns=m.stages[0].espawns}if(m.control){S.espawns=m.espawns;S.alerted=true}
+  S.coach=!SAVE.coached&&CUR.mi===0&&!m.stages&&!m.control?0:-1;S.coachMoves=0;
+  buildScene(info);setTimeout(coachShow,1200);S.itemHome=info.item;if(m.defend){info.spawns=m.stages[0].pspawns.map(([x,z])=>G[z][x]);S.espawns=m.stages[0].espawns}if(m.control){S.espawns=m.espawns;S.alerted=true}
   ops.forEach((op,i)=>{const sp=info.spawns[i],l=lvlOf(op.xp),B=EB[op.body],w=WPN[op.weapon];
     const P=new Set(op.perks||[]),st=opStats(op),wp={...w,acc:st.acc};if(P.has('marksman')&&op.weapon==='sniper')wp.range+=2;
     const u=newUnit({op,team:'p',name:op.name,short:op.name,cls:op.cls,body:op.body,lvl:l,hp:st.hp+DF().php,maxHp:st.hp+DF().php,move:st.move,vis:B.vis+(P.has('eagle')?1:0),weapon:wp,x:sp.x,z:sp.z,look:op.look,wkey:op.weapon,perks:P});units.push(u);makeUnitMesh(u)});
   const R=rng(m.id.length*97+Math.max(0,CUR.mi)*13+7);for(const[t,x,z]of m.enemies)spawnEnemy(t,x,z,R);S.R=R;spawnCivilians(info);if(m.defend)topUpAttackers(99);rivalsStart(m,info);ctlStart(m);
   const sp=info.spawns[0],p=W(sp.x,sp.z);camState.target.set(p.x*.5,0,p.z*.5);camState.zoom=1;camState.angle=Math.PI/4;fit();
   $('#mtitle').textContent=m.title;$('#sheet').hidden=true;$('#menuSheet').hidden=true;$('#miniWrap').hidden=true;$('#toasts').innerHTML='';S.sel=squad()[0];computeVis();refresh();banner('Your turn');
-  if(!S.alerted)setTimeout(()=>log('You haven’t been spotted. Shots on unaware enemies get +20 accuracy.'),1500);setTimeout(()=>log('Tip: press and hold anything for details. Swipe the bottom panel to switch operative.'),5200)}
+  if(S.coach<0){if(!S.alerted)setTimeout(()=>log('You haven’t been spotted. Shots on unaware enemies get +20 accuracy.'),1500);setTimeout(()=>log('Tip: press and hold anything for details. Swipe the bottom panel to switch operative.'),5200)}}
 
 /* ---------- fog ---------- */
 function computeVis(){const vis=new Set();mechBeamVis(vis);
@@ -3496,6 +3525,29 @@ function objDone(){const o=curObj();if(!o)return true;
 function pendingReinf(){return(M.reinf||[]).some(([t])=>t>=S.turn)&&curObj().type!=='eliminate'?false:false}
 function advanceObj(){let changed=false;while(S.objIdx<M.objectives.length&&objDone()){const done=M.objectives[S.objIdx];S.objIdx++;changed=true;if(done.clears)clearTiles(done.clears);if(S.objIdx<M.objectives.length){const nx=curObj();if(M.stages&&nx.stage>S.stage)enterStage(nx.stage);else{banner('Objective complete');log('New objective: '+objLabel(nx,S))}}}
   if(S.objIdx>=M.objectives.length){if(M.defend)endMission(false,'They completed their objective.');else endMission(true);return true}return false}
+
+/* ---------- first-mission coaching ---------- */
+// On the first skirmish of either side, until the player finishes or skips
+// it: select, move (and cover), act or move the rest, end the turn, then on
+// turn 2 what makes each build different and the mission goal.
+function coachSteps(){const passes=G.some(r=>r.some(t=>t.pass)),smash=G.some(r=>r.some(t=>t.obj==='wall'||t.obj==='sheet')),o=M.objectives[0],goal=objLabel(o,null);
+  return[
+    {on:'select',t:'Tap one of your operatives (a portrait on the left, or the soldier on the map) to select them.'},
+    {on:'move',t:'The highlighted tiles show where they can move this turn. Tap one to move there. Crates and walls give cover, so try to finish a move right beside one.'},
+    {on:'move2',t:'After moving, an operative can still act: tap an enemy they can see to shoot, or use Overwatch to fire at anything that moves into view. Move the rest of your squad too.'},
+    {on:'end',t:'When everyone’s done, tap END (bottom right). The enemy then takes their turn.'},
+    {on:'ok',t:`Each build moves its own way: lights fit through crawl gaps and vents, mediums squeeze through narrow gaps, heavies charge through barricades.${passes?' Try sending a light or medium through the gaps in the crate wall.':smash?' Try walking a heavy into a barricade.':''}`},
+    {on:'ok',t:`Your goal: ${goal}.${o.type==='capture'?' Stand on a command post to take it.':''} It’s always at the top of the screen. Press and hold anything for details. You haven’t been spotted yet, so shots on unaware enemies get +20 accuracy.`}]}
+function coachShow(){const el=$('#coach');if(!el)return;if(!S||S.coach==null||S.coach<0||S.over){el.hidden=true;return}const st=coachSteps()[S.coach];if(!st){coachDone();return}
+  el.innerHTML=`<small class="kick">First mission tips · ${S.coach+1} of ${coachSteps().length}</small><p>${st.t}</p><div class="row">${st.on==='ok'?'<button type="button" class="btn pri" id="coachOk">Got it</button>':''}<button type="button" class="btn ghost" id="coachSkip">Skip tips</button></div>`;el.hidden=false;
+  const ok=$('#coachOk');if(ok)ok.onclick=()=>{S.coach++;coachShow()};$('#coachSkip').onclick=coachDone}
+function coachHide(){const el=$('#coach');if(el)el.hidden=true}
+function coachDone(){S.coach=-1;SAVE.coached=true;persist();coachHide()}
+function coach(ev){if(!S||S.coach==null||S.coach<0)return;
+  if(ev==='end'){if(S.coach<=3){S.coach=4;S.coachWait=true;coachHide()}return}   // the build tips wait for turn 2
+  if(ev==='turn'){if(S.coachWait){S.coachWait=false;coachShow()}return}
+  const st=coachSteps()[S.coach];if(!st)return;if(ev==='move')S.coachMoves++;
+  if(st.on===ev||(st.on==='move2'&&ev==='move'&&S.coachMoves>=2)){S.coach++;coachShow()}}
 
 /* ---------- stages, escort, secondaries ---------- */
 function clearTiles(list){for(const[x,z]of list){const t=G[z][x];if(t.objMesh){explode(t);tileGroup.remove(t.objMesh);t.objMesh=null}t.obj=null}computeVis()}
@@ -3561,7 +3613,7 @@ function popup(u,text,cls){if(cls==='good')sfx('good');const p=document.createEl
   p.style.left=(q.x+1)/2*stage.clientWidth+'px';p.style.top=(1-q.y)/2*stage.clientHeight+'px';setTimeout(()=>p.remove(),1100)}
 const isDone=u=>u.down||(u.moved&&u.acted);
 function focus(u){if(!u)return;camState.follow=u}
-function select(u){if(S.phase!=='player'||S.busy)return;if(u&&u!==S.sel)sfx('ui');S.sel=u;S.mode=null;S.swap=false;S.aim=null;if(S.sheet==='info'&&!u)openSheet(null);if(u)focus(u);refresh()}
+function select(u){if(S.phase!=='player'||S.busy)return;if(u&&u!==S.sel)sfx('ui');S.sel=u;S.mode=null;S.swap=false;S.aim=null;if(S.sheet==='info'&&!u)openSheet(null);if(u)focus(u);refresh();if(u&&u.team==='p')coach('select')}
 function abilsOf(u){if(!u.op)return[];return CLASS_AB[u.cls].filter((a,i)=>u.lvl>=AB_LVL[i])}
 const pipGeo=new THREE.BoxGeometry(.12,.06,.12),pipMat=new THREE.MeshBasicMaterial({color:0xffffff});
 function pips(t,n){const p=W(t.x,t.z);for(let i=0;i<n;i++){const m=new THREE.Mesh(pipGeo,pipMat);m.position.set(p.x-.3+i*.17,topY(t)+.06,p.z-.3);m.userData.tile=t;hl.add(m)}}
@@ -3676,7 +3728,7 @@ async function tap(cx,cy){if(S.phase!=='player'||S.busy)return;const h=pickAt(cx
     if(u&&!u.down&&!u.acted&&!v.down&&v.seen){const c=hitChance(u,v);if(c){if(S.aim===v){S.aim=null;clearUndo();S.busy=true;refresh();await shoot(u,v);u.acted=true;u.disg=0;S.busy=false;afterOrder();return}S.aim=v;sfx('ui');refresh();return}}if(v.seen&&!v.down)log(`${v.name}: ${v.hp}/${v.maxHp} health, ${v.weapon.name.toLowerCase()}, range ${v.weapon.range}${u&&!u.acted&&!u.down&&!hitChance(u,v)?'. Out of range or no line of sight':''}`);return}
   if(h.tile&&u&&S.reach&&S.reach.d.has(key(h.tile.x,h.tile.z))&&!(h.tile.x===u.x&&h.tile.z===u.z)){S.busy=true;hl.clear();$('#hud').querySelectorAll('.tg').forEach(e=>e.remove());
     const snap=undoSnap(u);S.reacted=false;
-    await moveAlong(u,pathTo(S.reach,h.tile.x,h.tile.z));u.moved=true;mechSpotCheck();
+    await moveAlong(u,pathTo(S.reach,h.tile.x,h.tile.z));u.moved=true;mechSpotCheck();coach('move');
     // Every move can be undone, along with anything it set off (overwatch
     // shots, being spotted, new contacts, the cartridge). Only a move that
     // ends the mission or completes an objective (which spawns the next
@@ -3781,7 +3833,7 @@ async function turretsFire(team){for(const tu of units.filter(x=>x.cls==='turret
 function startTurnEffects(team){for(const t of S.info.cps){if(t.owner!==team)continue;for(const v of living(team)){if(v.cls==='turret')continue;
     if(t.cp==='health'&&v.hp<v.maxHp){v.hp=Math.min(v.maxHp,v.hp+10);updBar(v)}if(t.cp==='supply')for(const k in v.cd)v.cd[k]=Math.max(0,v.cd[k]-1)}}
   for(const v of units.filter(x=>x.team===team&&!x.gone)){for(const k in v.cd)v.cd[k]=Math.max(0,v.cd[k]-1);v.ow=false;v.hunk=false;if(v.disg>0)v.disg--;v.moved=v.acted=false;if(v.stun>0&&v.cls!=='turret'){v.moved=v.acted=true;v.stun--}updBar(v)}}
-async function endPlayerTurn(){clearUndo();mechTurnTick('p');S.phase='enemy';S.sel=null;S.mode=null;refresh();await alliesAct();if(checkEnd())return;if(!M.defend)await moveBot();if(advanceObj())return;await turretsFire('p');if(checkEnd()||advanceObj())return;await enemyTurn()}
+async function endPlayerTurn(){coach('end');clearUndo();mechTurnTick('p');S.phase='enemy';S.sel=null;S.mode=null;refresh();await alliesAct();if(checkEnd())return;if(!M.defend)await moveBot();if(advanceObj())return;await turretsFire('p');if(checkEnd()||advanceObj())return;await enemyTurn()}
 async function enemyTurn(){banner('Enemy turn','enemy');await sleep(800);startTurnEffects('e');for(const e of living('e'))if(e.ghostT>0)e.ghostT--;if(M.defend){topUpAttackers();rivalsFill();assignRoles()}if(M.control){const alive=living('e').filter(x=>x.cls!=='turret'&&x.cls!=='bot').length;topUpAttackers(alive<=2?3:2);ctlRivalReturns();rivalsFill();assignRoles()}
   for(const[t,list]of(S.noReinf?[]:M.stages?(M.stages[S.stage].reinf||[]):(M.reinf||[])))if(t===(M.stages?S.stageTurn:S.turn)){let any=false,cnt=0;for(const[type,x,z]of list){if(cnt>=DF().wave)break;if(unitAt(x,z)||G[z][x].obj)continue;cnt++;const e=spawnEnemy(type,x,z,S.R);e.fresh=true;any=true}if(any){log('Enemy reinforcements have arrived');S.alerted=true;applyFog();await sleep(500)}}
   for(const e of [...living('e')]){if(S.over)return;if(e.fresh){e.fresh=false;continue}if(e.cls==='turret'||e.cls==='bot')continue;if(e.moved&&e.acted)continue;await aiAct(e);updBar(e);if(checkEnd())return;if(S.over)return}
@@ -3789,7 +3841,7 @@ async function enemyTurn(){banner('Enemy turn','enemy');await sleep(800);startTu
   await turretsFire('e');if(checkEnd())return;mechTurnTick('e');if(checkEnd())return;if(M.defend){await moveBot();if(advanceObj())return}
   const o=curObj();if(o&&o.type==='hold'&&squad().some(p=>!p.down&&G[p.z][p.x].zone)){S.hold++;log(`Square held (${S.hold}/${o.turns})`)}if(M.control&&ctlTick())return;
   if(advanceObj())return;
-  S.turn++;S.stageTurn++;if(S.turnsLeft!=null){S.turnsLeft--;if(S.turnsLeft<=0){if(M.defend)endMission(true);else if(M.control){const C=S.ctl.score;endMission(C.p>C.e,C.p>C.e?'':C.p===C.e?'Time ran out with the score level. The Row stays contested.':'Time ran out and they were ahead.')}else endMission(false,'Out of time. The enemy held the line.');return}if(S.turnsLeft<=2)log(M.defend?`Hold on! ${S.turnsLeft} turn${S.turnsLeft>1?'s':''} to go.`:`${S.turnsLeft} turn${S.turnsLeft>1?'s':''} left to complete the objective!`)}S.reveals=S.reveals.filter(r=>--r.turns>0);startTurnEffects('p');redeployDowned();if(checkEnd())return;S.phase='player';computeVis();banner('Your turn');
+  S.turn++;S.stageTurn++;if(S.turnsLeft!=null){S.turnsLeft--;if(S.turnsLeft<=0){if(M.defend)endMission(true);else if(M.control){const C=S.ctl.score;endMission(C.p>C.e,C.p>C.e?'':C.p===C.e?'Time ran out with the score level. The Row stays contested.':'Time ran out and they were ahead.')}else endMission(false,'Out of time. The enemy held the line.');return}if(S.turnsLeft<=2)log(M.defend?`Hold on! ${S.turnsLeft} turn${S.turnsLeft>1?'s':''} to go.`:`${S.turnsLeft} turn${S.turnsLeft>1?'s':''} left to complete the objective!`)}S.reveals=S.reveals.filter(r=>--r.turns>0);startTurnEffects('p');redeployDowned();if(checkEnd())return;S.phase='player';computeVis();banner('Your turn');coach('turn');
   S.sel=squad().find(p=>!isDone(p))||squad().find(p=>!p.down)||null;focus(S.sel);refresh()}
 function redeployDowned(){for(const u of (M.control?units.filter(q=>q.team==='p'&&!q.gone&&(q.op||q.ally)):squad())){if(!u.down)continue;u.downTurns=(u.downTurns||0)+1;if(u.op&&u.op.guest){updBar(u);if(u.downTurns===2)log('Mara Quill is still down. Revive her next turn or the breakout fails.');continue}if(u.downTurns<(M.control?2:3)&&!u.redeploy){updBar(u);continue}u.redeploy=false;
     const free=S.info.spawns.filter(t=>!unitAt(t.x,t.z,u));let t=free[0];if(!t){let best=null;for(const row of G)for(const c of row){if(c.type==='water'||c.obj||c.pass||unitAt(c.x,c.z,u))continue;const d=Math.min(...S.info.spawns.map(s2=>dist(s2,c)));if(!best||d<best.d)best={c,d}}t=best&&best.c}if(!t)continue;
@@ -3842,7 +3894,7 @@ function objectiveGuard(x,z){const o=curObj();if(o&&o.type==='escort'&&S.bot)ret
 
 /* ---------- end ---------- */
 function checkEnd(){if(S.over)return true;if(S.prisoner&&S.prisoner.down&&(S.prisoner.downTurns||0)>=3){endMission(false,'Mara Quill was left behind. Without her, the breakout is over.');return true}if(!squad().some(p=>!p.down)){endMission(false,'The whole squad is down.');return true}return false}
-function endMission(won,why){if(S.over)return;S.over=true;S.phase='over';applyFog();refresh();
+function endMission(won,why){if(S.over)return;S.over=true;coachHide();S.phase='over';applyFog();refresh();
   const f=CUR.faction,m=M,res=[];let recruit=null;
   for(const u of squad()){const op=SAVE.roster[f].find(o=>o.id===u.op.id);if(!op)continue;const before=lvlOf(op.xp);
     let xp=won?m.xp:25;xp+=u.kills*15+(S.credit[op.id]||0)*25;if(won&&S.info.cps.length&&S.info.cps.every(t=>t.owner==='p'))xp+=20;xp=Math.max(0,xp-(S.stats.civ||0)*5);
