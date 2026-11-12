@@ -1,6 +1,6 @@
 // Arkside service worker: lets the game install to the home screen and run offline.
 // The game page is fetched fresh when online (so updates arrive) and served from cache when offline.
-const CACHE = 'arkside-v2';
+const CACHE = 'arkside-v3';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 const CDN = ['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'];
 
