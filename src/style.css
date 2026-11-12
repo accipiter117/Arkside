@@ -419,3 +419,16 @@ body[data-faction="security"] .tape{display:none}
 .ub.ally span{color:#d6dbdd}.ub.ally b{background:#8fa0a8}
 /* hit chance sits above the unit's name and health bar */
 .tg{margin-top:-34px}
+
+/* first-mission tips, the briefing lead, the first-mission card, no-3D notices */
+#coach{position:absolute;left:64px;right:58px;top:58px;z-index:4;background:var(--glass2);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#fff;border-radius:12px;padding:10px 12px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+#coach p{margin:4px 0 8px;font-size:15px;line-height:1.35}#coach .kick{color:var(--acc)}#coach .row{display:flex;gap:8px;flex-wrap:wrap}#coach .btn{min-height:36px;padding:6px 12px}
+.title-hero .tagline{font-size:14px;opacity:.85;margin-top:4px;max-width:34em}
+.lead{border-left:4px solid var(--acc);background:var(--card,rgba(127,127,127,.08));border-radius:8px;padding:10px 12px;margin:10px 0 12px}
+.lead b{display:block;font:600 24px/1.1 Teko,sans-serif;letter-spacing:.3px;text-transform:uppercase}.lead b i{font-style:normal;color:var(--acc)}
+.lead small{display:block;margin-top:4px;font-size:14px;line-height:1.35;opacity:.85}
+.txmore{margin:4px 0 10px}.txmore[open] summary{margin-bottom:8px}
+.firstmis{display:block;width:100%;text-align:left;border:2px solid var(--acc);border-radius:12px;background:var(--card,rgba(127,127,127,.08));color:inherit;padding:12px 14px;margin:10px 0 14px;font:inherit;cursor:pointer}
+.firstmis b{display:block;font:600 22px/1.1 Teko,sans-serif;text-transform:uppercase;margin:2px 0 4px}.firstmis span{display:block;font-size:14px;line-height:1.35;opacity:.85}.firstmis .kick{color:var(--acc)}
+.no3d{border:2px solid #c8321f;border-radius:10px;padding:10px 12px;margin:10px 0;background:rgba(200,50,31,.08)}.no3d p{margin:4px 0 0;font-size:14px;line-height:1.35}
+.fail .btn{margin-top:12px}
